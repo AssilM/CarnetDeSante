@@ -106,9 +106,9 @@ const Sidebar = () => {
         </nav>
       </aside>
 
-      {/* Menu mobile */}
+      {/* Menu mobile avec effet de flou */}
       <div
-        className={`fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity duration-300 md:hidden
+        className={`fixed inset-0 backdrop-blur-sm bg-black/30 z-30 transition-all duration-300 md:hidden
           ${
             isMobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
