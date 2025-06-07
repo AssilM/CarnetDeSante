@@ -15,14 +15,14 @@ const WelcomeCard = () => {
           </p>
           <Link
             to="/articles"
-            className="inline-block bg-white text-blue-600 px-6 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+            className="inline-block bg-white text-primary px-6 py-2 rounded-lg font-medium hover:bg-secondary transition-colors"
           >
             En apprendre plus
           </Link>
         </div>
       </div>
       <div className="w-24 h-24 relative">
-        <svg viewBox="0 0 100 100" className="w-full h-full text-blue-800">
+        <svg viewBox="0 0 100 100" className="w-full h-full text-primary">
           <circle cx="50" cy="50" r="50" fill="currentColor" />
           <circle cx="50" cy="35" r="20" fill="#fff" />
           <path

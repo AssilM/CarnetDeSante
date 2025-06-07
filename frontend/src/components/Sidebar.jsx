@@ -77,24 +77,24 @@ const Sidebar = () => {
         onMouseEnter={() => setIsSidebarExpanded(true)}
         onMouseLeave={() => setIsSidebarExpanded(false)}
       >
-        <nav className="flex-1 py-4">
-          <ul className="space-y-2">
+        <nav className="flex-1 py-4 px-2">
+          <ul className="space-y-1">
             {menuItems.map((item, index) => (
               <li key={index}>
                 <Link
                   to={item.path}
-                  className={`flex items-center px-4 py-3 transition-colors duration-200
+                  className={`flex items-center px-3 py-3 rounded-xl transition-colors duration-200
                     ${
                       isActive(item.path)
-                        ? "bg-blue-600 text-white"
-                        : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                        ? "bg-primary text-white"
+                        : "text-gray-700 hover:bg-secondary hover:text-primary"
                     }`}
                 >
-                  <span className="flex items-center justify-center w-6">
+                  <span className="flex items-center justify-center w-8">
                     {item.icon}
                   </span>
                   <span
-                    className={`ml-4 whitespace-nowrap transition-opacity duration-300 
+                    className={`whitespace-nowrap transition-opacity duration-300 
                       ${isSidebarExpanded ? "opacity-100" : "opacity-0"}`}
                   >
                     {item.label}
@@ -118,24 +118,24 @@ const Sidebar = () => {
         className={`fixed top-16 left-0 h-[calc(100vh-4rem)] w-64 bg-white shadow-md transition-transform duration-300 z-40 md:hidden
           ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <nav className="flex-1 py-4">
-          <ul className="space-y-2">
+        <nav className="flex-1 py-4 px-2">
+          <ul className="space-y-1">
             {menuItems.map((item, index) => (
               <li key={index}>
                 <Link
                   to={item.path}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center px-4 py-3 transition-colors duration-200
+                  className={`flex items-center px-3 py-3 rounded-xl transition-colors duration-200
                     ${
                       isActive(item.path)
-                        ? "bg-blue-600 text-white"
-                        : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                        ? "bg-primary text-white"
+                        : "text-gray-700 hover:bg-secondary hover:text-primary"
                     }`}
                 >
-                  <span className="flex items-center justify-center w-6">
+                  <span className="flex items-center justify-center w-8">
                     {item.icon}
                   </span>
-                  <span className="ml-4">{item.label}</span>
+                  <span className="whitespace-nowrap">{item.label}</span>
                 </Link>
               </li>
             ))}

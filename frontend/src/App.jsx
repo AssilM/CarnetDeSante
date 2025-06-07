@@ -5,6 +5,7 @@ import { UserProvider } from "./context/UserContext";
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 import Footer from "./components/Footer";
+import ScrollToTop from "./components/common/ScrollToTop";
 import HomePatient from "./pages/patient/HomePatient";
 import HomeDoctor from "./pages/doctor/HomeDoctor";
 import HomeAdmin from "./pages/admin/HomeAdmin";
@@ -13,6 +14,8 @@ import Settings from "./pages/patient/settings/Settings";
 import EditEmail from "./pages/patient/settings/EditEmail";
 import EditPhone from "./pages/patient/settings/EditPhone";
 import EditPassword from "./pages/patient/settings/EditPassword";
+import Documents from "./pages/patient/Documents";
+import Vaccination from "./pages/patient/Vaccination";
 
 const USER_TYPES = {
   PATIENT: "patient",
@@ -42,6 +45,7 @@ const App = () => {
     <AppProvider>
       <UserProvider>
         <div className="min-h-screen flex flex-col bg-gray-50">
+          <ScrollToTop />
           <Navbar />
           <div className="flex-1 flex">
             <Sidebar />
@@ -49,6 +53,8 @@ const App = () => {
               <Routes>
                 <Route path="/" element={getHomeComponent()} />
                 <Route path="/medical-profile" element={<MedicalProfile />} />
+                <Route path="/documents" element={<Documents />} />
+                <Route path="/vaccination" element={<Vaccination />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/settings/edit-email" element={<EditEmail />} />
                 <Route path="/settings/edit-phone" element={<EditPhone />} />

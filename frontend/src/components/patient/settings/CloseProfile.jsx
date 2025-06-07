@@ -12,14 +12,14 @@ const CloseProfile = () => {
         Clôture du profil de {fullName}
       </h2>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-        <FiInfo className="text-blue-600 text-xl mt-1" />
+      <div className="bg-secondary border border-primary/20 rounded-lg p-4 mb-6 flex items-start gap-3">
+        <FiInfo className="text-primary text-xl mt-1" />
         <div>
-          <p className="font-medium text-blue-900">
+          <p className="font-medium text-primary/90">
             Avant de clôturer, pensez à récupérer vos données dans la rubrique
             Télécharger les données.
           </p>
-          <p className="text-blue-800">
+          <p className="text-primary/80">
             Une fois le profil clôturé, il ne sera plus possible de les
             télécharger.
           </p>

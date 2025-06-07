@@ -73,7 +73,7 @@ const ConnectionInfo = () => {
               <div className="flex items-center gap-3">
                 <FiPhone className="text-lg sm:text-xl text-gray-500 flex-shrink-0" />
                 <div className="min-w-0">
-                  <div className="font-medium">Numéro de téléphone mobile</div>
+                  <div className="font-medium">Numéro de téléphone</div>
                   <div className="text-gray-600 truncate">{phone}</div>
                 </div>
               </div>

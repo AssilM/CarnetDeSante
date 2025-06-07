@@ -33,8 +33,8 @@ const ProfileSidebar = () => {
               to={`/profile-patient${item.hash}`}
               className={`block px-4 py-2 rounded-lg transition-colors ${
                 currentPath === item.hash
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-700 hover:bg-blue-50"
+                  ? "bg-primary text-white"
+                  : "text-gray-700 hover:bg-secondary"
               }`}
             >
               {item.label}

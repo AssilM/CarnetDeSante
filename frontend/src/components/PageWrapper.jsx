@@ -7,7 +7,7 @@ const PageWrapper = ({ children, className = "" }) => {
   return (
     <div
       className={`transition-all duration-300 
-        ${isSidebarExpanded ? "md:pl-64" : "md:pl-16"}
+        ${isSidebarExpanded ? "md:pl-70" : "md:pl-16"}
         ${className}`}
     >
       {children}
