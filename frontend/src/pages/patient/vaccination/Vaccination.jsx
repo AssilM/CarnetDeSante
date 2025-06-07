@@ -1,16 +1,19 @@
 import React, { useState } from "react";
-import PageWrapper from "../../components/PageWrapper";
-import ItemsList from "../../components/common/ItemsList";
-import AddVaccineForm from "../../components/patient/vaccination/AddVaccineForm";
-import VaccineDetails from "../../components/patient/vaccination/VaccineDetails";
+import { useNavigate } from "react-router-dom";
+import { useVaccinationContext } from "../../../context/VaccinationContext";
+import PageWrapper from "../../../components/PageWrapper";
+import ItemsList from "../../../components/common/ItemsList";
+import AddVaccineForm from "../../../components/patient/vaccination/AddVaccineForm";
 
 const Vaccination = () => {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedVaccine, setSelectedVaccine] = useState(null);
+  const navigate = useNavigate();
+  const { setSelectedVaccine } = useVaccinationContext();
 
   // Données de test
   const vaccines = [
     {
+      id: "1",
       name: "Vaccin COVID-19",
       date: "15/01/2024",
       doctor: "Dr. Martin",
@@ -21,6 +24,7 @@ const Vaccination = () => {
       manufacturer: "Pfizer",
     },
     {
+      id: "2",
       name: "Vaccin Grippe",
       date: "01/11/2023",
       doctor: "Dr. Dupont",
@@ -30,6 +34,7 @@ const Vaccination = () => {
       manufacturer: "Sanofi",
     },
     {
+      id: "3",
       name: "Rappel DTP",
       date: "10/06/2023",
       doctor: "Dr. Bernard",
@@ -48,6 +53,7 @@ const Vaccination = () => {
 
   const handleViewDetails = (vaccine) => {
     setSelectedVaccine(vaccine);
+    navigate("/vaccination/details");
   };
 
   const handleGenerateReport = () => {
@@ -66,21 +72,10 @@ const Vaccination = () => {
       );
     }
 
-    if (selectedVaccine) {
-      return (
-        <div className="mt-10">
-          <VaccineDetails
-            vaccine={selectedVaccine}
-            onClose={() => setSelectedVaccine(null)}
-          />
-        </div>
-      );
-    }
-
     const generateReportButton = (
       <button
         onClick={handleGenerateReport}
-        className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        className="px-4 py-2 text-sm font-medium text-primary bg-secondary rounded-md hover:bg-secondary/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
       >
         Générer un récapitulatif
       </button>
