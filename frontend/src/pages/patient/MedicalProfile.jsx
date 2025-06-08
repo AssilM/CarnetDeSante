@@ -1,16 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import PageWrapper from "../../components/PageWrapper";
 import { FaUserMd } from "react-icons/fa";
 import InfoSection from "../../components/patient/medical/InfoSection";
 import MedicalHistorySection from "../../components/patient/medical/MedicalHistorySection";
 import AllergiesSection from "../../components/patient/medical/AllergiesSection";
 import HealthHistorySection from "../../components/patient/medical/HealthHistorySection";
-import EditInfoForm from "../../components/patient/medical/forms/EditInfoForm";
-import AddMedicalHistoryForm from "../../components/patient/medical/forms/AddMedicalHistoryForm";
-import AddAllergyForm from "../../components/patient/medical/forms/AddAllergyForm";
-import MedicalHistoryDetails from "../../components/patient/medical/details/MedicalHistoryDetails";
-import AllergyDetails from "../../components/patient/medical/details/AllergyDetails";
-import HealthEventDetails from "../../components/patient/medical/details/HealthEventDetails";
+import {
+  useMedicalInfoContext,
+  useMedicalHistoryContext,
+  useAllergyContext,
+  useHealthEventContext,
+} from "../../context";
 
 /**
  * Page principale du profil médical
@@ -18,23 +19,37 @@ import HealthEventDetails from "../../components/patient/medical/details/HealthE
  * Utilise un système d'onglets pour alterner entre les informations personnelles et l'historique
  */
 const MedicalProfile = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Contextes pour les différentes sections
+  const { setSelectedItem: setSelectedInfo, setItems: setInfoItems } =
+    useMedicalInfoContext();
+  const { setSelectedItem: setSelectedHistory, setItems: setHistoryItems } =
+    useMedicalHistoryContext();
+  const { setSelectedItem: setSelectedAllergy, setItems: setAllergyItems } =
+    useAllergyContext();
+  const { setSelectedItem: setSelectedEvent, setItems: setEventItems } =
+    useHealthEventContext();
+
+  // Lecture du paramètre de requête pour définir l'onglet actif initial
+  const queryParams = new URLSearchParams(location.search);
+  const tabParam = queryParams.get("tab");
+
   // État pour gérer l'onglet actif (informations ou historique)
-  const [activeTab, setActiveTab] = useState("informations");
+  const [activeTab, setActiveTab] = useState(
+    tabParam === "historique" ? "historique" : "informations"
+  );
   // État pour le filtre de l'historique de santé (jour/mois/année)
   const [activeFilter, setActiveFilter] = useState("jour");
-  // États pour gérer l'affichage des formulaires
-  const [showEditInfo, setShowEditInfo] = useState(false);
-  const [showAddHistory, setShowAddHistory] = useState(false);
-  const [showAddAllergy, setShowAddAllergy] = useState(false);
 
-  // États pour gérer l'affichage des détails
-  const [selectedHistory, setSelectedHistory] = useState(null);
-  const [selectedAllergy, setSelectedAllergy] = useState(null);
-  const [selectedEvent, setSelectedEvent] = useState(null);
+  // Nombre maximum d'éléments à afficher dans chaque section
+  const MAX_ITEMS_TO_DISPLAY = 2;
 
   // Données de test pour le développement
   // À remplacer par des appels API dans la version finale
   const patientInfo = {
+    id: "info-1",
     firstName: "Jean",
     lastName: "Dupont",
     age: 30,
@@ -46,173 +61,148 @@ const MedicalProfile = () => {
 
   const medicalHistory = [
     {
-      type: "Type de maladie",
-      date: "Date de début",
+      id: "history-1",
+      type: "Type de maladie 1",
+      date: "01/01/2023",
+      description: "Description de la maladie 1",
+      treatment: "Traitement prescrit pour la maladie 1",
     },
     {
-      type: "Type de maladie",
-      date: "Date de début",
+      id: "history-2",
+      type: "Type de maladie 2",
+      date: "02/02/2023",
+      description: "Description de la maladie 2",
+      treatment: "Traitement prescrit pour la maladie 2",
+    },
+    {
+      id: "history-3",
+      type: "Type de maladie 3",
+      date: "03/03/2023",
+      description: "Description de la maladie 3",
+      treatment: "Traitement prescrit pour la maladie 3",
+    },
+    {
+      id: "history-4",
+      type: "Type de maladie 4",
+      date: "04/04/2023",
+      description: "Description de la maladie 4",
+      treatment: "Traitement prescrit pour la maladie 4",
     },
   ];
 
   const allergies = [
     {
-      type: "Type d'allergies",
-      date: "Date de début",
+      id: "allergy-1",
+      type: "Type d'allergie 1",
+      date: "10/01/2023",
+      severity: "Légère",
+      reaction: "Réaction à l'allergie 1",
+      treatment: "Traitement pour l'allergie 1",
     },
     {
-      type: "Type d'allergies",
-      date: "Date de début",
+      id: "allergy-2",
+      type: "Type d'allergie 2",
+      date: "20/02/2023",
+      severity: "Modérée",
+      reaction: "Réaction à l'allergie 2",
+      treatment: "Traitement pour l'allergie 2",
+    },
+    {
+      id: "allergy-3",
+      type: "Type d'allergie 3",
+      date: "30/03/2023",
+      severity: "Sévère",
+      reaction: "Réaction à l'allergie 3",
+      treatment: "Traitement pour l'allergie 3",
     },
   ];
 
   const healthEvents = [
     {
-      date: "10 avril 2025",
+      id: "event-1",
+      date: "10/04/2023",
       title: "Suivi médical dentaire",
       doctor: "Docteur X",
+      location: "Cabinet médical A",
+      description: "Contrôle dentaire régulier",
+      result: "Aucun problème détecté",
     },
     {
-      date: "10 avril 2025",
-      title: "Suivi médical dentaire",
-      doctor: "Docteur X",
+      id: "event-2",
+      date: "15/05/2023",
+      title: "Suivi médical général",
+      doctor: "Docteur Y",
+      location: "Hôpital B",
+      description: "Bilan annuel de santé",
+      result: "Résultats normaux",
     },
     {
-      date: "10 février 2025",
-      title: "Suivi médical dentaire",
-      doctor: "Docteur X",
+      id: "event-3",
+      date: "20/06/2023",
+      title: "Examen ophtalmologique",
+      doctor: "Docteur Z",
+      location: "Clinique C",
+      description: "Contrôle de la vue",
+      result: "Prescription de nouvelles lunettes",
     },
   ];
 
+  // Initialisation des données dans les contextes
+  useEffect(() => {
+    setInfoItems([patientInfo]);
+    setHistoryItems(medicalHistory);
+    setAllergyItems(allergies);
+    setEventItems(healthEvents);
+  }, [setInfoItems, setHistoryItems, setAllergyItems, setEventItems]);
+
   /**
    * Gestionnaires d'événements pour les différentes actions utilisateur
-   * Ces fonctions seront connectées à l'API dans la version finale
+   * Ces fonctions naviguent vers les pages correspondantes
    */
   const handleModifyInfo = () => {
-    setShowEditInfo(true);
+    setSelectedInfo(patientInfo);
+    navigate("/medical-profile/edit");
   };
 
   const handleAddHistory = () => {
-    setShowAddHistory(true);
+    navigate("/medical-profile/history/add");
   };
 
   const handleHistoryDetails = (item) => {
     setSelectedHistory(item);
+    navigate("/medical-profile/history/details");
+  };
+
+  const handleViewAllHistory = () => {
+    navigate("/medical-profile/history");
   };
 
   const handleAddAllergy = () => {
-    setShowAddAllergy(true);
+    navigate("/medical-profile/allergies/add");
   };
 
   const handleAllergyDetails = (allergy) => {
     setSelectedAllergy(allergy);
+    navigate("/medical-profile/allergies/details");
+  };
+
+  const handleViewAllAllergies = () => {
+    navigate("/medical-profile/allergies");
   };
 
   const handleHealthEventDetails = (event) => {
     setSelectedEvent(event);
+    navigate("/medical-profile/details");
   };
 
-  // Gestionnaires pour la soumission des formulaires
-  const handleInfoSubmit = (data) => {
-    console.log("Nouvelles informations:", data);
-    setShowEditInfo(false);
+  const handleViewAllEvents = () => {
+    navigate("/medical-profile");
   };
-
-  const handleHistorySubmit = (data) => {
-    console.log("Nouvel antécédent:", data);
-    setShowAddHistory(false);
-  };
-
-  const handleAllergySubmit = (data) => {
-    console.log("Nouvelle allergie:", data);
-    setShowAddAllergy(false);
-  };
-
-  // Si un formulaire est actif, on l'affiche à la place du contenu principal
-  if (showEditInfo) {
-    return (
-      <PageWrapper className="bg-gray-50">
-        <div className="mt-10">
-          <EditInfoForm
-            initialData={patientInfo}
-            onSubmit={handleInfoSubmit}
-            onCancel={() => setShowEditInfo(false)}
-          />
-        </div>
-      </PageWrapper>
-    );
-  }
-
-  if (showAddHistory) {
-    return (
-      <PageWrapper className="bg-gray-50">
-        <div className="mt-10">
-          <AddMedicalHistoryForm
-            onSubmit={handleHistorySubmit}
-            onCancel={() => setShowAddHistory(false)}
-          />
-        </div>
-      </PageWrapper>
-    );
-  }
-
-  if (showAddAllergy) {
-    return (
-      <PageWrapper className="bg-gray-50">
-        <div className="mt-10">
-          <AddAllergyForm
-            onSubmit={handleAllergySubmit}
-            onCancel={() => setShowAddAllergy(false)}
-          />
-        </div>
-      </PageWrapper>
-    );
-  }
-
-  // Si des détails sont sélectionnés, on les affiche
-  if (selectedHistory) {
-    return (
-      <PageWrapper className="bg-gray-50">
-        <div className="mt-10">
-          <MedicalHistoryDetails
-            history={selectedHistory}
-            onClose={() => setSelectedHistory(null)}
-          />
-        </div>
-      </PageWrapper>
-    );
-  }
-
-  if (selectedAllergy) {
-    return (
-      <PageWrapper className="bg-gray-50">
-        <div className="mt-10">
-          <AllergyDetails
-            allergy={selectedAllergy}
-            onClose={() => setSelectedAllergy(null)}
-          />
-        </div>
-      </PageWrapper>
-    );
-  }
-
-  if (selectedEvent) {
-    return (
-      <PageWrapper className="bg-gray-50">
-        <div className="mt-10">
-          <HealthEventDetails
-            event={selectedEvent}
-            onClose={() => setSelectedEvent(null)}
-          />
-        </div>
-      </PageWrapper>
-    );
-  }
 
   return (
     <PageWrapper className="bg-gray-50">
       {/* En-tête de la page avec icône et titre */}
-      <div className="bg-white">
+      <div className="bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center">
@@ -231,7 +221,7 @@ const MedicalProfile = () => {
       </div>
 
       {/* Barre de navigation entre les onglets */}
-      <div className="bg-white">
+      <div className="bg-gray-50 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex justify-center">
             <div className="flex w-full sm:w-auto justify-between sm:justify-center sm:space-x-8 md:space-x-12">
@@ -276,11 +266,15 @@ const MedicalProfile = () => {
               history={medicalHistory}
               onAdd={handleAddHistory}
               onDetails={handleHistoryDetails}
+              onViewAll={handleViewAllHistory}
+              limit={MAX_ITEMS_TO_DISPLAY}
             />
             <AllergiesSection
               allergies={allergies}
               onAdd={handleAddAllergy}
               onDetails={handleAllergyDetails}
+              onViewAll={handleViewAllAllergies}
+              limit={MAX_ITEMS_TO_DISPLAY}
             />
           </div>
         ) : (
@@ -290,6 +284,8 @@ const MedicalProfile = () => {
             activeFilter={activeFilter}
             onFilterChange={setActiveFilter}
             onDetails={handleHealthEventDetails}
+            onViewAll={handleViewAllEvents}
+            limit={5} // Limite pour la section d'historique
           />
         )}
       </div>

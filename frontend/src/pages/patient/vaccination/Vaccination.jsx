@@ -1,58 +1,76 @@
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useVaccinationContext } from "../../../context/VaccinationContext";
+import { useVaccinationContext } from "../../../context";
 import PageWrapper from "../../../components/PageWrapper";
-import ItemsList from "../../../components/common/ItemsList";
+import { ItemsList, ActionButton } from "../../../components/patient/common";
 import AddVaccineForm from "../../../components/patient/vaccination/AddVaccineForm";
+import { useFormModal } from "../../../hooks";
 
 const Vaccination = () => {
-  const [showAddForm, setShowAddForm] = useState(false);
   const navigate = useNavigate();
-  const { setSelectedVaccine } = useVaccinationContext();
+  const { selectItem, setItems, items, addItem } = useVaccinationContext();
 
-  // Données de test
-  const vaccines = [
-    {
-      id: "1",
-      name: "Vaccin COVID-19",
-      date: "15/01/2024",
-      doctor: "Dr. Martin",
-      subtitle: "Lot: ABC123",
-      location: "Centre de vaccination",
-      nextDose: "15/07/2024",
-      type: "ARNm",
-      manufacturer: "Pfizer",
-    },
-    {
-      id: "2",
-      name: "Vaccin Grippe",
-      date: "01/11/2023",
-      doctor: "Dr. Dupont",
-      subtitle: "Lot: XYZ789",
-      location: "Cabinet médical",
-      type: "Inactivé",
-      manufacturer: "Sanofi",
-    },
-    {
-      id: "3",
-      name: "Rappel DTP",
-      date: "10/06/2023",
-      doctor: "Dr. Bernard",
-      subtitle: "Lot: DEF456",
-      location: "Hôpital Central",
-      nextDose: "10/06/2033",
-      type: "Combiné",
-      manufacturer: "GSK",
-    },
-  ];
+  // Utilisation du hook personnalisé pour gérer le formulaire d'ajout
+  const {
+    isOpen: showAddForm,
+    openForm,
+    closeForm,
+    handleSubmit,
+  } = useFormModal((data) => {
+    // Génération d'un ID unique pour le nouveau vaccin
+    const newVaccine = {
+      ...data,
+      id: `vac-${Date.now()}`,
+      date: new Date().toLocaleDateString("fr-FR"),
+    };
 
-  const handleAddVaccine = (data) => {
-    console.log("Nouveau vaccin:", data);
-    setShowAddForm(false);
-  };
+    // Ajout du vaccin via le contexte
+    addItem(newVaccine);
+    console.log("Nouveau vaccin:", newVaccine);
+  });
+
+  // Initialisation des données de test
+  useEffect(() => {
+    if (items.length === 0) {
+      setItems([
+        {
+          id: "1",
+          name: "Vaccin COVID-19",
+          date: "15/01/2024",
+          doctor: "Dr. Martin",
+          subtitle: "Lot: ABC123",
+          location: "Centre de vaccination",
+          nextDose: "15/07/2024",
+          type: "ARNm",
+          manufacturer: "Pfizer",
+        },
+        {
+          id: "2",
+          name: "Vaccin Grippe",
+          date: "01/11/2023",
+          doctor: "Dr. Dupont",
+          subtitle: "Lot: XYZ789",
+          location: "Cabinet médical",
+          type: "Inactivé",
+          manufacturer: "Sanofi",
+        },
+        {
+          id: "3",
+          name: "Rappel DTP",
+          date: "10/06/2023",
+          doctor: "Dr. Bernard",
+          subtitle: "Lot: DEF456",
+          location: "Hôpital Central",
+          nextDose: "10/06/2033",
+          type: "Combiné",
+          manufacturer: "GSK",
+        },
+      ]);
+    }
+  }, [setItems, items.length]);
 
   const handleViewDetails = (vaccine) => {
-    setSelectedVaccine(vaccine);
+    selectItem(vaccine);
     navigate("/vaccination/details");
   };
 
@@ -64,30 +82,24 @@ const Vaccination = () => {
     if (showAddForm) {
       return (
         <div className="mt-10">
-          <AddVaccineForm
-            onSubmit={handleAddVaccine}
-            onCancel={() => setShowAddForm(false)}
-          />
+          <AddVaccineForm onSubmit={handleSubmit} onCancel={closeForm} />
         </div>
       );
     }
 
     const generateReportButton = (
-      <button
-        onClick={handleGenerateReport}
-        className="px-4 py-2 text-sm font-medium text-primary bg-secondary rounded-md hover:bg-secondary/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-      >
+      <ActionButton variant="secondary" onClick={handleGenerateReport}>
         Générer un récapitulatif
-      </button>
+      </ActionButton>
     );
 
     return (
       <ItemsList
-        items={vaccines}
+        items={items}
         type="vaccine"
         title="Vaccination"
         description="Permet de retrouver et d'ajouter des vaccins"
-        onAdd={() => setShowAddForm(true)}
+        onAdd={openForm}
         onViewDetails={handleViewDetails}
         addButtonText="Ajouter un vaccin"
         rightAction={generateReportButton}

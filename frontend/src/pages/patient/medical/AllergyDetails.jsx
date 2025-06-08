@@ -1,22 +1,22 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { FaSyringe, FaArrowLeft } from "react-icons/fa";
-import { useVaccinationContext } from "../../../context/VaccinationContext";
+import { FaAllergies, FaArrowLeft } from "react-icons/fa";
+import { useAllergyContext } from "../../../context";
 import PageWrapper from "../../../components/PageWrapper";
 
-const VaccineDetails = () => {
+const AllergyDetails = () => {
   const navigate = useNavigate();
-  const { selectedItem, clearSelectedItem } = useVaccinationContext();
+  const { selectedItem, clearSelectedItem } = useAllergyContext();
 
-  // Si aucun vaccin n'est sélectionné, rediriger vers la liste
+  // Si aucune allergie n'est sélectionnée, rediriger vers la liste
   if (!selectedItem) {
-    navigate("/vaccination");
+    navigate("/medical-profile/allergies");
     return null;
   }
 
   const handleBack = () => {
     clearSelectedItem();
-    navigate(-1);
+    navigate("/medical-profile/allergies");
   };
 
   return (
@@ -39,11 +39,11 @@ const VaccineDetails = () => {
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center">
-                <FaSyringe className="text-2xl text-primary" />
+                <FaAllergies className="text-2xl text-primary" />
               </div>
               <div>
                 <h1 className="text-2xl font-semibold text-gray-900">
-                  {selectedItem.name}
+                  {selectedItem.type || "Allergie"}
                 </h1>
                 <p className="text-gray-500">{selectedItem.date}</p>
               </div>
@@ -55,38 +55,46 @@ const VaccineDetails = () => {
             <div className="grid gap-6">
               <div>
                 <h2 className="text-sm font-medium text-gray-500 mb-1">
-                  Médecin
+                  Type d'allergie
                 </h2>
-                <p className="text-gray-900">{selectedItem.doctor}</p>
+                <p className="text-gray-900">
+                  {selectedItem.type || "Non spécifiée"}
+                </p>
               </div>
 
               <div>
-                <h2 className="text-sm font-medium text-gray-500 mb-1">Lieu</h2>
-                <p className="text-gray-900">{selectedItem.location}</p>
+                <h2 className="text-sm font-medium text-gray-500 mb-1">
+                  Date de diagnostic
+                </h2>
+                <p className="text-gray-900">{selectedItem.date}</p>
               </div>
 
-              {selectedItem.nextDose && (
+              {selectedItem.severity && (
                 <div>
                   <h2 className="text-sm font-medium text-gray-500 mb-1">
-                    Prochaine dose prévue
+                    Sévérité
                   </h2>
-                  <p className="text-gray-900">{selectedItem.nextDose}</p>
+                  <p className="text-gray-900">{selectedItem.severity}</p>
                 </div>
               )}
 
-              <div>
-                <h2 className="text-sm font-medium text-gray-500 mb-1">
-                  Type de vaccin
-                </h2>
-                <p className="text-gray-900">{selectedItem.type}</p>
-              </div>
+              {selectedItem.reaction && (
+                <div>
+                  <h2 className="text-sm font-medium text-gray-500 mb-1">
+                    Réaction
+                  </h2>
+                  <p className="text-gray-900">{selectedItem.reaction}</p>
+                </div>
+              )}
 
-              <div>
-                <h2 className="text-sm font-medium text-gray-500 mb-1">
-                  Fabricant
-                </h2>
-                <p className="text-gray-900">{selectedItem.manufacturer}</p>
-              </div>
+              {selectedItem.treatment && (
+                <div>
+                  <h2 className="text-sm font-medium text-gray-500 mb-1">
+                    Traitement
+                  </h2>
+                  <p className="text-gray-900">{selectedItem.treatment}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -95,4 +103,4 @@ const VaccineDetails = () => {
   );
 };
 
-export default VaccineDetails;
+export default AllergyDetails;
