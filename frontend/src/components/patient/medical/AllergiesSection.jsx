@@ -1,6 +1,7 @@
 import React from "react";
 import { FaAllergies, FaPlus, FaChevronRight } from "react-icons/fa";
 import ItemCard from "../common/ItemCard";
+import { useAllergyContext } from "../../../context";
 
 /**
  * Section affichant les allergies du patient
@@ -17,9 +18,15 @@ const AllergiesSection = ({
   onViewAll,
   limit,
 }) => {
+  const { togglePinned } = useAllergyContext();
+
   // Si une limite est définie, on ne garde que les n premiers éléments
   const displayedAllergies = limit ? allergies.slice(0, limit) : allergies;
   const hasMore = limit && allergies.length > limit;
+
+  const handleTogglePin = (id) => {
+    togglePinned(id);
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -57,6 +64,8 @@ const AllergiesSection = ({
                 date={item.date}
                 onViewDetails={() => onDetails(item)}
                 detailsText="Détails"
+                pinned={item.pinned}
+                onTogglePin={() => handleTogglePin(item.id)}
               />
             </div>
           ))

@@ -1,5 +1,11 @@
 import React from "react";
-import { FaFileAlt, FaSyringe, FaHistory, FaAllergies } from "react-icons/fa";
+import {
+  FaFileAlt,
+  FaSyringe,
+  FaHistory,
+  FaAllergies,
+  FaThumbtack,
+} from "react-icons/fa";
 
 /**
  * Composant de carte réutilisable pour afficher un élément (document, vaccin, antécédent ou allergie)
@@ -9,6 +15,8 @@ import { FaFileAlt, FaSyringe, FaHistory, FaAllergies } from "react-icons/fa";
  * @param {string} subtitle - Sous-titre ou description
  * @param {Function} onViewDetails - Fonction appelée pour voir les détails
  * @param {string} detailsText - Texte du bouton de détails (par défaut: "Aperçu")
+ * @param {boolean} pinned - Indique si l'élément est épinglé
+ * @param {Function} onTogglePin - Fonction appelée pour épingler/désépingler
  */
 const ItemCard = ({
   type,
@@ -17,6 +25,8 @@ const ItemCard = ({
   subtitle,
   onViewDetails,
   detailsText = "Aperçu",
+  pinned = false,
+  onTogglePin,
 }) => {
   // Détermine l'icône en fonction du type
   const getIcon = () => {
@@ -45,8 +55,17 @@ const ItemCard = ({
         return { bg: "bg-blue-100", text: "text-blue-600" };
       case "allergy":
         return { bg: "bg-red-100", text: "text-red-600" };
+      case "event":
+        return { bg: "bg-secondary", text: "text-primary" };
       default:
         return { bg: "bg-gray-100", text: "text-gray-600" };
+    }
+  };
+
+  const handleTogglePin = (e) => {
+    e.stopPropagation();
+    if (onTogglePin) {
+      onTogglePin();
     }
   };
 
@@ -69,12 +88,29 @@ const ItemCard = ({
               <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
             )}
           </div>
-          <button
-            onClick={onViewDetails}
-            className="text-sm text-primary hover:text-primary/80"
-          >
-            {detailsText} ›
-          </button>
+          <div className="flex items-center gap-2">
+            {onTogglePin && (
+              <button
+                onClick={handleTogglePin}
+                className={`p-2 rounded-full transition-colors ${
+                  pinned
+                    ? "text-amber-500 hover:text-amber-600"
+                    : "text-gray-400 hover:text-gray-600"
+                }`}
+                title={pinned ? "Désépingler" : "Épingler"}
+              >
+                <FaThumbtack
+                  className={`text-lg ${pinned ? "rotate-0" : "rotate-45"}`}
+                />
+              </button>
+            )}
+            <button
+              onClick={onViewDetails}
+              className="text-sm text-primary hover:text-primary/80"
+            >
+              {detailsText} ›
+            </button>
+          </div>
         </div>
       </div>
     </div>

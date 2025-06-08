@@ -6,7 +6,7 @@ import ItemsList from "../../../components/patient/common/ItemsList";
 
 const MedicalHistoryList = () => {
   const navigate = useNavigate();
-  const { items, setSelectedItem } = useMedicalHistoryContext();
+  const { items, setSelectedItem, togglePinned } = useMedicalHistoryContext();
 
   const handleAdd = () => {
     navigate("/medical-profile/history/add");
@@ -15,6 +15,10 @@ const MedicalHistoryList = () => {
   const handleDetails = (item) => {
     setSelectedItem(item);
     navigate("/medical-profile/history/details");
+  };
+
+  const handleTogglePin = (id) => {
+    togglePinned(id);
   };
 
   return (
@@ -26,6 +30,7 @@ const MedicalHistoryList = () => {
         description="Liste de vos antécédents médicaux"
         onAdd={handleAdd}
         onViewDetails={handleDetails}
+        onTogglePin={handleTogglePin}
         addButtonText="Ajouter un antécédent"
         backUrl="/medical-profile"
         itemNameField="type"

@@ -1,6 +1,7 @@
 import React from "react";
 import { FaCalendarAlt, FaChevronRight } from "react-icons/fa";
 import ItemCard from "../common/ItemCard";
+import { useHealthEventContext } from "../../../context";
 
 /**
  * Section affichant l'historique de santé du patient
@@ -19,9 +20,15 @@ const HealthHistorySection = ({
   onViewAll,
   limit,
 }) => {
+  const { togglePinned } = useHealthEventContext();
+
   // Si une limite est définie, on ne garde que les n premiers éléments
   const displayedEvents = limit ? events.slice(0, limit) : events;
   const hasMore = limit && events.length > limit;
+
+  const handleTogglePin = (id) => {
+    togglePinned(id);
+  };
 
   return (
     <div className="space-y-6">
@@ -91,6 +98,8 @@ const HealthHistorySection = ({
                   subtitle={event.doctor}
                   onViewDetails={() => onDetails(event)}
                   detailsText="Détails"
+                  pinned={event.pinned}
+                  onTogglePin={() => handleTogglePin(event.id)}
                 />
               </div>
             ))

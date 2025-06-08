@@ -25,6 +25,28 @@ export function createItemContext(itemName) {
       setItems((prev) => prev.filter((item) => item.id !== id));
     };
 
+    // Fonctionnalité d'épinglage
+    const togglePinned = (id) => {
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, pinned: !item.pinned } : item
+        )
+      );
+    };
+
+    // Filtres pour les items épinglés et récents
+    const getPinnedItems = () => items.filter((item) => item.pinned);
+    const getRecentItems = (limit = 5) => {
+      return [...items]
+        .sort((a, b) => {
+          // Convertir les dates au format français (DD/MM/YYYY) en objets Date
+          const dateA = a.date.split("/").reverse().join("-");
+          const dateB = b.date.split("/").reverse().join("-");
+          return new Date(dateB) - new Date(dateA);
+        })
+        .slice(0, limit);
+    };
+
     const value = {
       selectedItem,
       setSelectedItem,
@@ -35,6 +57,9 @@ export function createItemContext(itemName) {
       addItem,
       updateItem,
       removeItem,
+      togglePinned,
+      getPinnedItems,
+      getRecentItems,
     };
 
     return <Context.Provider value={value}>{children}</Context.Provider>;

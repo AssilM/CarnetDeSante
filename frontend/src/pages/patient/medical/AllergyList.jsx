@@ -6,7 +6,7 @@ import ItemsList from "../../../components/patient/common/ItemsList";
 
 const AllergyList = () => {
   const navigate = useNavigate();
-  const { items, setSelectedItem } = useAllergyContext();
+  const { items, setSelectedItem, togglePinned } = useAllergyContext();
 
   const handleAdd = () => {
     navigate("/medical-profile/allergies/add");
@@ -15,6 +15,10 @@ const AllergyList = () => {
   const handleDetails = (item) => {
     setSelectedItem(item);
     navigate("/medical-profile/allergies/details");
+  };
+
+  const handleTogglePin = (id) => {
+    togglePinned(id);
   };
 
   return (
@@ -26,6 +30,7 @@ const AllergyList = () => {
         description="Liste de vos allergies connues"
         onAdd={handleAdd}
         onViewDetails={handleDetails}
+        onTogglePin={handleTogglePin}
         addButtonText="Ajouter une allergie"
         backUrl="/medical-profile"
         itemNameField="type"

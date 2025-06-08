@@ -7,7 +7,7 @@ import { FaFilter } from "react-icons/fa";
 
 const HealthEventList = () => {
   const navigate = useNavigate();
-  const { items, setSelectedItem } = useHealthEventContext();
+  const { items, setSelectedItem, togglePinned } = useHealthEventContext();
 
   // État pour le filtre (jour/mois/année)
   const [activeFilter, setActiveFilter] = useState("jour");
@@ -15,6 +15,10 @@ const HealthEventList = () => {
   const handleDetails = (item) => {
     setSelectedItem(item);
     navigate("/medical-profile/details");
+  };
+
+  const handleTogglePin = (id) => {
+    togglePinned(id);
   };
 
   // Filtrer les événements selon le filtre actif
@@ -71,10 +75,11 @@ const HealthEventList = () => {
     <PageWrapper>
       <ItemsList
         items={filteredEvents}
-        type="history"
+        type="event"
         title="Historique de santé"
         description="Tous vos événements de santé"
         onViewDetails={handleDetails}
+        onTogglePin={handleTogglePin}
         backUrl="/medical-profile"
         rightAction={<FilterComponent />}
         itemNameField="title"

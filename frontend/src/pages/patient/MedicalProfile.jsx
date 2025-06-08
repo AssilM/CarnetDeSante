@@ -66,6 +66,7 @@ const MedicalProfile = () => {
       date: "01/01/2023",
       description: "Description de la maladie 1",
       treatment: "Traitement prescrit pour la maladie 1",
+      pinned: true,
     },
     {
       id: "history-2",
@@ -73,6 +74,7 @@ const MedicalProfile = () => {
       date: "02/02/2023",
       description: "Description de la maladie 2",
       treatment: "Traitement prescrit pour la maladie 2",
+      pinned: false,
     },
     {
       id: "history-3",
@@ -80,6 +82,7 @@ const MedicalProfile = () => {
       date: "03/03/2023",
       description: "Description de la maladie 3",
       treatment: "Traitement prescrit pour la maladie 3",
+      pinned: false,
     },
     {
       id: "history-4",
@@ -87,6 +90,7 @@ const MedicalProfile = () => {
       date: "04/04/2023",
       description: "Description de la maladie 4",
       treatment: "Traitement prescrit pour la maladie 4",
+      pinned: false,
     },
   ];
 
@@ -98,6 +102,7 @@ const MedicalProfile = () => {
       severity: "Légère",
       reaction: "Réaction à l'allergie 1",
       treatment: "Traitement pour l'allergie 1",
+      pinned: true,
     },
     {
       id: "allergy-2",
@@ -106,6 +111,7 @@ const MedicalProfile = () => {
       severity: "Modérée",
       reaction: "Réaction à l'allergie 2",
       treatment: "Traitement pour l'allergie 2",
+      pinned: false,
     },
     {
       id: "allergy-3",
@@ -114,6 +120,7 @@ const MedicalProfile = () => {
       severity: "Sévère",
       reaction: "Réaction à l'allergie 3",
       treatment: "Traitement pour l'allergie 3",
+      pinned: false,
     },
   ];
 
@@ -126,6 +133,7 @@ const MedicalProfile = () => {
       location: "Cabinet médical A",
       description: "Contrôle dentaire régulier",
       result: "Aucun problème détecté",
+      pinned: true,
     },
     {
       id: "event-2",
@@ -135,6 +143,7 @@ const MedicalProfile = () => {
       location: "Hôpital B",
       description: "Bilan annuel de santé",
       result: "Résultats normaux",
+      pinned: false,
     },
     {
       id: "event-3",
@@ -144,6 +153,7 @@ const MedicalProfile = () => {
       location: "Clinique C",
       description: "Contrôle de la vue",
       result: "Prescription de nouvelles lunettes",
+      pinned: false,
     },
   ];
 

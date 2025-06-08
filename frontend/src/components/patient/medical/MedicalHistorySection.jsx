@@ -1,6 +1,7 @@
 import React from "react";
 import { FaHistory, FaPlus, FaChevronRight } from "react-icons/fa";
 import ItemCard from "../common/ItemCard";
+import { useMedicalHistoryContext } from "../../../context";
 
 /**
  * Section affichant les antécédents médicaux du patient
@@ -17,9 +18,15 @@ const MedicalHistorySection = ({
   onViewAll,
   limit,
 }) => {
+  const { togglePinned } = useMedicalHistoryContext();
+
   // Si une limite est définie, on ne garde que les n premiers éléments
   const displayedHistory = limit ? history.slice(0, limit) : history;
   const hasMore = limit && history.length > limit;
+
+  const handleTogglePin = (id) => {
+    togglePinned(id);
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -59,6 +66,8 @@ const MedicalHistorySection = ({
                 date={item.date}
                 onViewDetails={() => onDetails(item)}
                 detailsText="Détails"
+                pinned={item.pinned}
+                onTogglePin={() => handleTogglePin(item.id)}
               />
             </div>
           ))

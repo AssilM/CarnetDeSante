@@ -8,7 +8,8 @@ import { useFormModal } from "../../../hooks";
 
 const Vaccination = () => {
   const navigate = useNavigate();
-  const { selectItem, setItems, items, addItem } = useVaccinationContext();
+  const { selectItem, setItems, items, addItem, togglePinned } =
+    useVaccinationContext();
 
   // Utilisation du hook personnalisé pour gérer le formulaire d'ajout
   const {
@@ -22,6 +23,7 @@ const Vaccination = () => {
       ...data,
       id: `vac-${Date.now()}`,
       date: new Date().toLocaleDateString("fr-FR"),
+      pinned: false,
     };
 
     // Ajout du vaccin via le contexte
@@ -43,6 +45,7 @@ const Vaccination = () => {
           nextDose: "15/07/2024",
           type: "ARNm",
           manufacturer: "Pfizer",
+          pinned: true,
         },
         {
           id: "2",
@@ -53,6 +56,7 @@ const Vaccination = () => {
           location: "Cabinet médical",
           type: "Inactivé",
           manufacturer: "Sanofi",
+          pinned: false,
         },
         {
           id: "3",
@@ -64,6 +68,7 @@ const Vaccination = () => {
           nextDose: "10/06/2033",
           type: "Combiné",
           manufacturer: "GSK",
+          pinned: false,
         },
       ]);
     }
@@ -76,6 +81,10 @@ const Vaccination = () => {
 
   const handleGenerateReport = () => {
     console.log("Générer le récapitulatif des vaccinations");
+  };
+
+  const handleTogglePin = (id) => {
+    togglePinned(id);
   };
 
   const content = () => {
@@ -101,6 +110,7 @@ const Vaccination = () => {
         description="Permet de retrouver et d'ajouter des vaccins"
         onAdd={openForm}
         onViewDetails={handleViewDetails}
+        onTogglePin={handleTogglePin}
         addButtonText="Ajouter un vaccin"
         rightAction={generateReportButton}
       />

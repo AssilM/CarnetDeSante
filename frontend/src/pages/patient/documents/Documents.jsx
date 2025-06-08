@@ -8,7 +8,8 @@ import { useFormModal } from "../../../hooks";
 
 const Documents = () => {
   const navigate = useNavigate();
-  const { selectItem, setItems, items, addItem } = useDocumentContext();
+  const { selectItem, setItems, items, addItem, togglePinned } =
+    useDocumentContext();
 
   // Utilisation du hook personnalisé pour gérer le formulaire d'ajout
   const {
@@ -22,6 +23,7 @@ const Documents = () => {
       ...data,
       id: `doc-${Date.now()}`,
       date: new Date().toLocaleDateString("fr-FR"),
+      pinned: false,
     };
 
     // Ajout du document via le contexte
@@ -43,6 +45,7 @@ const Documents = () => {
           description:
             "Ordonnance pour le traitement des allergies saisonnières",
           url: "#",
+          pinned: true,
         },
         {
           id: "2",
@@ -53,7 +56,9 @@ const Documents = () => {
           subtitle: "Bilan sanguin complet",
           description: "Résultats du bilan sanguin annuel",
           url: "#",
+          pinned: false,
         },
+
         {
           id: "3",
           name: "Compte rendu radiologie",
@@ -63,7 +68,42 @@ const Documents = () => {
           subtitle: "Radio thorax",
           description: "Compte rendu de la radiographie thoracique",
           url: "#",
+          pinned: false,
         },
+        {
+          id: "4",
+          name: "test rendu radiologie",
+          date: "20/11/2023",
+          type: "Imagerie",
+          issuedBy: "Centre d'Imagerie Médicale",
+          subtitle: "Radio thorax",
+          description: "Compte rendu de la radiographie thoracique",
+          url: "#",
+          pinned: true,
+        },
+        {
+          id: "5",
+          name: "test rendu radiologie",
+          date: "20/11/2023",
+          type: "Imagerie",
+          issuedBy: "Centre d'Imagerie Médicale",
+          subtitle: "Radio thorax",
+          description: "Compte rendu de la radiographie thoracique",
+          url: "#",
+          pinned: true,
+        },
+        {
+          id: "6",
+          name: "test rendu radiologie",
+          date: "20/11/2023",
+          type: "Imagerie",
+          issuedBy: "Centre d'Imagerie Médicale",
+          subtitle: "Radio thorax",
+          description: "Compte rendu de la radiographie thoracique",
+          url: "#",
+          pinned: true,
+        },
+
         // Les autres documents...
       ]);
     }
@@ -76,6 +116,10 @@ const Documents = () => {
 
   const handleGenerateReport = () => {
     console.log("Générer le récapitulatif des documents");
+  };
+
+  const handleTogglePin = (id) => {
+    togglePinned(id);
   };
 
   const content = () => {
@@ -101,6 +145,7 @@ const Documents = () => {
         description="Retrouvez et ajoutez vos documents médicaux"
         onAdd={openForm}
         onViewDetails={handleViewDetails}
+        onTogglePin={handleTogglePin}
         addButtonText="Ajouter un document"
         rightAction={generateReportButton}
       />
