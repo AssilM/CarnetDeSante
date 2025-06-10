@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiDownload } from "react-icons/hi";
 import { FaThumbtack } from "react-icons/fa";
@@ -68,8 +68,78 @@ const DocumentItem = ({
 const DocumentsList = () => {
   const [activeTab, setActiveTab] = useState("recent");
   const navigate = useNavigate();
-  const { items, togglePinned, getRecentItems, getPinnedItems, selectItem } =
-    useDocumentContext();
+  const {
+    items,
+    togglePinned,
+    getRecentItems,
+    getPinnedItems,
+    selectItem,
+    setItems,
+  } = useDocumentContext();
+
+  // Initialisation des données de test
+  useEffect(() => {
+    if (items.length === 0) {
+      setItems([
+        {
+          id: "1",
+          name: "Ordonnance pour allergie",
+          date: "15/01/2024",
+          type: "Ordonnance",
+          issuedBy: "Dr. Martin",
+          subtitle: "Traitement antihistaminique",
+          description:
+            "Ordonnance pour le traitement des allergies saisonnières",
+          url: "#",
+          pinned: true,
+        },
+        {
+          id: "2",
+          name: "Résultats analyse sang",
+          date: "01/12/2023",
+          type: "Analyse",
+          issuedBy: "Laboratoire Central",
+          subtitle: "Bilan sanguin complet",
+          description: "Résultats du bilan sanguin annuel",
+          url: "#",
+          pinned: false,
+        },
+        {
+          id: "3",
+          name: "Compte rendu radiologie",
+          date: "20/11/2023",
+          type: "Imagerie",
+          issuedBy: "Centre d'Imagerie Médicale",
+          subtitle: "Radio thorax",
+          description: "Compte rendu de la radiographie thoracique",
+          url: "#",
+          pinned: false,
+        },
+        {
+          id: "4",
+          name: "Test rendu radiologie",
+          date: "20/11/2023",
+          type: "Imagerie",
+          issuedBy: "Centre d'Imagerie Médicale",
+          subtitle: "Radio thorax",
+          description: "Compte rendu de la radiographie thoracique",
+          url: "#",
+          pinned: true,
+        },
+        {
+          id: "5",
+          name: "Autre document médical",
+          date: "10/10/2023",
+          type: "Rapport",
+          issuedBy: "Hôpital Régional",
+          subtitle: "Consultation spécialiste",
+          description: "Rapport de consultation chez le spécialiste",
+          url: "#",
+          pinned: false,
+        },
+      ]);
+    }
+  }, [setItems, items.length]);
 
   // Obtenir les 5 documents les plus récents
   const recentDocuments = getRecentItems(5);

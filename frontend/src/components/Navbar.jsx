@@ -1,12 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
 import logo from "../assets/logo-C.svg";
 import { Link } from "react-router-dom";
-import ProfileDropdown from "./patient/home/ProfileDropdown";
+import ProfileDropdown from "./ProfileDropdown";
 
 const Navbar = () => {
   const { isMobileMenuOpen, setIsMobileMenuOpen, isDoctor } = useAppContext();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  useEffect(() => {
+    const closeDropdown = () => setIsProfileOpen(false);
+
+    if (isProfileOpen) {
+      document.addEventListener("click", closeDropdown);
+    }
+
+    return () => document.removeEventListener("click", closeDropdown);
+  }, [isProfileOpen]);
+
+  const handleProfileClick = (e) => {
+    e.stopPropagation();
+    setIsProfileOpen(!isProfileOpen);
+  };
 
   return (
     <nav className="bg-white shadow-md fixed top-0 left-0 right-0 h-16 z-50">
@@ -40,10 +55,10 @@ const Navbar = () => {
             </svg>
           </button>
 
-          <Link to="/" className="flex w-10 h-10">
+          <Link to="/home" className="flex w-10 h-10">
             <img src={logo} alt="logo" />
           </Link>
-          <Link to="/" className="ml-4 hidden sm:block">
+          <Link to="/home" className="ml-4 hidden sm:block">
             <span className="text-xl font-semibold">
               Carnet de Santé Virtuel
             </span>
@@ -54,7 +69,7 @@ const Navbar = () => {
           <div className="relative">
             <button
               className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100"
-              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              onClick={handleProfileClick}
             >
               <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
                 <svg
@@ -75,10 +90,12 @@ const Navbar = () => {
                 {isDoctor ? "Dr Dupont" : "Jean Dupont"}
               </span>
             </button>
-            <ProfileDropdown
-              isOpen={isProfileOpen}
-              onClose={() => setIsProfileOpen(false)}
-            />
+            <div onClick={(e) => e.stopPropagation()}>
+              <ProfileDropdown
+                isOpen={isProfileOpen}
+                onClose={() => setIsProfileOpen(false)}
+              />
+            </div>
           </div>
         </div>
       </div>

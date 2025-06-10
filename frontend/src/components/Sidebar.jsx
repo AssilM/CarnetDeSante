@@ -17,7 +17,7 @@ const Sidebar = () => {
   const location = useLocation();
 
   const patientMenuItems = [
-    { icon: <HiHome className="text-2xl" />, label: "Accueil", path: "/" },
+    { icon: <HiHome className="text-2xl" />, label: "Accueil", path: "/home" },
     {
       icon: <MdMedicalServices className="text-2xl" />,
       label: "Profil médical",
@@ -41,7 +41,7 @@ const Sidebar = () => {
   ];
 
   const doctorMenuItems = [
-    { icon: <HiHome className="text-2xl" />, label: "Accueil", path: "/" },
+    { icon: <HiHome className="text-2xl" />, label: "Accueil", path: "/home" },
     {
       icon: <MdMedicalServices className="text-2xl" />,
       label: "Patients",
@@ -62,9 +62,6 @@ const Sidebar = () => {
   const menuItems = isDoctor ? doctorMenuItems : patientMenuItems;
 
   const isActive = (path) => {
-    if (path === "/") {
-      return location.pathname === "/";
-    }
     return location.pathname.startsWith(path);
   };
 

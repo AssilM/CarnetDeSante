@@ -88,7 +88,7 @@ const App = () => {
                         <Sidebar />
                         <main className="flex-1 w-full min-h-[calc(100vh-4rem)] mt-16">
                           <Routes>
-                            <Route path="/" element={getHomeComponent()} />
+                            <Route path="/home" element={getHomeComponent()} />
                             <Route
                               path="/medical-profile"
                               element={<MedicalProfile />}
