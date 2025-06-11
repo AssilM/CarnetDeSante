@@ -11,6 +11,8 @@ import {
   MedicalHistoryProvider,
   AllergyProvider,
   HealthEventProvider,
+  AppointmentProvider,
+  DoctorProvider,
 } from "./context";
 
 // Layout Components
@@ -48,6 +50,14 @@ import EditEmail from "./pages/patient/settings/EditEmail";
 import EditPhone from "./pages/patient/settings/EditPhone";
 import EditPassword from "./pages/patient/settings/EditPassword";
 
+// Pages - Appointments
+import Appointments from "./pages/patient/appointments/Appointments";
+import AppointmentDetails from "./pages/patient/appointments/AppointmentDetails";
+import BookAppointment from "./pages/patient/appointments/BookAppointment";
+import DoctorSelection from "./pages/patient/appointments/DoctorSelection";
+import SlotSelection from "./pages/patient/appointments/SlotSelection";
+import AppointmentConfirmation from "./pages/patient/appointments/AppointmentConfirmation";
+
 const USER_TYPES = {
   PATIENT: "patient",
   DOCTOR: "doctor",
@@ -81,83 +91,124 @@ const App = () => {
               <MedicalHistoryProvider>
                 <AllergyProvider>
                   <HealthEventProvider>
-                    <div className="min-h-screen flex flex-col bg-gray-50">
-                      <ScrollToTop />
-                      <Navbar />
-                      <div className="flex-1 flex">
-                        <Sidebar />
-                        <main className="flex-1 w-full min-h-[calc(100vh-4rem)] mt-16">
-                          <Routes>
-                            <Route path="/home" element={getHomeComponent()} />
-                            <Route
-                              path="/medical-profile"
-                              element={<MedicalProfile />}
-                            />
-                            {/* Routes du profil médical */}
-                            <Route
-                              path="/medical-profile/edit"
-                              element={<EditMedicalInfo />}
-                            />
-                            <Route
-                              path="/medical-profile/history"
-                              element={<MedicalHistoryList />}
-                            />
-                            <Route
-                              path="/medical-profile/history/add"
-                              element={<AddMedicalHistory />}
-                            />
-                            <Route
-                              path="/medical-profile/history/details"
-                              element={<MedicalHistoryDetails />}
-                            />
-                            <Route
-                              path="/medical-profile/allergies"
-                              element={<AllergyList />}
-                            />
-                            <Route
-                              path="/medical-profile/allergies/add"
-                              element={<AddAllergy />}
-                            />
-                            <Route
-                              path="/medical-profile/allergies/details"
-                              element={<AllergyDetails />}
-                            />
-                            <Route
-                              path="/medical-profile/details"
-                              element={<HealthEventDetails />}
-                            />
+                    <AppointmentProvider>
+                      <DoctorProvider>
+                        <div className="min-h-screen flex flex-col bg-gray-50">
+                          <ScrollToTop />
+                          <Navbar />
+                          <div className="flex-1 flex">
+                            <Sidebar />
+                            <main className="flex-1 w-full min-h-[calc(100vh-4rem)] mt-16">
+                              <Routes>
+                                <Route
+                                  path="/home"
+                                  element={getHomeComponent()}
+                                />
+                                <Route
+                                  path="/medical-profile"
+                                  element={<MedicalProfile />}
+                                />
+                                {/* Routes du profil médical */}
+                                <Route
+                                  path="/medical-profile/edit"
+                                  element={<EditMedicalInfo />}
+                                />
+                                <Route
+                                  path="/medical-profile/history"
+                                  element={<MedicalHistoryList />}
+                                />
+                                <Route
+                                  path="/medical-profile/history/add"
+                                  element={<AddMedicalHistory />}
+                                />
+                                <Route
+                                  path="/medical-profile/history/details"
+                                  element={<MedicalHistoryDetails />}
+                                />
+                                <Route
+                                  path="/medical-profile/allergies"
+                                  element={<AllergyList />}
+                                />
+                                <Route
+                                  path="/medical-profile/allergies/add"
+                                  element={<AddAllergy />}
+                                />
+                                <Route
+                                  path="/medical-profile/allergies/details"
+                                  element={<AllergyDetails />}
+                                />
+                                <Route
+                                  path="/medical-profile/details"
+                                  element={<HealthEventDetails />}
+                                />
 
-                            <Route path="/documents" element={<Documents />} />
-                            <Route
-                              path="/documents/details"
-                              element={<DocumentDetails />}
-                            />
-                            <Route
-                              path="/vaccination"
-                              element={<Vaccination />}
-                            />
-                            <Route
-                              path="/vaccination/details"
-                              element={<VaccineDetails />}
-                            />
-                            <Route path="/settings" element={<Settings />} />
-                            <Route
-                              path="/settings/edit-email"
-                              element={<EditEmail />}
-                            />
-                            <Route
-                              path="/settings/edit-phone"
-                              element={<EditPhone />}
-                            />
-                            <Route
-                              path="/settings/edit-password"
-                              element={<EditPassword />}
-                            />
-                          </Routes>
-                        </main>
-                      </div>
-                      <Footer />
-                    </div>
+                                <Route
+                                  path="/documents"
+                                  element={<Documents />}
+                                />
+                                <Route
+                                  path="/documents/details"
+                                  element={<DocumentDetails />}
+                                />
+                                <Route
+                                  path="/vaccination"
+                                  element={<Vaccination />}
+                                />
+                                <Route
+                                  path="/vaccination/details"
+                                  element={<VaccineDetails />}
+                                />
+                                <Route
+                                  path="/settings"
+                                  element={<Settings />}
+                                />
+                                <Route
+                                  path="/settings/edit-email"
+                                  element={<EditEmail />}
+                                />
+                                <Route
+                                  path="/settings/edit-phone"
+                                  element={<EditPhone />}
+                                />
+                                <Route
+                                  path="/settings/edit-password"
+                                  element={<EditPassword />}
+                                />
+
+                                {/* Routes des rendez-vous */}
+                                <Route
+                                  path="/appointments"
+                                  element={<Appointments />}
+                                />
+                                <Route
+                                  path="/appointments/details"
+                                  element={<AppointmentDetails />}
+                                />
+
+                                {/* Routes de prise de rendez-vous (indépendantes) */}
+                                <Route
+                                  path="/book"
+                                  element={<BookAppointment />}
+                                />
+                                <Route
+                                  path="/book/doctors"
+                                  element={<DoctorSelection />}
+                                />
+                                <Route
+                                  path="/book/slots"
+                                  element={<SlotSelection />}
+                                />
+                                <Route
+                                  path="/book/confirm"
+                                  element={<AppointmentConfirmation />}
+                                />
+                              </Routes>
+                            </main>
+                          </div>
+                          <Footer />
+                        </div>
+                      </DoctorProvider>
+                    </AppointmentProvider>
                   </HealthEventProvider>
                 </AllergyProvider>
               </MedicalHistoryProvider>

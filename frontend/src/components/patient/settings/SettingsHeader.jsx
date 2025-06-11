@@ -19,7 +19,7 @@ const SettingsHeader = () => {
         <p className="text-gray-600">
           Je peux modifier les informations de mon profil et de mes profils
           rattachés. Je peux suivre l'historique d'activité, gérer mes
-          notifications e-mail et clôturer Mon espace santé.
+          notifications e-mail et clôturer mon compte.
         </p>
       </div>
     </div>

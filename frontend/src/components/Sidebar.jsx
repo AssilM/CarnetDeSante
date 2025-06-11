@@ -2,9 +2,22 @@ import React from "react";
 import { useAppContext } from "../context/AppContext";
 import { Link, useLocation } from "react-router-dom";
 import { HiHome } from "react-icons/hi";
-import { MdMedicalServices, MdEventNote, MdDescription } from "react-icons/md";
+import {
+  MdMedicalServices,
+  MdEventNote,
+  MdDescription,
+  MdAddCircle,
+} from "react-icons/md";
 import { BsCalendar2Week } from "react-icons/bs";
-import { FaSyringe } from "react-icons/fa";
+import {
+  FaSyringe,
+  FaHome,
+  FaUserMd,
+  FaFileMedical,
+  FaCog,
+  FaCalendarAlt,
+  FaCalendarPlus,
+} from "react-icons/fa";
 
 const Sidebar = () => {
   const {
@@ -19,17 +32,17 @@ const Sidebar = () => {
   const patientMenuItems = [
     { icon: <HiHome className="text-2xl" />, label: "Accueil", path: "/home" },
     {
-      icon: <MdMedicalServices className="text-2xl" />,
+      icon: <FaUserMd className="text-2xl" />,
       label: "Profil médical",
       path: "/medical-profile",
     },
     {
-      icon: <BsCalendar2Week className="text-2xl" />,
+      icon: <FaCalendarAlt className="text-2xl" />,
       label: "Rendez-vous",
-      path: "/rendez-vous",
+      path: "/appointments",
     },
     {
-      icon: <MdDescription className="text-2xl" />,
+      icon: <FaFileMedical className="text-2xl" />,
       label: "Documents",
       path: "/documents",
     },
@@ -37,6 +50,12 @@ const Sidebar = () => {
       icon: <FaSyringe className="text-2xl" />,
       label: "Vaccination",
       path: "/vaccination",
+    },
+
+    {
+      icon: <FaCalendarPlus className="text-2xl" />,
+      label: "Prendre RDV",
+      path: "/book",
     },
   ];
 
@@ -48,7 +67,7 @@ const Sidebar = () => {
       path: "/patients",
     },
     {
-      icon: <BsCalendar2Week className="text-2xl" />,
+      icon: <FaCalendarAlt className="text-2xl" />,
       label: "Agenda",
       path: "/agenda",
     },

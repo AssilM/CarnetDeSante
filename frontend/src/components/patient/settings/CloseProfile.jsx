@@ -27,23 +27,6 @@ const CloseProfile = () => {
       </div>
 
       <div className="bg-white rounded-lg p-6 mb-6">
-        <p className="text-gray-600 mb-4">
-          En clôturant, je renonce à l'utilisation du profil Mon espace santé et
-          je perds l'accès aux informations qu'il contient. Les professionnels
-          de santé ne pourront plus y accéder.
-        </p>
-
-        <p className="text-gray-600 mb-4">
-          Je peux faire une demande de suppression de ces informations. Celle-ci
-          sera traitée ultérieurement.
-        </p>
-
-        <p className="text-gray-600 mb-6">
-          Sans demande de suppression, ces informations seront conservées
-          pendant 10 ans dans un environnement sécurisé et homologué par
-          l'Agence Nationale de Sécurité des Systèmes d'Information.
-        </p>
-
         <div className="flex flex-col gap-4">
           <label className="flex items-center gap-3">
             <input

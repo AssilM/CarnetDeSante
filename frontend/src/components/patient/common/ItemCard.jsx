@@ -44,7 +44,7 @@ const ItemCard = ({
     }
   };
 
-  // Détermine les couleurs en fonction du type
+  // Détermine les couleurs en fonction du type, pour les cercles à côté
   const getColors = () => {
     switch (type) {
       case "document":

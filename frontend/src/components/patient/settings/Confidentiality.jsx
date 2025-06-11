@@ -1,6 +1,5 @@
 import React from "react";
 import { FiShield, FiChevronRight } from "react-icons/fi";
-import { useUserContext } from "../../../context/UserContext";
 
 const ConfidentialityCard = ({ title, description, onClick }) => (
   <div
@@ -16,24 +15,9 @@ const ConfidentialityCard = ({ title, description, onClick }) => (
 );
 
 const Confidentiality = () => {
-  const { email } = useUserContext();
-
   return (
     <div>
       <h2 className="text-2xl font-semibold mb-6">Confidentialité</h2>
-      <p className="text-gray-600 mb-6">
-        Les données contenues dans Mon espace santé sont confidentielles. Les
-        professionnels de santé ne peuvent avoir accès qu'à la rubrique
-        Documents ainsi qu'aux rubriques Vaccinations, Mon histoire de santé et
-        Entourage et volontés du Profil médical.
-      </p>
-      <p className="text-gray-600 mb-6">
-        Je peux choisir de leur donner accès ou non à ces informations.
-      </p>
-      <p className="text-gray-600 mb-6">
-        À chaque accès, je recevrai une notification sur l'adresse e-mail{" "}
-        {email}.
-      </p>
 
       <div className="space-y-4">
         <ConfidentialityCard
