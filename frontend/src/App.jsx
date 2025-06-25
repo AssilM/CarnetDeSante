@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 
 // Providers
 import {
+  AuthProvider,
   AppProvider,
   UserProvider,
   DocumentProvider,
@@ -20,6 +21,14 @@ import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 import Footer from "./components/Footer";
 import { ScrollToTop } from "./components/patient/common";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+
+// Auth Pages
+import LandingPage from "./pages/auth/LandingPage";
+import RoleSelectPage from "./pages/auth/RoleSelectPage";
+import LoginPage from "./pages/auth/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
+import SessionExpired from "./pages/SessionExpired";
 
 // Pages - Home
 import HomePatient from "./pages/patient/HomePatient";
@@ -49,6 +58,7 @@ import Settings from "./pages/patient/settings/Settings";
 import EditEmail from "./pages/patient/settings/EditEmail";
 import EditPhone from "./pages/patient/settings/EditPhone";
 import EditPassword from "./pages/patient/settings/EditPassword";
+import EditAddress from "./pages/patient/settings/EditAddress";
 
 // Pages - Appointments
 import Appointments from "./pages/patient/appointments/Appointments";
@@ -58,165 +68,358 @@ import DoctorSelection from "./pages/patient/appointments/DoctorSelection";
 import SlotSelection from "./pages/patient/appointments/SlotSelection";
 import AppointmentConfirmation from "./pages/patient/appointments/AppointmentConfirmation";
 
-const USER_TYPES = {
-  PATIENT: "patient",
-  DOCTOR: "doctor",
-  ADMIN: "admin",
-};
-
 const App = () => {
-  // Changez cette valeur pour tester les différents rôles
-  const userType = USER_TYPES.PATIENT;
+  // Layout pour les pages d'authentification (sans Navbar ni Sidebar)
+  const AuthLayout = ({ children }) => (
+    <div className="min-h-screen flex flex-col bg-gray-50">{children}</div>
+  );
 
-  // Fonction pour afficher le bon composant selon le rôle
-  const getHomeComponent = () => {
-    switch (userType) {
-      case USER_TYPES.PATIENT:
-        return <HomePatient />;
-      case USER_TYPES.DOCTOR:
-        return <HomeDoctor />;
-      case USER_TYPES.ADMIN:
-        return <HomeAdmin />;
-      default:
-        return <HomePatient />;
-    }
-  };
+  // Layout pour les pages principales (avec Navbar et Sidebar)
+  const MainLayout = ({ children }) => (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <ScrollToTop />
+      <Navbar />
+      <div className="flex-1 flex">
+        <Sidebar />
+        <main className="flex-1 w-full min-h-[calc(100vh-4rem)] mt-16">
+          {children}
+        </main>
+      </div>
+      <Footer />
+    </div>
+  );
 
   return (
-    <AppProvider>
-      <UserProvider>
-        <VaccinationProvider>
-          <DocumentProvider>
-            <MedicalInfoProvider>
-              <MedicalHistoryProvider>
-                <AllergyProvider>
-                  <HealthEventProvider>
-                    <AppointmentProvider>
-                      <DoctorProvider>
-                        <div className="min-h-screen flex flex-col bg-gray-50">
-                          <ScrollToTop />
-                          <Navbar />
-                          <div className="flex-1 flex">
-                            <Sidebar />
-                            <main className="flex-1 w-full min-h-[calc(100vh-4rem)] mt-16">
-                              <Routes>
-                                <Route
-                                  path="/home"
-                                  element={getHomeComponent()}
-                                />
-                                <Route
-                                  path="/medical-profile"
-                                  element={<MedicalProfile />}
-                                />
-                                {/* Routes du profil médical */}
-                                <Route
-                                  path="/medical-profile/edit"
-                                  element={<EditMedicalInfo />}
-                                />
-                                <Route
-                                  path="/medical-profile/history"
-                                  element={<MedicalHistoryList />}
-                                />
-                                <Route
-                                  path="/medical-profile/history/add"
-                                  element={<AddMedicalHistory />}
-                                />
-                                <Route
-                                  path="/medical-profile/history/details"
-                                  element={<MedicalHistoryDetails />}
-                                />
-                                <Route
-                                  path="/medical-profile/allergies"
-                                  element={<AllergyList />}
-                                />
-                                <Route
-                                  path="/medical-profile/allergies/add"
-                                  element={<AddAllergy />}
-                                />
-                                <Route
-                                  path="/medical-profile/allergies/details"
-                                  element={<AllergyDetails />}
-                                />
-                                <Route
-                                  path="/medical-profile/details"
-                                  element={<HealthEventDetails />}
-                                />
+    <AuthProvider>
+      <AppProvider>
+        <UserProvider>
+          <VaccinationProvider>
+            <DocumentProvider>
+              <MedicalInfoProvider>
+                <MedicalHistoryProvider>
+                  <AllergyProvider>
+                    <HealthEventProvider>
+                      <AppointmentProvider>
+                        <DoctorProvider>
+                          <Routes>
+                            {/* Routes d'authentification sans Navbar/Sidebar */}
+                            <Route path="/" element={<LandingPage />} />
+                            <Route
+                              path="/auth/role-select"
+                              element={<RoleSelectPage />}
+                            />
+                            <Route path="/auth/login" element={<LoginPage />} />
+                            <Route
+                              path="/auth/register"
+                              element={<RegisterPage />}
+                            />
+                            <Route
+                              path="/session-expired"
+                              element={<SessionExpired />}
+                            />
 
-                                <Route
-                                  path="/documents"
-                                  element={<Documents />}
-                                />
-                                <Route
-                                  path="/documents/details"
-                                  element={<DocumentDetails />}
-                                />
-                                <Route
-                                  path="/vaccination"
-                                  element={<Vaccination />}
-                                />
-                                <Route
-                                  path="/vaccination/details"
-                                  element={<VaccineDetails />}
-                                />
-                                <Route
-                                  path="/settings"
-                                  element={<Settings />}
-                                />
-                                <Route
-                                  path="/settings/edit-email"
-                                  element={<EditEmail />}
-                                />
-                                <Route
-                                  path="/settings/edit-phone"
-                                  element={<EditPhone />}
-                                />
-                                <Route
-                                  path="/settings/edit-password"
-                                  element={<EditPassword />}
-                                />
+                            {/* Routes principales avec Navbar/Sidebar */}
+                            <Route
+                              path="/home"
+                              element={
+                                <ProtectedRoute>
+                                  <MainLayout>
+                                    <HomePatient />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
 
-                                {/* Routes des rendez-vous */}
-                                <Route
-                                  path="/appointments"
-                                  element={<Appointments />}
-                                />
-                                <Route
-                                  path="/appointments/details"
-                                  element={<AppointmentDetails />}
-                                />
+                            {/* Routes spécifiques par rôle */}
+                            <Route
+                              path="/patient/home"
+                              element={
+                                <ProtectedRoute requiredRole="patient">
+                                  <MainLayout>
+                                    <HomePatient />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/doctor/home"
+                              element={
+                                <ProtectedRoute requiredRole="medecin">
+                                  <MainLayout>
+                                    <HomeDoctor />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/admin/home"
+                              element={
+                                <ProtectedRoute requiredRole="admin">
+                                  <MainLayout>
+                                    <HomeAdmin />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
 
-                                {/* Routes de prise de rendez-vous (indépendantes) */}
-                                <Route
-                                  path="/book"
-                                  element={<BookAppointment />}
-                                />
-                                <Route
-                                  path="/book/doctors"
-                                  element={<DoctorSelection />}
-                                />
-                                <Route
-                                  path="/book/slots"
-                                  element={<SlotSelection />}
-                                />
-                                <Route
-                                  path="/book/confirm"
-                                  element={<AppointmentConfirmation />}
-                                />
-                              </Routes>
-                            </main>
-                          </div>
-                          <Footer />
-                        </div>
-                      </DoctorProvider>
-                    </AppointmentProvider>
-                  </HealthEventProvider>
-                </AllergyProvider>
-              </MedicalHistoryProvider>
-            </MedicalInfoProvider>
-          </DocumentProvider>
-        </VaccinationProvider>
-      </UserProvider>
-    </AppProvider>
+                            {/* Routes patient */}
+                            <Route
+                              path="/medical-profile"
+                              element={
+                                <ProtectedRoute requiredRole="patient">
+                                  <MainLayout>
+                                    <MedicalProfile />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+
+                            {/* Routes du profil médical */}
+                            <Route
+                              path="/medical-profile/edit"
+                              element={
+                                <ProtectedRoute requiredRole="patient">
+                                  <MainLayout>
+                                    <EditMedicalInfo />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/medical-profile/history"
+                              element={
+                                <ProtectedRoute requiredRole="patient">
+                                  <MainLayout>
+                                    <MedicalHistoryList />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/medical-profile/history/add"
+                              element={
+                                <ProtectedRoute requiredRole="patient">
+                                  <MainLayout>
+                                    <AddMedicalHistory />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/medical-profile/history/details"
+                              element={
+                                <ProtectedRoute requiredRole="patient">
+                                  <MainLayout>
+                                    <MedicalHistoryDetails />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/medical-profile/allergies"
+                              element={
+                                <ProtectedRoute requiredRole="patient">
+                                  <MainLayout>
+                                    <AllergyList />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/medical-profile/allergies/add"
+                              element={
+                                <ProtectedRoute requiredRole="patient">
+                                  <MainLayout>
+                                    <AddAllergy />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/medical-profile/allergies/details"
+                              element={
+                                <ProtectedRoute requiredRole="patient">
+                                  <MainLayout>
+                                    <AllergyDetails />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/medical-profile/details"
+                              element={
+                                <ProtectedRoute requiredRole="patient">
+                                  <MainLayout>
+                                    <HealthEventDetails />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+
+                            <Route
+                              path="/documents"
+                              element={
+                                <ProtectedRoute>
+                                  <MainLayout>
+                                    <Documents />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/documents/details"
+                              element={
+                                <ProtectedRoute>
+                                  <MainLayout>
+                                    <DocumentDetails />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/vaccination"
+                              element={
+                                <ProtectedRoute requiredRole="patient">
+                                  <MainLayout>
+                                    <Vaccination />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/vaccination/details"
+                              element={
+                                <ProtectedRoute requiredRole="patient">
+                                  <MainLayout>
+                                    <VaccineDetails />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/settings"
+                              element={
+                                <ProtectedRoute>
+                                  <MainLayout>
+                                    <Settings />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/settings/edit-email"
+                              element={
+                                <ProtectedRoute>
+                                  <MainLayout>
+                                    <EditEmail />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/settings/edit-phone"
+                              element={
+                                <ProtectedRoute>
+                                  <MainLayout>
+                                    <EditPhone />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/settings/edit-password"
+                              element={
+                                <ProtectedRoute>
+                                  <MainLayout>
+                                    <EditPassword />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/settings/edit-address"
+                              element={
+                                <ProtectedRoute>
+                                  <MainLayout>
+                                    <EditAddress />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+
+                            {/* Routes des rendez-vous */}
+                            <Route
+                              path="/appointments"
+                              element={
+                                <ProtectedRoute>
+                                  <MainLayout>
+                                    <Appointments />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/appointments/details"
+                              element={
+                                <ProtectedRoute>
+                                  <MainLayout>
+                                    <AppointmentDetails />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/appointments/book"
+                              element={
+                                <ProtectedRoute requiredRole="patient">
+                                  <MainLayout>
+                                    <BookAppointment />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/appointments/book/doctor"
+                              element={
+                                <ProtectedRoute requiredRole="patient">
+                                  <MainLayout>
+                                    <DoctorSelection />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/appointments/book/slot"
+                              element={
+                                <ProtectedRoute requiredRole="patient">
+                                  <MainLayout>
+                                    <SlotSelection />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/appointments/confirmation"
+                              element={
+                                <ProtectedRoute requiredRole="patient">
+                                  <MainLayout>
+                                    <AppointmentConfirmation />
+                                  </MainLayout>
+                                </ProtectedRoute>
+                              }
+                            />
+                          </Routes>
+                        </DoctorProvider>
+                      </AppointmentProvider>
+                    </HealthEventProvider>
+                  </AllergyProvider>
+                </MedicalHistoryProvider>
+              </MedicalInfoProvider>
+            </DocumentProvider>
+          </VaccinationProvider>
+        </UserProvider>
+      </AppProvider>
+    </AuthProvider>
   );
 };
 

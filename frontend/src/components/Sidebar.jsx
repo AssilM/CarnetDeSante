@@ -7,6 +7,9 @@ import {
   MdEventNote,
   MdDescription,
   MdAddCircle,
+  MdDashboard,
+  MdPeople,
+  MdSettings,
 } from "react-icons/md";
 import { BsCalendar2Week } from "react-icons/bs";
 import {
@@ -17,11 +20,14 @@ import {
   FaCog,
   FaCalendarAlt,
   FaCalendarPlus,
+  FaUserCog,
+  FaChartBar,
 } from "react-icons/fa";
 
 const Sidebar = () => {
   const {
     isDoctor,
+    isAdmin,
     isMobileMenuOpen,
     isSidebarExpanded,
     setIsSidebarExpanded,
@@ -30,7 +36,11 @@ const Sidebar = () => {
   const location = useLocation();
 
   const patientMenuItems = [
-    { icon: <HiHome className="text-2xl" />, label: "Accueil", path: "/home" },
+    {
+      icon: <HiHome className="text-2xl" />,
+      label: "Accueil",
+      path: "/patient/home",
+    },
     {
       icon: <FaUserMd className="text-2xl" />,
       label: "Profil médical",
@@ -51,18 +61,26 @@ const Sidebar = () => {
       label: "Vaccination",
       path: "/vaccination",
     },
-
     {
       icon: <FaCalendarPlus className="text-2xl" />,
       label: "Prendre RDV",
-      path: "/book",
+      path: "/appointments/book",
+    },
+    {
+      icon: <FaCog className="text-2xl" />,
+      label: "Paramètres",
+      path: "/settings",
     },
   ];
 
   const doctorMenuItems = [
-    { icon: <HiHome className="text-2xl" />, label: "Accueil", path: "/home" },
     {
-      icon: <MdMedicalServices className="text-2xl" />,
+      icon: <HiHome className="text-2xl" />,
+      label: "Accueil",
+      path: "/doctor/home",
+    },
+    {
+      icon: <MdPeople className="text-2xl" />,
       label: "Patients",
       path: "/patients",
     },
@@ -73,12 +91,53 @@ const Sidebar = () => {
     },
     {
       icon: <MdDescription className="text-2xl" />,
-      label: "Document",
-      path: "/document",
+      label: "Documents",
+      path: "/documents",
+    },
+    {
+      icon: <FaCog className="text-2xl" />,
+      label: "Paramètres",
+      path: "/settings",
     },
   ];
 
-  const menuItems = isDoctor ? doctorMenuItems : patientMenuItems;
+  const adminMenuItems = [
+    {
+      icon: <HiHome className="text-2xl" />,
+      label: "Accueil",
+      path: "/admin/home",
+    },
+    {
+      icon: <FaUserCog className="text-2xl" />,
+      label: "Utilisateurs",
+      path: "/admin/users",
+    },
+    {
+      icon: <MdMedicalServices className="text-2xl" />,
+      label: "Médecins",
+      path: "/admin/doctors",
+    },
+    {
+      icon: <FaChartBar className="text-2xl" />,
+      label: "Statistiques",
+      path: "/admin/stats",
+    },
+    {
+      icon: <MdSettings className="text-2xl" />,
+      label: "Configuration",
+      path: "/admin/settings",
+    },
+  ];
+
+  // Sélectionner le menu approprié selon le rôle
+  let menuItems;
+  if (isDoctor) {
+    menuItems = doctorMenuItems;
+  } else if (isAdmin) {
+    menuItems = adminMenuItems;
+  } else {
+    menuItems = patientMenuItems;
+  }
 
   const isActive = (path) => {
     return location.pathname.startsWith(path);
@@ -110,7 +169,7 @@ const Sidebar = () => {
                     {item.icon}
                   </span>
                   <span
-                    className={`whitespace-nowrap transition-opacity duration-300 
+                    className={`whitespace-nowrap transition-opacity duration-300 ml-3
                       ${isSidebarExpanded ? "opacity-100" : "opacity-0"}`}
                   >
                     {item.label}
@@ -151,7 +210,7 @@ const Sidebar = () => {
                   <span className="flex items-center justify-center w-8">
                     {item.icon}
                   </span>
-                  <span className="whitespace-nowrap">{item.label}</span>
+                  <span className="whitespace-nowrap ml-3">{item.label}</span>
                 </Link>
               </li>
             ))}

@@ -12,6 +12,7 @@ import {
   useAllergyContext,
   useHealthEventContext,
 } from "../../context";
+import { useAuth } from "../../context/AuthContext";
 
 /**
  * Page principale du profil médical
@@ -21,6 +22,7 @@ import {
 const MedicalProfile = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { currentUser } = useAuth();
 
   // Contextes pour les différentes sections
   const { setSelectedItem: setSelectedInfo, setItems: setInfoItems } =
@@ -46,18 +48,44 @@ const MedicalProfile = () => {
   // Nombre maximum d'éléments à afficher dans chaque section
   const MAX_ITEMS_TO_DISPLAY = 2;
 
-  // Données de test pour le développement
-  // À remplacer par des appels API dans la version finale
-  const patientInfo = {
-    id: "info-1",
-    firstName: "Jean",
-    lastName: "Dupont",
-    age: 30,
-    gender: "H",
-    bloodType: "A",
-    height: 180,
-    weight: 80,
-  };
+  // Utiliser les données de l'utilisateur authentifié
+  const patientInfo = currentUser
+    ? {
+        id: currentUser.id,
+        firstName: currentUser.prenom || "Non renseigné",
+        lastName: currentUser.nom || "Non renseigné",
+        age: currentUser.date_naissance
+          ? calculateAge(currentUser.date_naissance)
+          : "Non renseigné",
+        gender: currentUser.sexe || "Non renseigné",
+        bloodType: "Non renseigné", // À compléter si disponible dans currentUser
+        height: "Non renseigné", // À compléter si disponible dans currentUser
+        weight: "Non renseigné", // À compléter si disponible dans currentUser
+        email: currentUser.email || "Non renseigné",
+        phone: currentUser.tel || "Non renseigné",
+      }
+    : {
+        id: "info-1",
+        firstName: "Jean",
+        lastName: "Dupont",
+        age: 30,
+        gender: "H",
+        bloodType: "A",
+        height: 180,
+        weight: 80,
+      };
+
+  // Fonction pour calculer l'âge à partir de la date de naissance
+  function calculateAge(dateOfBirth) {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  }
 
   const medicalHistory = [
     {

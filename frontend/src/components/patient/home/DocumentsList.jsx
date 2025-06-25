@@ -142,7 +142,7 @@ const DocumentsList = () => {
   }, [setItems, items.length]);
 
   // Obtenir les 5 documents les plus récents
-  const recentDocuments = getRecentItems(5);
+  const recentDocuments = getRecentItems(3);
   const pinnedDocuments = getPinnedItems();
 
   const handleDocumentClick = (documentId) => {

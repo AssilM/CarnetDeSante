@@ -3,10 +3,12 @@ import { useAppContext } from "../context/AppContext";
 import logo from "../assets/logo-C.svg";
 import { Link } from "react-router-dom";
 import ProfileDropdown from "./ProfileDropdown";
+import { useAuth } from "../context/AuthContext";
 
 const Navbar = () => {
-  const { isMobileMenuOpen, setIsMobileMenuOpen, isDoctor } = useAppContext();
+  const { isMobileMenuOpen, setIsMobileMenuOpen } = useAppContext();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const { logout, testExpireToken, currentUser } = useAuth();
 
   useEffect(() => {
     const closeDropdown = () => setIsProfileOpen(false);
@@ -22,6 +24,29 @@ const Navbar = () => {
     e.stopPropagation();
     setIsProfileOpen(!isProfileOpen);
   };
+
+  // Déterminer la route d'accueil en fonction du rôle
+  const getHomeRoute = () => {
+    if (!currentUser) return "/home";
+
+    switch (currentUser.role) {
+      case "patient":
+        return "/patient/home";
+      case "medecin":
+        return "/doctor/home";
+      case "admin":
+        return "/admin/home";
+      default:
+        return "/home";
+    }
+  };
+
+  // Formater le nom selon le rôle
+  const displayName = currentUser
+    ? currentUser.role === "medecin"
+      ? `Dr ${currentUser.nom}`
+      : `${currentUser.prenom} ${currentUser.nom}`
+    : "Utilisateur";
 
   return (
     <nav className="bg-white shadow-md fixed top-0 left-0 right-0 h-16 z-50">
@@ -55,10 +80,10 @@ const Navbar = () => {
             </svg>
           </button>
 
-          <Link to="/home" className="flex w-10 h-10">
+          <Link to={getHomeRoute()} className="flex w-10 h-10">
             <img src={logo} alt="logo" />
           </Link>
-          <Link to="/home" className="ml-4 hidden sm:block">
+          <Link to={getHomeRoute()} className="ml-4 hidden sm:block">
             <span className="text-xl font-semibold">
               Carnet de Santé Virtuel
             </span>
@@ -86,9 +111,16 @@ const Navbar = () => {
                   />
                 </svg>
               </div>
-              <span className="hidden md:block">
-                {isDoctor ? "Dr Dupont" : "Jean Dupont"}
-              </span>
+              <div className="hidden md:block text-left">
+                <span className="block text-sm font-medium">{displayName}</span>
+                <span className="block text-xs text-gray-500">
+                  {currentUser?.role === "medecin"
+                    ? "Médecin"
+                    : currentUser?.role === "admin"
+                    ? "Administrateur"
+                    : "Patient"}
+                </span>
+              </div>
             </button>
             <div onClick={(e) => e.stopPropagation()}>
               <ProfileDropdown
@@ -97,6 +129,18 @@ const Navbar = () => {
               />
             </div>
           </div>
+          <button
+            onClick={testExpireToken}
+            className="text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+          >
+            Tester expiration
+          </button>
+          <button
+            onClick={() => logout()}
+            className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+          >
+            Déconnexion
+          </button>
         </div>
       </div>
     </nav>

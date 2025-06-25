@@ -114,10 +114,6 @@ const Documents = () => {
     navigate("/documents/details");
   };
 
-  const handleGenerateReport = () => {
-    console.log("Générer le récapitulatif des documents");
-  };
-
   const handleTogglePin = (id) => {
     togglePinned(id);
   };
@@ -131,12 +127,6 @@ const Documents = () => {
       );
     }
 
-    const generateReportButton = (
-      <ActionButton variant="secondary" onClick={handleGenerateReport}>
-        Générer un récapitulatif
-      </ActionButton>
-    );
-
     return (
       <ItemsList
         items={items}
@@ -147,7 +137,6 @@ const Documents = () => {
         onViewDetails={handleViewDetails}
         onTogglePin={handleTogglePin}
         addButtonText="Ajouter un document"
-        rightAction={generateReportButton}
       />
     );
   };

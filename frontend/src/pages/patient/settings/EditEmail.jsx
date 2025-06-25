@@ -2,19 +2,71 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiMail } from "react-icons/fi";
 import { useUserContext } from "../../../context/UserContext";
+import { useAuth } from "../../../context/AuthContext";
 import PageWrapper from "../../../components/PageWrapper";
 
 const EditEmail = () => {
   const navigate = useNavigate();
-  const { email } = useUserContext();
+  const { user, updateUserInfo, loading } = useUserContext();
+  const { currentUser } = useAuth();
   const [newEmail, setNewEmail] = useState("");
   const [confirmEmail, setConfirmEmail] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implémenter la logique de modification
-    navigate("/settings#connexion");
+
+    // Vérifier que les emails correspondent
+    if (newEmail !== confirmEmail) {
+      setError("Les adresses e-mail ne correspondent pas");
+      return;
+    }
+
+    // Vérifier que l'email est différent de l'actuel
+    if (newEmail === user?.email) {
+      setError("La nouvelle adresse e-mail est identique à l'actuelle");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError("");
+
+    try {
+      // Appeler l'API pour mettre à jour l'email
+      await updateUserInfo(currentUser.id, { email: newEmail });
+      navigate("/settings#connexion");
+    } catch (error) {
+      setError(
+        error.response?.data?.message ||
+          "Erreur lors de la mise à jour de l'adresse e-mail"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <PageWrapper className="p-4 md:p-6">
+        <div className="max-w-2xl mx-auto flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  if (!user) {
+    return (
+      <PageWrapper className="p-4 md:p-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="p-4 bg-yellow-50 text-yellow-700 rounded-lg">
+            Impossible de charger les informations de l'utilisateur.
+          </div>
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper className="p-4 md:p-6">
@@ -28,8 +80,14 @@ const EditEmail = () => {
           </div>
 
           <p className="text-gray-600 mb-6">
-            Votre adresse e-mail actuelle : {email}
+            Votre adresse e-mail actuelle : {user.email}
           </p>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -63,14 +121,16 @@ const EditEmail = () => {
                 type="button"
                 onClick={() => navigate("/settings#connexion")}
                 className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                disabled={isSubmitting}
               >
                 Annuler
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300"
+                disabled={isSubmitting}
               >
-                Enregistrer
+                {isSubmitting ? "En cours..." : "Enregistrer"}
               </button>
             </div>
           </form>

@@ -1,17 +1,25 @@
 import React, { createContext, useContext, useState } from "react";
+import { useAuth } from "./AuthContext";
 
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  const [isDoctor, setIsDoctor] = useState(false); // false = patient, true = doctor
+  const { currentUser } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+
+  // Fonctions utilitaires pour vérifier le rôle
+  const isDoctor = currentUser?.role === "medecin";
+  const isPatient = currentUser?.role === "patient";
+  const isAdmin = currentUser?.role === "admin";
 
   return (
     <AppContext.Provider
       value={{
+        userRole: currentUser?.role,
         isDoctor,
-        setIsDoctor,
+        isPatient,
+        isAdmin,
         isMobileMenuOpen,
         setIsMobileMenuOpen,
         isSidebarExpanded,
