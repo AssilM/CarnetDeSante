@@ -3,16 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { HiLockClosed } from "react-icons/hi";
 import { useUserContext } from "../../../context/UserContext";
 import { useAuth } from "../../../context/AuthContext";
+import { useAppContext } from "../../../context/AppContext";
 import PageWrapper from "../../../components/PageWrapper";
 
 const EditPassword = () => {
   const navigate = useNavigate();
   const { updatePassword } = useUserContext();
   const { currentUser } = useAuth();
+  const { showSuccess, showError } = useAppContext();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -20,25 +21,31 @@ const EditPassword = () => {
 
     // Vérifier que les mots de passe correspondent
     if (newPassword !== confirmPassword) {
-      setError("Les mots de passe ne correspondent pas");
+      showError("Les mots de passe ne correspondent pas");
       return;
     }
 
     // Vérifier la complexité du mot de passe
     if (newPassword.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caractères");
+      showError("Le mot de passe doit contenir au moins 8 caractères");
       return;
     }
 
     setIsSubmitting(true);
-    setError("");
 
     try {
       // Appeler l'API pour mettre à jour le mot de passe
       await updatePassword(currentUser.id, currentPassword, newPassword);
-      navigate("/settings#connexion");
+
+      // Afficher une notification de succès
+      showSuccess("Votre mot de passe a été mis à jour avec succès", true);
+
+      // Rediriger vers la page des paramètres
+      setTimeout(() => {
+        navigate("/settings#connexion");
+      }, 2000);
     } catch (error) {
-      setError(
+      showError(
         error.response?.data?.message ||
           "Erreur lors de la mise à jour du mot de passe"
       );
@@ -55,12 +62,6 @@ const EditPassword = () => {
             <HiLockClosed className="text-2xl text-blue-600" />
             <h1 className="text-2xl font-semibold">Modifier le mot de passe</h1>
           </div>
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg">
-              {error}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

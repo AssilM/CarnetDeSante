@@ -1,0 +1,45 @@
+import React from "react";
+import { Route } from "react-router-dom";
+import { ProtectedRoute } from "../components/ProtectedRoute";
+
+// Layouts
+import MainLayout from "./layouts/MainLayout";
+
+// Pages pour le personnel médical et administratif
+import HomeDoctor from "../pages/doctor/HomeDoctor";
+import HomeAdmin from "../pages/admin/HomeAdmin";
+
+/**
+ * Routes pour le personnel médical et administratif
+ * Exporte un tableau de routes pour les médecins et administrateurs
+ * À étendre avec les nouvelles fonctionnalités pour ces rôles
+ */
+const StaffRoutes = [
+  // Routes pour les médecins
+  <Route
+    key="doctor-home"
+    path="/doctor/home"
+    element={
+      <ProtectedRoute requiredRole="medecin">
+        <MainLayout>
+          <HomeDoctor />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+
+  // Routes pour les administrateurs
+  <Route
+    key="admin-home"
+    path="/admin/home"
+    element={
+      <ProtectedRoute requiredRole="admin">
+        <MainLayout>
+          <HomeAdmin />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+];
+
+export default StaffRoutes;

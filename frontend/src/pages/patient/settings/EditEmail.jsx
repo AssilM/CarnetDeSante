@@ -3,15 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { FiMail } from "react-icons/fi";
 import { useUserContext } from "../../../context/UserContext";
 import { useAuth } from "../../../context/AuthContext";
+import { useAppContext } from "../../../context/AppContext";
 import PageWrapper from "../../../components/PageWrapper";
 
 const EditEmail = () => {
   const navigate = useNavigate();
   const { user, updateUserInfo, loading } = useUserContext();
   const { currentUser } = useAuth();
+  const { showSuccess, showError } = useAppContext();
   const [newEmail, setNewEmail] = useState("");
   const [confirmEmail, setConfirmEmail] = useState("");
-  const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -19,25 +20,31 @@ const EditEmail = () => {
 
     // Vérifier que les emails correspondent
     if (newEmail !== confirmEmail) {
-      setError("Les adresses e-mail ne correspondent pas");
+      showError("Les adresses e-mail ne correspondent pas");
       return;
     }
 
     // Vérifier que l'email est différent de l'actuel
     if (newEmail === user?.email) {
-      setError("La nouvelle adresse e-mail est identique à l'actuelle");
+      showError("La nouvelle adresse e-mail est identique à l'actuelle");
       return;
     }
 
     setIsSubmitting(true);
-    setError("");
 
     try {
       // Appeler l'API pour mettre à jour l'email
       await updateUserInfo(currentUser.id, { email: newEmail });
-      navigate("/settings#connexion");
+
+      // Afficher une notification de succès et rafraîchir la page
+      showSuccess("Votre adresse e-mail a été mise à jour avec succès", true);
+
+      // Rediriger vers la page des paramètres
+      setTimeout(() => {
+        navigate("/settings#connexion");
+      }, 2000);
     } catch (error) {
-      setError(
+      showError(
         error.response?.data?.message ||
           "Erreur lors de la mise à jour de l'adresse e-mail"
       );
@@ -82,12 +89,6 @@ const EditEmail = () => {
           <p className="text-gray-600 mb-6">
             Votre adresse e-mail actuelle : {user.email}
           </p>
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg">
-              {error}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

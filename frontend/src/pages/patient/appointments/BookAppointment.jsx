@@ -10,7 +10,9 @@ const BookAppointment = () => {
 
   // Gérer la sélection d'une spécialité
   const handleSpecialtySelect = (specialty) => {
-    navigate(`/book/doctors?specialty=${encodeURIComponent(specialty)}`);
+    navigate(
+      `/book-appointment/doctor?specialty=${encodeURIComponent(specialty)}`
+    );
   };
 
   return (

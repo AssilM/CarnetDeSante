@@ -158,13 +158,24 @@ const RegisterPage = () => {
       newErrors.confirmPassword = "Les mots de passe ne correspondent pas";
     }
 
-    // Validation de la date de naissance (optionnelle)
+    // Validation de la date de naissance
     if (formData.dateNaissance) {
       const today = new Date();
       const birthDate = new Date(formData.dateNaissance);
+
+      // Vérifier si la date est future
       if (birthDate > today) {
         newErrors.dateNaissance =
           "La date de naissance ne peut pas être future";
+      }
+
+      // Vérifier l'âge minimum (13 ans)
+      const minAge = 13;
+      const minAgeDate = new Date();
+      minAgeDate.setFullYear(today.getFullYear() - minAge);
+
+      if (birthDate > minAgeDate) {
+        newErrors.dateNaissance = `Vous devez avoir au moins ${minAge} ans pour vous inscrire`;
       }
     }
 

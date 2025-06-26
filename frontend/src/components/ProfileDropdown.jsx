@@ -48,24 +48,6 @@ const ProfileDropdown = ({ isOpen, onClose }) => {
       },
       className: "hover:bg-blue-50 hover:text-blue-600",
     },
-    {
-      icon: <FaCalendarAlt className="text-xl" />,
-      label: "Mes rendez-vous",
-      onClick: () => {
-        navigate("/appointments");
-        onClose();
-      },
-      className: "hover:bg-blue-50 hover:text-blue-600",
-    },
-    {
-      icon: <FaFileMedical className="text-xl" />,
-      label: "Mes documents",
-      onClick: () => {
-        navigate("/documents");
-        onClose();
-      },
-      className: "hover:bg-blue-50 hover:text-blue-600",
-    },
   ];
 
   // Liens spécifiques aux médecins

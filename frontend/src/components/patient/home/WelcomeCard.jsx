@@ -1,24 +1,29 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { useUserContext } from "../../../context/UserContext";
+import { useAuth } from "../../../context/AuthContext";
 
 const WelcomeCard = () => {
+  const { user } = useUserContext();
+  const { currentUser } = useAuth();
+
+  // Récupérer le prénom et le nom de l'utilisateur
+  const firstName = user?.firstName || currentUser?.prenom || "";
+  const lastName = user?.lastName || currentUser?.nom || "";
+  const fullName =
+    firstName && lastName ? `${firstName} ${lastName}` : "Utilisateur";
+
   return (
     <div className="text-white relative flex justify-between items-center">
       <div className="space-y-2">
         <div>
-          <h2 className="text-2xl font-bold">Bienvenue Jean Dupont ! 👋</h2>
+          <h2 className="text-2xl font-bold">Bienvenue {fullName} ! 👋</h2>
           <p className="text-white/90">C'est un plaisir de vous revoir</p>
         </div>
         <div>
           <p className="text-base mb-4">
-            Envie de découvrir l'actualité ou lire des articles de préventions
+            Envie de découvrir'actualité ou lire des articles de préventions
           </p>
-          <Link
-            to="/articles"
-            className="inline-block bg-white text-primary px-6 py-2 rounded-lg font-medium hover:bg-secondary transition-colors"
-          >
-            En apprendre plus
-          </Link>
         </div>
       </div>
       <div className="w-24 h-24 relative">

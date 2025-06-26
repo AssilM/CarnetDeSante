@@ -131,9 +131,10 @@ const Navbar = () => {
           </div>
           <button
             onClick={testExpireToken}
-            className="text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+            className="text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 font-bold"
+            title="Force l'expiration immédiate de la session"
           >
-            Tester expiration
+            Forcer expiration
           </button>
           <button
             onClick={() => logout()}

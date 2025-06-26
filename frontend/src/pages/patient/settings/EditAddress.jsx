@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUserContext } from "../../../context/UserContext";
+import { useAppContext } from "../../../context/AppContext";
 import { FiArrowLeft, FiMapPin, FiHome, FiMap } from "react-icons/fi";
 
 const EditAddress = () => {
   const navigate = useNavigate();
   const { user, updateUserInfo, error } = useUserContext();
+  const { showSuccess, showError } = useAppContext();
 
   const [formData, setFormData] = useState({
     adresse: user?.adresse || "",
@@ -14,8 +16,6 @@ const EditAddress = () => {
   });
 
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [formError, setFormError] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,8 +25,6 @@ const EditAddress = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setFormError("");
-    setSuccess(false);
 
     try {
       await updateUserInfo(user.id, {
@@ -35,13 +33,16 @@ const EditAddress = () => {
         ville: formData.ville,
       });
 
-      setSuccess(true);
+      // Afficher une notification de succès et rafraîchir la page
+      showSuccess("Votre adresse a été mise à jour avec succès", true);
+
+      // Rediriger vers la page des paramètres
       setTimeout(() => {
         navigate("/settings");
       }, 2000);
     } catch (error) {
       console.error("Erreur lors de la mise à jour de l'adresse:", error);
-      setFormError(
+      showError(
         error.response?.data?.message ||
           "Erreur lors de la mise à jour de l'adresse"
       );
@@ -69,18 +70,6 @@ const EditAddress = () => {
         {error && (
           <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md">
             {error}
-          </div>
-        )}
-
-        {formError && (
-          <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md">
-            {formError}
-          </div>
-        )}
-
-        {success && (
-          <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-md">
-            Adresse mise à jour avec succès. Redirection en cours...
           </div>
         )}
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaArrowLeft,
@@ -14,22 +14,28 @@ const SlotSelection = () => {
   const navigate = useNavigate();
   const {
     selectedDoctor,
-    availableDates,
     getAvailableSlots,
     setSelectedDate,
     setSelectedSlot,
   } = useDoctorContext();
 
   const [selectedDateState, setSelectedDateState] = useState("");
+  const [availableDates, setAvailableDates] = useState([]);
 
   // Rediriger si aucun médecin n'est sélectionné
-  if (!selectedDoctor) {
-    navigate("/book");
-    return null;
-  }
+  useEffect(() => {
+    if (!selectedDoctor) {
+      navigate("/book-appointment");
+      return;
+    }
+
+    // Extraire les dates disponibles du médecin sélectionné
+    const dates = selectedDoctor.availableSlots.map((slot) => slot.date);
+    setAvailableDates(dates);
+  }, [selectedDoctor, navigate]);
 
   const availableSlots = selectedDateState
-    ? getAvailableSlots(selectedDoctor.id, selectedDateState)
+    ? getAvailableSlots(selectedDoctor?.id, selectedDateState)
     : [];
 
   const handleSelectDate = (date) => {
@@ -39,7 +45,7 @@ const SlotSelection = () => {
   const handleSelectSlot = (slot) => {
     setSelectedDate(selectedDateState);
     setSelectedSlot(slot);
-    navigate("/book/confirm");
+    navigate("/book-appointment/confirmation");
   };
 
   // Formater une date pour l'affichage
@@ -53,6 +59,8 @@ const SlotSelection = () => {
     });
   };
 
+  if (!selectedDoctor) return null;
+
   return (
     <PageWrapper className="bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -61,7 +69,7 @@ const SlotSelection = () => {
           <button
             onClick={() =>
               navigate(
-                "/book/doctors?specialty=" +
+                "/book-appointment/doctor?specialty=" +
                   encodeURIComponent(selectedDoctor.specialty)
               )
             }
@@ -78,17 +86,15 @@ const SlotSelection = () => {
             <div className="flex-shrink-0 mr-4">
               <div className="w-16 h-16 bg-gray-200 rounded-full overflow-hidden">
                 <img
-                  src={
-                    selectedDoctor.avatar || "https://via.placeholder.com/64"
-                  }
-                  alt={`Dr. ${selectedDoctor.lastName}`}
+                  src={selectedDoctor.image || "https://via.placeholder.com/64"}
+                  alt={`${selectedDoctor.name}`}
                   className="w-full h-full object-cover"
                 />
               </div>
             </div>
             <div className="flex-1">
               <h2 className="text-xl font-semibold text-gray-900">
-                Dr. {selectedDoctor.firstName} {selectedDoctor.lastName}
+                {selectedDoctor.name}
               </h2>
               <p className="text-primary font-medium">
                 {selectedDoctor.specialty}

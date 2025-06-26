@@ -4,17 +4,23 @@ import logo from "../assets/logo-C.svg";
 import Footer from "../components/Footer";
 
 const SessionExpired = () => {
+  // Fonction pour gérer la reconnexion
+  const handleReconnect = () => {
+    // Redirection forcée vers la page de connexion
+    window.location.replace("/auth/login");
+  };
+
   return (
     <div className="min-h-screen bg-blue-50 flex flex-col">
       {/* Header/Navigation */}
       <header className="bg-white shadow-sm py-4 px-6">
         <div className="container mx-auto flex justify-between items-center">
-          <Link to="/" className="flex items-center">
+          <div className="flex items-center">
             <img src={logo} alt="Logo" className="h-10 w-10" />
             <span className="ml-2 text-xl font-medium text-blue-800">
               Carnet de <span className="text-blue-500">Santé Virtuel</span>
             </span>
-          </Link>
+          </div>
         </div>
       </header>
 
@@ -45,12 +51,12 @@ const SessionExpired = () => {
               Votre session a expiré pour des raisons de sécurité. Veuillez vous
               reconnecter pour continuer.
             </p>
-            <Link
-              to="/auth/login"
+            <button
+              onClick={handleReconnect}
               className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition duration-300"
             >
               Se reconnecter
-            </Link>
+            </button>
           </div>
         </div>
       </div>

@@ -114,25 +114,6 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Call to Action */}
-      <section className="bg-blue-600 text-white py-16">
-        <div className="container mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold mb-4">
-            Prenez le contrôle de votre santé dès aujourd'hui
-          </h2>
-          <p className="text-xl mb-8 max-w-3xl mx-auto">
-            Rejoignez des milliers d'utilisateurs qui gèrent déjà efficacement
-            leur santé avec notre solution.
-          </p>
-          <Link
-            to="/auth/role-select"
-            className="bg-white text-blue-600 px-8 py-3 rounded-full text-lg font-medium hover:bg-gray-100 transition duration-300 shadow-md"
-          >
-            Créer mon carnet de santé
-          </Link>
-        </div>
-      </section>
-
       <Footer />
     </div>
   );

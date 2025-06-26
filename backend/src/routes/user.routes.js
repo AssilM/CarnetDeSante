@@ -6,6 +6,7 @@ import {
   updatePassword,
   deleteUser,
   getUsersByRole,
+  getMe,
 } from "../controllers/user.controller.js";
 import {
   verifyToken,
@@ -17,6 +18,9 @@ const router = express.Router();
 
 // Routes protégées par authentification
 router.use(verifyToken);
+
+// Route pour récupérer l'utilisateur connecté (me)
+router.get("/me", getMe);
 
 // Routes accessibles à tous les utilisateurs authentifiés (mais limitées à leur propre profil ou aux admins)
 router.get("/:id", isOwnerOrAdmin, getUserById);

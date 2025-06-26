@@ -21,7 +21,7 @@ const DoctorSelection = () => {
     const specialty = queryParams.get("specialty");
 
     if (!specialty) {
-      navigate("/book");
+      navigate("/book-appointment");
       return;
     }
 
@@ -32,7 +32,7 @@ const DoctorSelection = () => {
   // Gérer la sélection d'un médecin
   const handleDoctorSelect = (doctor) => {
     setSelectedDoctor(doctor);
-    navigate("/book/slots");
+    navigate("/book-appointment/slot");
   };
 
   return (
@@ -41,7 +41,7 @@ const DoctorSelection = () => {
         {/* En-tête avec bouton retour */}
         <div className="mb-6">
           <button
-            onClick={() => navigate("/book")}
+            onClick={() => navigate("/book-appointment")}
             className="flex items-center text-gray-600 hover:text-gray-900"
           >
             <FaArrowLeft className="mr-2" />
@@ -74,16 +74,16 @@ const DoctorSelection = () => {
                         <div className="w-16 h-16 bg-gray-200 rounded-full overflow-hidden">
                           <img
                             src={
-                              doctor.avatar || "https://via.placeholder.com/64"
+                              doctor.image || "https://via.placeholder.com/64"
                             }
-                            alt={`Dr. ${doctor.lastName}`}
+                            alt={`Dr. ${doctor.name}`}
                             className="w-full h-full object-cover"
                           />
                         </div>
                       </div>
                       <div className="flex-1">
                         <h3 className="text-lg font-medium text-gray-900">
-                          Dr. {doctor.firstName} {doctor.lastName}
+                          {doctor.name}
                         </h3>
                         <p className="text-sm text-gray-600 mb-2">
                           {doctor.specialty}
@@ -102,7 +102,7 @@ const DoctorSelection = () => {
                           <FaStar className="text-yellow-400 mr-1" />
                           <span className="font-medium">{doctor.rating}</span>
                           <span className="text-gray-500 text-sm ml-1">
-                            ({doctor.reviewCount} avis)
+                            (avis)
                           </span>
                         </div>
                         <span className="text-sm bg-blue-100 text-blue-800 py-1 px-2 rounded-full">
@@ -120,7 +120,7 @@ const DoctorSelection = () => {
                 Aucun médecin trouvé pour cette spécialité.
               </p>
               <button
-                onClick={() => navigate("/book")}
+                onClick={() => navigate("/book-appointment")}
                 className="mt-4 text-primary hover:text-primary/80"
               >
                 Retour à la recherche

@@ -64,7 +64,7 @@ const Sidebar = () => {
     {
       icon: <FaCalendarPlus className="text-2xl" />,
       label: "Prendre RDV",
-      path: "/appointments/book",
+      path: "/book-appointment",
     },
     {
       icon: <FaCog className="text-2xl" />,

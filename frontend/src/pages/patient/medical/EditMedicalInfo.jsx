@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUserContext } from "../../../context/UserContext";
 import { useAuth } from "../../../context/AuthContext";
+import { useAppContext } from "../../../context/AppContext";
 import PageWrapper from "../../../components/PageWrapper";
 import EditInfoForm from "../../../components/patient/medical/forms/EditInfoForm";
 
@@ -9,8 +10,8 @@ const EditMedicalInfo = () => {
   const navigate = useNavigate();
   const { user, updateUserInfo } = useUserContext();
   const { currentUser } = useAuth();
+  const { showSuccess, showError } = useAppContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState(null);
 
   // Données initiales pour le formulaire
   const initialData = {
@@ -25,7 +26,6 @@ const EditMedicalInfo = () => {
 
   const handleSubmit = async (formData) => {
     setIsSubmitting(true);
-    setError(null);
 
     try {
       // Mapper les données du formulaire au format attendu par l'API
@@ -41,9 +41,16 @@ const EditMedicalInfo = () => {
 
       // Appeler l'API pour mettre à jour les informations
       await updateUserInfo(currentUser.id, userData);
-      navigate("/medical-profile");
+
+      // Afficher une notification de succès et rafraîchir la page
+      showSuccess("Vos informations ont été mises à jour avec succès", true);
+
+      // Rediriger vers la page du profil médical
+      setTimeout(() => {
+        navigate("/medical-profile");
+      }, 2000);
     } catch (err) {
-      setError(
+      showError(
         err.message ||
           "Une erreur est survenue lors de la mise à jour des informations"
       );
@@ -59,11 +66,6 @@ const EditMedicalInfo = () => {
   return (
     <PageWrapper className="bg-gray-50">
       <div className="mt-10">
-        {error && (
-          <div className="max-w-2xl mx-auto mb-4 p-4 bg-red-50 text-red-700 rounded-lg">
-            {error}
-          </div>
-        )}
         <EditInfoForm
           initialData={initialData}
           onSubmit={handleSubmit}

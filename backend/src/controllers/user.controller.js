@@ -44,6 +44,45 @@ export const getUserById = async (req, res) => {
   }
 };
 
+// Récupérer les informations de l'utilisateur connecté
+export const getMe = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const result = await pool.query(
+      "SELECT id, email, nom, prenom, role, tel, date_naissance, sexe, adresse, code_postal, ville FROM utilisateurs WHERE id = $1",
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    const user = result.rows[0];
+
+    res.status(200).json({
+      user: {
+        id: user.id,
+        email: user.email,
+        nom: user.nom,
+        prenom: user.prenom,
+        role: user.role,
+        tel: user.tel,
+        date_naissance: user.date_naissance,
+        sexe: user.sexe,
+        adresse: user.adresse,
+        code_postal: user.code_postal,
+        ville: user.ville,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: "Erreur lors de la récupération de l'utilisateur" });
+  }
+};
+
 // Mettre à jour un utilisateur
 export const updateUser = async (req, res) => {
   try {
@@ -150,6 +189,7 @@ export const updatePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
 
     // Vérifier si l'utilisateur existe
+
     const userResult = await pool.query(
       "SELECT * FROM utilisateurs WHERE id = $1",
       [userId]

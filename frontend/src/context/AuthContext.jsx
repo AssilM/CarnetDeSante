@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import {
   baseApi,
@@ -6,6 +12,20 @@ import {
   createAuthenticatedApi,
   createApiService,
 } from "../services/api";
+
+// Variable globale pour suivre l'état d'expiration
+let SESSION_EXPIRED = false;
+
+// =====================================================
+// CONFIGURATION GLOBALE - Durée d'expiration en secondes
+// Modifiez cette valeur pour changer le temps d'expiration
+// Cette valeur doit correspondre à celle du backend (TEMPS_EXPIRATION)
+// =====================================================
+const TEMPS_EXPIRATION = 6000;
+// =====================================================
+
+// Durée d'inactivité avant déconnexion (en secondes)
+const INACTIVITY_TIMEOUT = TEMPS_EXPIRATION;
 
 const AuthContext = createContext();
 
@@ -19,25 +39,75 @@ export const AuthProvider = ({ children }) => {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sessionExpired, setSessionExpired] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(SESSION_EXPIRED);
+  const logoutTimerRef = useRef(null); // Référence pour le timer de déconnexion automatique
   const navigate = useNavigate();
 
-  // Fonction de déconnexion
-  const logout = async (expired = false) => {
-    // Appeler l'API de déconnexion
-    await authApi.logout(refreshToken);
+  // Fonction pour tester ou forcer l'expiration du token
+  const testExpireToken = () => {
+    console.log("Expiration forcée de la session");
 
-    // Supprimer les tokens et les infos utilisateur
+    // Nettoyer les données de session
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
-    setAccessToken(null);
-    setRefreshToken(null);
-    setCurrentUser(null);
 
-    // Si la session a expiré, rediriger vers la page de session expirée
-    if (expired) {
-      setSessionExpired(true);
-      navigate("/session-expired");
+    // Marquer la session comme expirée
+    SESSION_EXPIRED = true;
+    setSessionExpired(true);
+
+    // Redirection forcée et complète
+    window.location.href = "/session-expired";
+  };
+
+  // Fonction pour configurer la déconnexion automatique après un délai d'inactivité
+  const autoLogout = (timeInSeconds = INACTIVITY_TIMEOUT) => {
+    console.log(
+      `Configuration de la déconnexion automatique après ${timeInSeconds} secondes d'inactivité`
+    );
+
+    // Annuler tout timer existant
+    if (logoutTimerRef.current) {
+      clearTimeout(logoutTimerRef.current);
+    }
+
+    // Configurer le timer de déconnexion automatique
+    logoutTimerRef.current = setTimeout(() => {
+      console.log("Déconnexion automatique déclenchée après inactivité");
+      testExpireToken();
+    }, timeInSeconds * 1000);
+
+    return timeInSeconds; // Retourner la valeur pour confirmation
+  };
+
+  // Fonction de déconnexion standard
+  const logout = async (expired = false) => {
+    try {
+      // Annuler tout timer de déconnexion automatique
+      if (logoutTimerRef.current) {
+        clearTimeout(logoutTimerRef.current);
+        logoutTimerRef.current = null;
+      }
+
+      // Appeler l'API de déconnexion si possible
+      if (refreshToken) {
+        await authApi.logout(refreshToken).catch(() => {
+          console.log("Erreur lors de la déconnexion API");
+        });
+      }
+    } finally {
+      // Nettoyer les données de session
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      setAccessToken(null);
+      setRefreshToken(null);
+      setCurrentUser(null);
+
+      // Si la session a expiré, rediriger vers la page de session expirée
+      if (expired) {
+        testExpireToken();
+      } else {
+        navigate("/auth/login");
+      }
     }
   };
 
@@ -48,16 +118,35 @@ export const AuthProvider = ({ children }) => {
     onTokenRefreshed: (newToken) => {
       setAccessToken(newToken);
       localStorage.setItem("accessToken", newToken);
+      // Réinitialiser le timer d'inactivité quand le token est rafraîchi
+      if (currentUser) {
+        autoLogout();
+      }
     },
-    onSessionExpired: () => logout(true),
+    onSessionExpired: () => testExpireToken(),
   });
 
   // Créer les services API pour les différentes ressources
   const apiService = createApiService(authenticatedApi);
 
+  // Nettoyer le timer lors du démontage du composant
+  useEffect(() => {
+    return () => {
+      if (logoutTimerRef.current) {
+        clearTimeout(logoutTimerRef.current);
+      }
+    };
+  }, []);
+
   // Vérifier si l'utilisateur est déjà connecté au chargement
   useEffect(() => {
     const verifyToken = async () => {
+      // Si la session est déjà marquée comme expirée, ne rien faire
+      if (SESSION_EXPIRED) {
+        setLoading(false);
+        return;
+      }
+
       if (!accessToken || !refreshToken) {
         setLoading(false);
         return;
@@ -67,6 +156,8 @@ export const AuthProvider = ({ children }) => {
         // Vérifier la validité du token en récupérant les infos de l'utilisateur
         const userData = await apiService.users.getCurrentUser();
         setCurrentUser(userData.user);
+        // Initialiser le timer d'inactivité
+        autoLogout();
       } catch {
         // Si le token est invalide, essayer de le rafraîchir
         try {
@@ -80,9 +171,11 @@ export const AuthProvider = ({ children }) => {
           // Récupérer les infos de l'utilisateur avec le nouveau token
           const userData = await apiService.users.getCurrentUser();
           setCurrentUser(userData.user);
+          // Initialiser le timer d'inactivité
+          autoLogout();
         } catch {
           // Si le refresh token est invalide, déconnecter l'utilisateur
-          logout(true);
+          testExpireToken();
         }
       } finally {
         setLoading(false);
@@ -92,35 +185,45 @@ export const AuthProvider = ({ children }) => {
     verifyToken();
   }, []);
 
-  // Vérifier périodiquement la validité du token (toutes les 5 secondes)
+  // Ajouter des écouteurs d'événements pour détecter l'activité de l'utilisateur
   useEffect(() => {
-    if (!accessToken || !refreshToken) return;
+    // Ne pas ajouter les écouteurs si pas d'utilisateur connecté
+    if (!currentUser) return;
 
-    const checkTokenInterval = setInterval(async () => {
-      try {
-        // Essayer de faire une requête pour vérifier si le token est toujours valide
-        await apiService.users.getCurrentUser();
-      } catch (error) {
-        console.log("Vérification du token:", error);
-        // Ne rien faire ici, l'intercepteur s'occupera de rafraîchir le token ou de déconnecter l'utilisateur
-      }
-    }, 5000); // 5 secondes
+    const events = [
+      "mousedown",
+      "mousemove",
+      "keydown",
+      "scroll",
+      "touchstart",
+      "click",
+    ];
 
-    return () => clearInterval(checkTokenInterval);
-  }, [accessToken, refreshToken]);
+    // Gestionnaire d'événements pour réinitialiser le timer à chaque activité
+    const handleUserActivity = () => {
+      autoLogout();
+    };
 
-  // Fonction pour tester l'expiration du token (pour démonstration)
-  const testExpireToken = () => {
-    // Simuler un token expiré en le supprimant
-    localStorage.removeItem("accessToken");
-    setAccessToken(null);
-    // Rediriger vers la page de session expirée
-    navigate("/session-expired");
-  };
+    // Ajouter les écouteurs pour tous les événements
+    events.forEach((event) => {
+      window.addEventListener(event, handleUserActivity);
+    });
+
+    // Nettoyer les écouteurs lors du démontage
+    return () => {
+      events.forEach((event) => {
+        window.removeEventListener(event, handleUserActivity);
+      });
+    };
+  }, [currentUser]);
 
   // Fonction de connexion
   const login = async (email, password) => {
     try {
+      // Réinitialiser l'état d'expiration de session
+      SESSION_EXPIRED = false;
+      setSessionExpired(false);
+
       setError(null);
       const authData = await authApi.login(email, password);
 
@@ -132,6 +235,9 @@ export const AuthProvider = ({ children }) => {
       setAccessToken(token);
       setRefreshToken(newRefreshToken);
       setCurrentUser(user);
+
+      // Configurer le timer d'inactivité
+      autoLogout();
 
       return user;
     } catch (error) {

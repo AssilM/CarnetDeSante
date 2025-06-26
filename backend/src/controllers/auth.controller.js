@@ -5,10 +5,14 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// Récupérer la durée d'expiration du token depuis les variables d'environnement (en secondes)
+const TEMPS_EXPIRATION = 6000; //Durée max d'une session en seconde
+console.log(`Durée d'expiration configurée: ${TEMPS_EXPIRATION} secondes`);
+
 // Créer un utilisateur (inscription)
 export const signup = async (req, res) => {
   try {
-    const { email, password, nom, prenom, role } = req.body;
+    const { email, password, nom, prenom, role, date_naissance } = req.body;
 
     // Vérifier si l'utilisateur existe déjà
     const userCheck = await pool.query(
@@ -19,14 +23,38 @@ export const signup = async (req, res) => {
       return res.status(400).json({ message: "Cet email est déjà utilisé" });
     }
 
+    // Validation de la date de naissance si elle est fournie
+    if (date_naissance) {
+      const today = new Date();
+      const birthDate = new Date(date_naissance);
+
+      // Vérifier si la date est future
+      if (birthDate > today) {
+        return res.status(400).json({
+          message: "La date de naissance ne peut pas être future",
+        });
+      }
+
+      // Vérifier l'âge minimum (13 ans)
+      const minAge = 13;
+      const minAgeDate = new Date();
+      minAgeDate.setFullYear(today.getFullYear() - minAge);
+
+      if (birthDate > minAgeDate) {
+        return res.status(400).json({
+          message: `Vous devez avoir au moins ${minAge} ans pour vous inscrire`,
+        });
+      }
+    }
+
     // Hasher le mot de passe
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Insérer l'utilisateur
     const newUser = await pool.query(
-      "INSERT INTO utilisateurs (email, password, nom, prenom, role) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-      [email, hashedPassword, nom, prenom, role]
+      "INSERT INTO utilisateurs (email, password, nom, prenom, role, date_naissance) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+      [email, hashedPassword, nom, prenom, role, date_naissance]
     );
 
     res.status(201).json({
@@ -71,24 +99,24 @@ export const signin = async (req, res) => {
         .json({ message: "Email ou mot de passe incorrect" });
     }
 
-    // Générer un token JWT
+    // Générer un token JWT avec une expiration configurée
     const token = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: `${TEMPS_EXPIRATION}s` }
     );
 
-    // Générer un refresh token
+    // Générer un refresh token (durée réduite pour les tests)
     const refreshToken = jwt.sign(
       { id: user.id },
       process.env.JWT_REFRESH_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "1d" }
     );
 
     // Stocker le refresh token en base de données
     await pool.query(
       "INSERT INTO refresh_tokens (token, utilisateur_id, expires_at) VALUES ($1, $2, $3)",
-      [refreshToken, user.id, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)]
+      [refreshToken, user.id, new Date(Date.now() + 24 * 60 * 60 * 1000)]
     );
 
     res.status(200).json({
@@ -148,11 +176,11 @@ export const refreshToken = async (req, res) => {
 
     const user = userResult.rows[0];
 
-    // Générer un nouveau token
+    // Générer un nouveau token avec une expiration configurée
     const newToken = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: `${TEMPS_EXPIRATION}s` }
     );
 
     res.status(200).json({
@@ -182,8 +210,6 @@ export const signout = async (req, res) => {
     res.status(500).json({ message: "Erreur lors de la déconnexion" });
   }
 };
-
-// Récupérer les informations de l'utilisateur connecté
 export const getMe = async (req, res) => {
   try {
     const userId = req.userId;

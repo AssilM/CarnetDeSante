@@ -19,7 +19,7 @@ const AppointmentConfirmation = () => {
 
   // Rediriger si les informations ne sont pas complètes
   if (!selectedDoctor || !selectedDate || !selectedSlot) {
-    navigate("/book");
+    navigate("/book-appointment");
     return null;
   }
 
@@ -43,8 +43,7 @@ const AppointmentConfirmation = () => {
       date: selectedDate,
       time: selectedSlot,
       doctor: {
-        firstName: selectedDoctor.firstName,
-        lastName: selectedDoctor.lastName,
+        name: selectedDoctor.name,
         specialty: selectedDoctor.specialty,
         address: selectedDoctor.address,
       },
@@ -73,7 +72,7 @@ const AppointmentConfirmation = () => {
         {/* En-tête avec bouton retour */}
         <div className="mb-6">
           <button
-            onClick={() => navigate("/book/slots")}
+            onClick={() => navigate("/book-appointment/slot")}
             className="flex items-center text-gray-600 hover:text-gray-900"
           >
             <FaArrowLeft className="mr-2" />
@@ -115,7 +114,7 @@ const AppointmentConfirmation = () => {
                       Médecin
                     </h3>
                     <p className="font-medium text-gray-900">
-                      Dr. {selectedDoctor.firstName} {selectedDoctor.lastName}
+                      {selectedDoctor.name}
                     </p>
                     <p className="text-sm text-gray-600">
                       {selectedDoctor.specialty}
