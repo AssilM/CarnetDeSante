@@ -2,12 +2,10 @@ import React from "react";
 import {
   DocumentProvider,
   VaccinationProvider,
-  MedicalInfoProvider,
-  MedicalHistoryProvider,
-  AllergyProvider,
-  HealthEventProvider,
+  MedicalProvider,
   AppointmentProvider,
   DoctorProvider,
+  PatientProvider,
 } from "../../context";
 
 /**
@@ -16,21 +14,17 @@ import {
  */
 const PatientProviders = ({ children }) => {
   return (
-    <DocumentProvider>
-      <VaccinationProvider>
-        <MedicalInfoProvider>
-          <MedicalHistoryProvider>
-            <AllergyProvider>
-              <HealthEventProvider>
-                <AppointmentProvider>
-                  <DoctorProvider>{children}</DoctorProvider>
-                </AppointmentProvider>
-              </HealthEventProvider>
-            </AllergyProvider>
-          </MedicalHistoryProvider>
-        </MedicalInfoProvider>
-      </VaccinationProvider>
-    </DocumentProvider>
+    <PatientProvider>
+      <DocumentProvider>
+        <VaccinationProvider>
+          <MedicalProvider>
+            <AppointmentProvider>
+              <DoctorProvider>{children}</DoctorProvider>
+            </AppointmentProvider>
+          </MedicalProvider>
+        </VaccinationProvider>
+      </DocumentProvider>
+    </PatientProvider>
   );
 };
 

@@ -12,7 +12,21 @@ console.log(`Durée d'expiration configurée: ${TEMPS_EXPIRATION} secondes`);
 // Créer un utilisateur (inscription)
 export const signup = async (req, res) => {
   try {
-    const { email, password, nom, prenom, role, date_naissance } = req.body;
+    const {
+      email,
+      password,
+      nom,
+      prenom,
+      role,
+      date_naissance,
+      tel,
+      sexe,
+      adresse,
+      code_postal,
+      ville,
+      patient_data,
+      medecin_data,
+    } = req.body;
 
     // Vérifier si l'utilisateur existe déjà
     const userCheck = await pool.query(
@@ -53,12 +67,76 @@ export const signup = async (req, res) => {
 
     // Insérer l'utilisateur
     const newUser = await pool.query(
-      "INSERT INTO utilisateurs (email, password, nom, prenom, role, date_naissance) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-      [email, hashedPassword, nom, prenom, role, date_naissance]
+      "INSERT INTO utilisateurs (email, password, nom, prenom, role, date_naissance, tel, sexe, adresse, code_postal, ville) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *",
+      [
+        email,
+        hashedPassword,
+        nom,
+        prenom,
+        role,
+        date_naissance,
+        tel,
+        sexe,
+        adresse,
+        code_postal,
+        ville,
+      ]
     );
+
+    const userId = newUser.rows[0].id;
+
+    // Créer automatiquement une entrée dans la table correspondante au rôle
+    try {
+      if (role === "patient") {
+        // Si des données patient sont fournies, les utiliser
+        if (patient_data) {
+          const { groupe_sanguin, poids } = patient_data;
+          await pool.query(
+            "INSERT INTO patients (utilisateur_id, groupe_sanguin, poids) VALUES ($1, $2, $3)",
+            [userId, groupe_sanguin, poids]
+          );
+        } else {
+          // Sinon, créer une entrée vide
+          await pool.query(
+            "INSERT INTO patients (utilisateur_id) VALUES ($1)",
+            [userId]
+          );
+        }
+      } else if (role === "medecin") {
+        // Si des données médecin sont fournies, les utiliser
+        if (medecin_data) {
+          const { specialite, description } = medecin_data;
+          await pool.query(
+            "INSERT INTO medecins (utilisateur_id, specialite, description) VALUES ($1, $2, $3)",
+            [userId, specialite, description]
+          );
+        } else {
+          // Sinon, créer une entrée avec une spécialité par défaut
+          await pool.query(
+            "INSERT INTO medecins (utilisateur_id, specialite) VALUES ($1, $2)",
+            [userId, "À préciser"]
+          );
+        }
+      } else if (role === "admin") {
+        await pool.query(
+          "INSERT INTO administrateurs (utilisateur_id) VALUES ($1)",
+          [userId]
+        );
+      }
+    } catch (error) {
+      console.error("Erreur lors de la création du profil spécifique:", error);
+      // Ne pas échouer l'inscription si la création du profil spécifique échoue
+      // On pourrait implémenter une logique de nettoyage ou de retentative plus tard
+    }
+
+    // Générer un token JWT pour permettre la création immédiate du profil
+    const token = jwt.sign({ id: userId, role: role }, process.env.JWT_SECRET, {
+      expiresIn: `${TEMPS_EXPIRATION}s`,
+    });
 
     res.status(201).json({
       message: "Utilisateur créé avec succès",
+      token,
       user: {
         id: newUser.rows[0].id,
         email: newUser.rows[0].email,

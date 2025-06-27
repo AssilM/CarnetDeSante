@@ -1,17 +1,33 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useUserContext } from "../../../context/UserContext";
+import { usePatientContext } from "../../../context/patient/PatientContext";
 
 const InfoSection = () => {
   const { currentUser } = useAuth();
   const { user } = useUserContext();
+  const { patientProfile, medicalInfo, refreshMedicalInfo } =
+    usePatientContext();
   const navigate = useNavigate();
+
+  // Charger les informations médicales si elles ne sont pas déjà chargées
+  useEffect(() => {
+    if (!medicalInfo && currentUser?.role === "patient") {
+      refreshMedicalInfo().catch((error) => {
+        console.error(
+          "Impossible de charger les informations médicales",
+          error
+        );
+      });
+    }
+  }, [medicalInfo, currentUser, refreshMedicalInfo]);
 
   // Fonction pour afficher correctement le genre
   const displayGender = (gender) => {
-    if (gender === "H" || gender === "M") return "Masculin";
-    if (gender === "F") return "Féminin";
+    if (gender === "H" || gender === "M" || gender === "homme")
+      return "Masculin";
+    if (gender === "F" || gender === "femme") return "Féminin";
     return "Non renseigné";
   };
 
@@ -53,6 +69,20 @@ const InfoSection = () => {
   const handleModify = () => {
     navigate("/medical-profile/edit");
   };
+
+  // Récupérer les informations médicales
+  const groupeSanguin =
+    patientProfile?.groupe_sanguin ||
+    medicalInfo?.groupe_sanguin ||
+    "Non disponible";
+  const taille =
+    patientProfile?.taille || medicalInfo?.taille
+      ? `${patientProfile?.taille || medicalInfo?.taille} cm`
+      : "Non disponible";
+  const poids =
+    patientProfile?.poids || medicalInfo?.poids
+      ? `${patientProfile?.poids || medicalInfo?.poids} kg`
+      : "Non disponible";
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 md:p-6">
@@ -104,17 +134,35 @@ const InfoSection = () => {
 
         <div>
           <p className="text-sm text-gray-500 mb-1">Groupe sanguin</p>
-          <p className="font-medium text-gray-400">Non disponible</p>
+          <p
+            className={`font-medium ${
+              groupeSanguin === "Non disponible" ? "text-gray-400" : ""
+            }`}
+          >
+            {groupeSanguin}
+          </p>
         </div>
 
         <div>
           <p className="text-sm text-gray-500 mb-1">Taille</p>
-          <p className="font-medium text-gray-400">Non disponible</p>
+          <p
+            className={`font-medium ${
+              taille === "Non disponible" ? "text-gray-400" : ""
+            }`}
+          >
+            {taille}
+          </p>
         </div>
 
         <div>
           <p className="text-sm text-gray-500 mb-1">Poids</p>
-          <p className="font-medium text-gray-400">Non disponible</p>
+          <p
+            className={`font-medium ${
+              poids === "Non disponible" ? "text-gray-400" : ""
+            }`}
+          >
+            {poids}
+          </p>
         </div>
       </div>
     </div>

@@ -15,6 +15,8 @@ const RegisterPage = () => {
     dateNaissance: "",
     sexe: "",
     specialite: "", // Pour les médecins uniquement
+    groupeSanguin: "", // Pour les patients uniquement
+    poids: "", // Pour les patients uniquement
   });
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("patient");
@@ -184,6 +186,14 @@ const RegisterPage = () => {
       newErrors.specialite = "La spécialité est requise pour les médecins";
     }
 
+    // Validation du poids pour les patients
+    if (role === "patient" && formData.poids) {
+      const poids = parseFloat(formData.poids);
+      if (isNaN(poids) || poids <= 0 || poids > 500) {
+        newErrors.poids = "Veuillez entrer un poids valide (entre 1 et 500 kg)";
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -195,7 +205,8 @@ const RegisterPage = () => {
       setRegisterError("");
 
       try {
-        await register({
+        // Préparer les données d'inscription en fonction du rôle
+        const userData = {
           email: formData.email,
           password: formData.password,
           nom: formData.nom,
@@ -204,8 +215,23 @@ const RegisterPage = () => {
           date_naissance: formData.dateNaissance,
           sexe: formData.sexe,
           role: role,
-          specialite: role === "medecin" ? formData.specialite : null,
-        });
+        };
+
+        // Ajouter les données spécifiques au rôle
+        if (role === "patient") {
+          userData.patient_data = {
+            groupe_sanguin: formData.groupeSanguin || null,
+            poids: formData.poids ? parseFloat(formData.poids) : null,
+          };
+        } else if (role === "medecin") {
+          userData.medecin_data = {
+            specialite: formData.specialite,
+            description: `Dr. ${formData.prenom} ${formData.nom}, ${formData.specialite}`,
+          };
+        }
+
+        // Enregistrer l'utilisateur avec toutes les données
+        await register(userData);
 
         // Redirection vers la page de connexion avec le même rôle
         navigate(`/auth/login?role=${role}`);
@@ -545,6 +571,66 @@ const RegisterPage = () => {
                     {errors.specialite && (
                       <p className="mt-1 text-red-500 text-sm">
                         {errors.specialite}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Groupe sanguin (pour les patients uniquement) */}
+                {role === "patient" && (
+                  <div>
+                    <label
+                      htmlFor="groupeSanguin"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Groupe sanguin
+                    </label>
+                    <select
+                      id="groupeSanguin"
+                      name="groupeSanguin"
+                      value={formData.groupeSanguin}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Sélectionnez</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Poids (pour les patients uniquement) */}
+                {role === "patient" && (
+                  <div>
+                    <label
+                      htmlFor="poids"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Poids (kg)
+                    </label>
+                    <input
+                      type="number"
+                      id="poids"
+                      name="poids"
+                      value={formData.poids}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-2 border ${
+                        errors.poids ? "border-red-500" : "border-gray-300"
+                      } rounded-lg focus:ring-blue-500 focus:border-blue-500`}
+                      placeholder="Votre poids en kg"
+                      min="1"
+                      max="500"
+                      step="0.1"
+                    />
+                    {errors.poids && (
+                      <p className="mt-1 text-red-500 text-sm">
+                        {errors.poids}
                       </p>
                     )}
                   </div>

@@ -3,6 +3,11 @@ import cors from "cors";
 import dotenv from "dotenv";
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
+import patientRoutes from "./routes/patient.routes.js";
+import medecinRoutes from "./routes/medecin.routes.js";
+import disponibiliteRoutes from "./routes/disponibilite.routes.js";
+import rendezVousRoutes from "./routes/rendezvous.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 
 dotenv.config();
 
@@ -15,6 +20,11 @@ app.use(express.json());
 // Routes API
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/patients", patientRoutes);
+app.use("/api/medecins", medecinRoutes);
+app.use("/api/disponibilites", disponibiliteRoutes);
+app.use("/api/rendez-vous", rendezVousRoutes);
+app.use("/api/admins", adminRoutes);
 
 // Routes de test
 app.get("/", (req, res) => {
