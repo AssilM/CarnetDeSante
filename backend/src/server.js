@@ -30,7 +30,7 @@ const initDatabase = async () => {
 };
 
 // Initialiser la base de données
-initDatabase();
+//initDatabase();
 
 // Démarrer le serveur
 app.listen(port, () => {

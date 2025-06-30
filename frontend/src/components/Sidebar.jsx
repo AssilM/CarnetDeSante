@@ -90,6 +90,11 @@ const Sidebar = () => {
       path: "/agenda",
     },
     {
+      icon: <BsCalendar2Week className="text-2xl" />,
+      label: "Disponibilités",
+      path: "/doctor/availability",
+    },
+    {
       icon: <MdDescription className="text-2xl" />,
       label: "Documents",
       path: "/documents",

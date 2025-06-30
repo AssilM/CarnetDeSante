@@ -55,6 +55,13 @@ export const createDisponibilite = async (req, res) => {
       return res.status(404).json({ message: "Médecin non trouvé" });
     }
 
+    // Vérifier si l'heure de fin est après l'heure de début
+    if (heure_fin <= heure_debut) {
+      return res.status(400).json({
+        message: "L'heure de fin doit être postérieure à l'heure de début",
+      });
+    }
+
     // Vérifier si la disponibilité existe déjà pour ce médecin, jour et créneau horaire
     const checkDispoQuery = `
       SELECT id FROM disponibilite_medecin
@@ -95,9 +102,9 @@ export const createDisponibilite = async (req, res) => {
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error("Erreur lors de la création de la disponibilité:", error);
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la création de la disponibilité" });
+    res.status(500).json({
+      message: "Erreur lors de la création de la disponibilité",
+    });
   }
 };
 
@@ -121,6 +128,38 @@ export const updateDisponibilite = async (req, res) => {
     if (req.userRole !== "admin" && req.userId !== medecin_id) {
       return res.status(403).json({
         message: "Vous n'êtes pas autorisé à modifier cette disponibilité",
+      });
+    }
+
+    // Vérifier si l'heure de fin est après l'heure de début
+    if (heure_fin <= heure_debut) {
+      return res.status(400).json({
+        message: "L'heure de fin doit être postérieure à l'heure de début",
+      });
+    }
+
+    // Vérifier si la modification créerait un chevauchement avec une autre disponibilité
+    const checkDispoQuery = `
+      SELECT id FROM disponibilite_medecin
+      WHERE medecin_id = $1 AND jour = $2 AND id != $3
+      AND (
+        (heure_debut <= $4 AND heure_fin > $4) OR
+        (heure_debut < $5 AND heure_fin >= $5) OR
+        (heure_debut >= $4 AND heure_fin <= $5)
+      )
+    `;
+    const dispoResult = await pool.query(checkDispoQuery, [
+      medecin_id,
+      jour,
+      id,
+      heure_debut,
+      heure_fin,
+    ]);
+
+    if (dispoResult.rows.length > 0) {
+      return res.status(400).json({
+        message:
+          "Cette modification créerait un chevauchement avec une autre disponibilité",
       });
     }
 
@@ -192,98 +231,103 @@ export const getCreneauxDisponibles = async (req, res) => {
   }
 
   try {
-    // Récupérer le jour de la semaine pour la date donnée
-    const jourSemaineQuery = `
-      SELECT TO_CHAR(DATE $1, 'day') as jour_semaine
+    // Vérifier si le médecin existe
+    const checkMedecinQuery = `
+      SELECT utilisateur_id FROM medecin WHERE utilisateur_id = $1
     `;
-    const jourSemaineResult = await pool.query(jourSemaineQuery, [date]);
-    let jourSemaine = jourSemaineResult.rows[0].jour_semaine
-      .trim()
-      .toLowerCase();
+    const medecinResult = await pool.query(checkMedecinQuery, [medecinId]);
 
-    // Convertir le jour en français (supposant que la date est en format SQL standard)
-    const joursMap = {
-      monday: "lundi",
-      tuesday: "mardi",
-      wednesday: "mercredi",
-      thursday: "jeudi",
-      friday: "vendredi",
-      saturday: "samedi",
-      sunday: "dimanche",
-    };
-    jourSemaine = joursMap[jourSemaine] || jourSemaine;
+    if (medecinResult.rows.length === 0) {
+      return res.status(404).json({ message: "Médecin non trouvé" });
+    }
+
+    // Déterminer le jour de la semaine pour la date donnée
+    const jourSemaine = await getJourSemaine(date);
 
     // Récupérer les disponibilités du médecin pour ce jour
     const dispoQuery = `
-      SELECT heure_debut, heure_fin
+      SELECT id, heure_debut, heure_fin
       FROM disponibilite_medecin
       WHERE medecin_id = $1 AND jour = $2
+      ORDER BY heure_debut
     `;
     const dispoResult = await pool.query(dispoQuery, [medecinId, jourSemaine]);
 
     if (dispoResult.rows.length === 0) {
-      return res.status(200).json([]);
+      return res.status(200).json({
+        disponible: false,
+        message: "Aucune disponibilité pour ce jour",
+        creneaux: [],
+        jour: jourSemaine,
+        date: date,
+      });
     }
 
-    // Récupérer les rendez-vous déjà pris pour ce médecin à cette date
+    // Récupérer les rendez-vous existants pour cette date
     const rdvQuery = `
       SELECT heure, duree
       FROM rendez_vous
-      WHERE medecin_id = $1 AND date = $2
-      AND statut IN ('planifié', 'confirmé')
+      WHERE medecin_id = $1 AND date = $2 AND statut != 'annulé'
+      ORDER BY heure
     `;
     const rdvResult = await pool.query(rdvQuery, [medecinId, date]);
 
-    // Calculer les créneaux disponibles
+    // Générer les créneaux disponibles (par défaut toutes les 30 minutes)
     const creneauxDisponibles = [];
-    const dureeConsultation = 30; // Durée d'une consultation en minutes
+    const dureeConsultation = 30; // minutes
 
-    dispoResult.rows.forEach((dispo) => {
-      const heureDebut = new Date(`1970-01-01T${dispo.heure_debut}Z`);
-      const heureFin = new Date(`1970-01-01T${dispo.heure_fin}Z`);
-      let currentSlot = new Date(heureDebut);
+    // Pour chaque plage de disponibilité
+    for (const dispo of dispoResult.rows) {
+      // Convertir les heures en minutes depuis minuit
+      const debutMinutes = convertTimeToMinutes(dispo.heure_debut);
+      const finMinutes = convertTimeToMinutes(dispo.heure_fin);
 
-      while (
-        currentSlot.getTime() + dureeConsultation * 60000 <=
-        heureFin.getTime()
+      // Générer des créneaux de 30 minutes
+      for (
+        let minute = debutMinutes;
+        minute < finMinutes - dureeConsultation + 1;
+        minute += dureeConsultation
       ) {
-        // Vérifier si ce créneau est disponible (non réservé)
-        const creneauHeure = `${currentSlot
-          .getUTCHours()
-          .toString()
-          .padStart(2, "0")}:${currentSlot
-          .getUTCMinutes()
-          .toString()
-          .padStart(2, "0")}`;
+        const creneauHeure = formatMinutesToTime(minute);
+        const creneauFin = formatMinutesToTime(minute + dureeConsultation);
 
-        // Vérifier si ce créneau n'est pas déjà réservé
-        const isReserved = rdvResult.rows.some((rdv) => {
-          const rdvDebut = new Date(`1970-01-01T${rdv.heure}Z`);
-          const rdvFin = new Date(rdvDebut.getTime() + rdv.duree * 60000);
-          const slotDebut = currentSlot;
-          const slotFin = new Date(
-            slotDebut.getTime() + dureeConsultation * 60000
-          );
-
+        // Vérifier si ce créneau est déjà pris par un rendez-vous
+        const estDisponible = !rdvResult.rows.some((rdv) => {
+          const rdvDebut = convertTimeToMinutes(rdv.heure);
+          const rdvFin = rdvDebut + parseInt(rdv.duree);
           return (
-            (slotDebut >= rdvDebut && slotDebut < rdvFin) ||
-            (slotFin > rdvDebut && slotFin <= rdvFin) ||
-            (slotDebut <= rdvDebut && slotFin >= rdvFin)
+            (minute >= rdvDebut && minute < rdvFin) ||
+            (minute + dureeConsultation > rdvDebut &&
+              minute + dureeConsultation <= rdvFin) ||
+            (rdvDebut >= minute && rdvDebut < minute + dureeConsultation)
           );
         });
 
-        if (!isReserved) {
-          creneauxDisponibles.push(creneauHeure);
+        if (estDisponible) {
+          creneauxDisponibles.push({
+            heure: creneauHeure,
+            heure_fin: creneauFin,
+            duree: dureeConsultation,
+            disponible: true,
+          });
         }
-
-        // Passer au créneau suivant
-        currentSlot = new Date(
-          currentSlot.getTime() + dureeConsultation * 60000
-        );
       }
-    });
+    }
 
-    res.status(200).json(creneauxDisponibles);
+    res.status(200).json({
+      disponible: creneauxDisponibles.length > 0,
+      message:
+        creneauxDisponibles.length > 0
+          ? `${creneauxDisponibles.length} créneaux disponibles`
+          : "Aucun créneau disponible pour cette date",
+      creneaux: creneauxDisponibles,
+      jour: jourSemaine,
+      date: date,
+      disponibilites: dispoResult.rows.map((dispo) => ({
+        debut: dispo.heure_debut,
+        fin: dispo.heure_fin,
+      })),
+    });
   } catch (error) {
     console.error(
       "Erreur lors de la récupération des créneaux disponibles:",
@@ -293,4 +337,34 @@ export const getCreneauxDisponibles = async (req, res) => {
       message: "Erreur lors de la récupération des créneaux disponibles",
     });
   }
+};
+
+// Fonction utilitaire pour obtenir le jour de la semaine à partir d'une date
+const getJourSemaine = async (dateStr) => {
+  const date = new Date(dateStr);
+  const joursSemaine = [
+    "dimanche",
+    "lundi",
+    "mardi",
+    "mercredi",
+    "jeudi",
+    "vendredi",
+    "samedi",
+  ];
+  return joursSemaine[date.getDay()];
+};
+
+// Convertir une heure au format HH:MM:SS en minutes depuis minuit
+const convertTimeToMinutes = (timeStr) => {
+  const [hours, minutes, seconds] = timeStr.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+// Convertir des minutes en format HH:MM:SS
+const formatMinutesToTime = (minutes) => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours.toString().padStart(2, "0")}:${mins
+    .toString()
+    .padStart(2, "0")}:00`;
 };

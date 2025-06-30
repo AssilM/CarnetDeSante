@@ -1,48 +1,35 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
-import { useAppContext } from "./AppContext";
 import { createAppointmentService } from "../services/api";
 import { httpService } from "../services/http";
 
 // Créer une instance du service de rendez-vous
 const appointmentService = createAppointmentService(httpService);
 
-// Créer un contexte pour les rendez-vous
-const AppointmentContext = createContext(null);
+// Créer un contexte pour les rendez-vous des médecins
+const DoctorAppointmentContext = createContext(null);
 
-export const AppointmentProvider = ({ children }) => {
+export const DoctorAppointmentProvider = ({ children }) => {
   const [appointments, setAppointments] = useState([]);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [patientProfile, setPatientProfile] = useState(null);
 
   const { currentUser, accessToken } = useAuth();
-  const { isPatient, isDoctor } = useAppContext();
 
-  // Charger les rendez-vous de l'utilisateur connecté
+  // Charger les rendez-vous du médecin connecté
   useEffect(() => {
-    const fetchAppointments = async () => {
-      if (!currentUser) return;
+    const fetchDoctorAppointments = async () => {
+      if (!currentUser || currentUser.role !== "medecin") return;
 
       try {
         setLoading(true);
         setError(null);
 
-        let response = [];
-
-        // Récupérer les rendez-vous selon le rôle
-        if (isPatient && patientProfile) {
-          // Récupérer les rendez-vous du patient
-          response = await appointmentService.getPatientAppointments(
-            patientProfile.id
-          );
-        } else if (isDoctor) {
-          // Récupérer les rendez-vous du médecin
-          response = await appointmentService.getDoctorAppointments(
-            currentUser.id
-          );
-        }
+        // Récupérer les rendez-vous du médecin
+        const response = await appointmentService.getDoctorAppointments(
+          currentUser.id
+        );
 
         // Transformer les données pour correspondre au format attendu par l'interface
         const formattedAppointments = response.map((appointment) => ({
@@ -50,11 +37,9 @@ export const AppointmentProvider = ({ children }) => {
           title: appointment.motif || `Rendez-vous médical`,
           date: formatDateForDisplay(appointment.date),
           time: formatTimeForDisplay(appointment.heure),
-          doctor: {
-            id: appointment.medecin_id,
-            name: appointment.medecin_nom || "Dr. Inconnu",
-            specialty: appointment.specialite || "",
-            address: appointment.adresse || "",
+          patient: {
+            id: appointment.patient_id,
+            name: appointment.patient_nom || "Patient",
           },
           status: appointment.statut,
           location: appointment.adresse || "Cabinet médical",
@@ -74,18 +59,8 @@ export const AppointmentProvider = ({ children }) => {
       }
     };
 
-    // Si nous avons déjà le profil patient ou si nous sommes médecin, charger les rendez-vous
-    if ((isPatient && patientProfile) || isDoctor) {
-      fetchAppointments();
-    }
-  }, [currentUser, patientProfile, accessToken, isPatient, isDoctor]);
-
-  // Mettre à jour le profil patient depuis l'extérieur (sera appelé par PatientContext)
-  const updatePatientProfileData = (profile) => {
-    if (profile) {
-      setPatientProfile(profile);
-    }
-  };
+    fetchDoctorAppointments();
+  }, [currentUser, accessToken]);
 
   // Formater une date pour l'affichage (YYYY-MM-DD -> DD/MM/YYYY)
   const formatDateForDisplay = (dateString) => {
@@ -107,15 +82,8 @@ export const AppointmentProvider = ({ children }) => {
 
   // Ajouter un nouveau rendez-vous
   const addAppointment = async (appointmentData) => {
-    console.log("[AppointmentContext] Début addAppointment", {
-      currentUser,
-      patientProfile,
-      appointmentData,
-    });
-
     if (!currentUser) {
-      console.error("[AppointmentContext] Erreur: utilisateur non connecté");
-      setError("Vous devez être connecté pour prendre un rendez-vous");
+      setError("Vous devez être connecté pour créer un rendez-vous");
       return null;
     }
 
@@ -125,27 +93,17 @@ export const AppointmentProvider = ({ children }) => {
 
       // Préparer les données pour l'API
       const apiData = {
-        patient_id: currentUser.id, // Toujours utiliser currentUser.id
-        medecin_id: appointmentData.doctorId,
+        patient_id: appointmentData.patientId,
+        medecin_id: currentUser.id,
         date: appointmentData.date,
         heure: appointmentData.time,
         duree: 30, // Durée par défaut en minutes
-        motif: appointmentData.motif || "Consultation",
+        motif: appointmentData.title || "Consultation",
         adresse: appointmentData.location || null,
       };
 
-      console.log(
-        "[AppointmentContext] Données envoyées pour création RDV:",
-        apiData
-      );
-
       // Créer le rendez-vous via l'API
-      console.log(
-        "[AppointmentContext] Appel au service appointmentService.createAppointment"
-      );
       const response = await appointmentService.createAppointment(apiData);
-
-      console.log("[AppointmentContext] Réponse création RDV:", response);
 
       // Ajouter le rendez-vous à la liste locale
       const newAppointment = {
@@ -153,11 +111,9 @@ export const AppointmentProvider = ({ children }) => {
         title: response.motif || "Rendez-vous médical",
         date: formatDateForDisplay(response.date),
         time: formatTimeForDisplay(response.heure),
-        doctor: {
-          id: response.medecin_id,
-          name: appointmentData.doctor?.name || "Dr. Inconnu",
-          specialty: appointmentData.doctor?.specialty || "",
-          address: appointmentData.doctor?.address || "",
+        patient: {
+          id: response.patient_id,
+          name: appointmentData.patient?.name || "Patient",
         },
         status: response.statut,
         location: response.adresse || "Cabinet médical",
@@ -169,19 +125,8 @@ export const AppointmentProvider = ({ children }) => {
       setAppointments((prev) => [...prev, newAppointment]);
       return newAppointment;
     } catch (err) {
-      console.error(
-        "[AppointmentContext] Erreur détaillée lors de la création du rendez-vous:",
-        err
-      );
-      console.error("[AppointmentContext] Message d'erreur:", err.message);
-      console.error(
-        "[AppointmentContext] Réponse d'erreur:",
-        err.response?.data
-      );
-      setError(
-        "Impossible de créer le rendez-vous: " +
-          (err.response?.data?.message || err.message)
-      );
+      console.error("Erreur lors de la création du rendez-vous:", err);
+      setError("Impossible de créer le rendez-vous");
       return null;
     } finally {
       setLoading(false);
@@ -245,22 +190,21 @@ export const AppointmentProvider = ({ children }) => {
     cancelAppointment,
     getUpcomingAppointments,
     getPastAppointments,
-    updatePatientProfileData,
   };
 
   return (
-    <AppointmentContext.Provider value={value}>
+    <DoctorAppointmentContext.Provider value={value}>
       {children}
-    </AppointmentContext.Provider>
+    </DoctorAppointmentContext.Provider>
   );
 };
 
 // Hook personnalisé pour utiliser le contexte
-export const useAppointmentContext = () => {
-  const context = useContext(AppointmentContext);
+export const useDoctorAppointmentContext = () => {
+  const context = useContext(DoctorAppointmentContext);
   if (!context) {
     throw new Error(
-      "useAppointmentContext doit être utilisé avec un AppointmentProvider"
+      "useDoctorAppointmentContext doit être utilisé avec un DoctorAppointmentProvider"
     );
   }
   return context;

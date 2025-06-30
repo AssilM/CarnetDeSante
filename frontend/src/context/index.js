@@ -25,3 +25,11 @@ export {
   VaccinationProvider,
   useVaccinationContext,
 } from "./VaccinationContext";
+export {
+  DoctorAppointmentProvider,
+  useDoctorAppointmentContext,
+} from "./DoctorAppointmentContext";
+export {
+  DoctorAvailabilityProvider,
+  useDoctorAvailability,
+} from "./DoctorAvailabilityContext";

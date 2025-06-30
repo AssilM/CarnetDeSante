@@ -62,14 +62,57 @@ const createAppointmentService = (api) => {
     /**
      * Crée un nouveau rendez-vous
      * @param {Object} appointmentData - Données du rendez-vous
+     * @param {number} appointmentData.patient_id - ID du patient
+     * @param {number} appointmentData.medecin_id - ID du médecin
+     * @param {string} appointmentData.date - Date au format YYYY-MM-DD
+     * @param {string} appointmentData.heure - Heure au format HH:MM
+     * @param {number} [appointmentData.duree=30] - Durée en minutes
+     * @param {string} [appointmentData.motif] - Motif du rendez-vous
+     * @param {string} [appointmentData.adresse] - Adresse du rendez-vous
      * @returns {Promise<Object>} Rendez-vous créé
      */
     createAppointment: async (appointmentData) => {
       try {
-        const response = await api.post("/rendez-vous", appointmentData);
+        console.log(
+          "[appointmentService] Données avant envoi:",
+          appointmentData
+        );
+        console.log("[appointmentService] Types des données:", {
+          patient_id: typeof appointmentData.patient_id,
+          medecin_id: typeof appointmentData.medecin_id,
+          date: typeof appointmentData.date,
+          heure: typeof appointmentData.heure,
+          duree: typeof appointmentData.duree,
+          motif: typeof appointmentData.motif,
+          adresse: typeof appointmentData.adresse,
+        });
+
+        // Convertir les IDs en nombres si ce sont des chaînes
+        const dataToSend = {
+          ...appointmentData,
+          patient_id: Number(appointmentData.patient_id),
+          medecin_id: Number(appointmentData.medecin_id),
+          duree: appointmentData.duree ? Number(appointmentData.duree) : 30,
+        };
+
+        console.log(
+          "[appointmentService] Données après conversion:",
+          dataToSend
+        );
+
+        const response = await api.post("/rendez-vous", dataToSend);
+        console.log("[appointmentService] Réponse du serveur:", response.data);
         return response.data;
       } catch (error) {
-        console.error("Erreur lors de la création du rendez-vous:", error);
+        console.error(
+          "[appointmentService] Erreur lors de la création du rendez-vous:",
+          error
+        );
+        console.error("[appointmentService] Message d'erreur:", error.message);
+        console.error(
+          "[appointmentService] Réponse d'erreur:",
+          error.response?.data
+        );
         throw error;
       }
     },
@@ -103,7 +146,7 @@ const createAppointmentService = (api) => {
      */
     cancelAppointment: async (appointmentId) => {
       try {
-        const response = await api.put(`/rendez-vous/${appointmentId}/cancel`);
+        const response = await api.put(`/rendez-vous/${appointmentId}/annuler`);
         return response.data;
       } catch (error) {
         console.error(

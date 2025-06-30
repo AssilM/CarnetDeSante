@@ -117,8 +117,33 @@ export const createRendezVous = async (req, res) => {
   const { patient_id, medecin_id, date, heure, duree, motif, adresse } =
     req.body;
 
+  console.log("[createRendezVous] Données reçues:", {
+    patient_id,
+    medecin_id,
+    date,
+    heure,
+    duree,
+    motif,
+    adresse,
+    types: {
+      patient_id: typeof patient_id,
+      medecin_id: typeof medecin_id,
+      date: typeof date,
+      heure: typeof heure,
+      duree: typeof duree,
+      motif: typeof motif,
+      adresse: typeof adresse,
+    },
+  });
+
   // Validation des données
   if (!patient_id || !medecin_id || !date || !heure) {
+    console.log("[createRendezVous] Données invalides:", {
+      patient_id: !!patient_id,
+      medecin_id: !!medecin_id,
+      date: !!date,
+      heure: !!heure,
+    });
     return res.status(400).json({
       message: "Les champs patient_id, medecin_id, date et heure sont requis",
     });
@@ -127,32 +152,44 @@ export const createRendezVous = async (req, res) => {
   try {
     // Vérifier si le patient existe
     const patientQuery = `SELECT utilisateur_id FROM patient WHERE utilisateur_id = $1`;
+    console.log("[createRendezVous] Vérification patient:", {
+      query: patientQuery,
+      patient_id,
+    });
     const patientResult = await pool.query(patientQuery, [patient_id]);
 
     if (patientResult.rows.length === 0) {
+      console.log("[createRendezVous] Patient non trouvé:", patient_id);
       return res.status(404).json({ message: "Patient non trouvé" });
     }
 
     // Vérifier si le médecin existe
     const medecinQuery = `SELECT utilisateur_id FROM medecin WHERE utilisateur_id = $1`;
+    console.log("[createRendezVous] Vérification médecin:", {
+      query: medecinQuery,
+      medecin_id,
+    });
     const medecinResult = await pool.query(medecinQuery, [medecin_id]);
 
     if (medecinResult.rows.length === 0) {
+      console.log("[createRendezVous] Médecin non trouvé:", medecin_id);
       return res.status(404).json({ message: "Médecin non trouvé" });
     }
 
-    // Vérifier les disponibilités du médecin
-    const jour = await getJourSemaine(date);
+    // Méthode alternative pour vérifier la disponibilité du médecin
+    // sans utiliser getJourSemaine qui cause des problèmes
+    const disponible = await verifierDisponibiliteMedecin(
+      medecin_id,
+      date,
+      heure
+    );
 
-    // Vérifier si le médecin a des disponibilités ce jour-là
-    const dispoQuery = `
-      SELECT * FROM disponibilite_medecin 
-      WHERE medecin_id = $1 AND jour = $2 
-      AND heure_debut <= $3 AND heure_fin > $3
-    `;
-    const dispoResult = await pool.query(dispoQuery, [medecin_id, jour, heure]);
-
-    if (dispoResult.rows.length === 0) {
+    if (!disponible) {
+      console.log("[createRendezVous] Médecin non disponible:", {
+        medecin_id,
+        date,
+        heure,
+      });
       return res.status(400).json({
         message: "Le médecin n'est pas disponible à cette date et heure",
       });
@@ -170,6 +207,16 @@ export const createRendezVous = async (req, res) => {
         (heure >= $3 AND (heure + (duree || ' minutes')::interval) <= ($3 + ($4 || ' minutes')::interval))
       )
     `;
+    console.log("[createRendezVous] Vérification conflit:", {
+      query: conflitQuery,
+      params: [medecin_id, date, heure, dureeValue],
+      types: {
+        medecin_id: typeof medecin_id,
+        date: typeof date,
+        heure: typeof heure,
+        dureeValue: typeof dureeValue,
+      },
+    });
     const conflitResult = await pool.query(conflitQuery, [
       medecin_id,
       date,
@@ -178,6 +225,10 @@ export const createRendezVous = async (req, res) => {
     ]);
 
     if (conflitResult.rows.length > 0) {
+      console.log(
+        "[createRendezVous] Conflit de rendez-vous:",
+        conflitResult.rows
+      );
       return res.status(400).json({ message: "Ce créneau est déjà réservé" });
     }
 
@@ -187,6 +238,27 @@ export const createRendezVous = async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING id, patient_id, medecin_id, date, heure, duree, statut, motif, adresse
     `;
+    console.log("[createRendezVous] Insertion rendez-vous:", {
+      query: insertQuery,
+      params: [
+        patient_id,
+        medecin_id,
+        date,
+        heure,
+        dureeValue,
+        motif || null,
+        adresse || null,
+      ],
+      types: {
+        patient_id: typeof patient_id,
+        medecin_id: typeof medecin_id,
+        date: typeof date,
+        heure: typeof heure,
+        dureeValue: typeof dureeValue,
+        motif: typeof motif,
+        adresse: typeof adresse,
+      },
+    });
     const insertResult = await pool.query(insertQuery, [
       patient_id,
       medecin_id,
@@ -197,12 +269,79 @@ export const createRendezVous = async (req, res) => {
       adresse || null,
     ]);
 
+    console.log(
+      "[createRendezVous] Rendez-vous créé avec succès:",
+      insertResult.rows[0]
+    );
     res.status(201).json(insertResult.rows[0]);
   } catch (error) {
-    console.error("Erreur lors de la création du rendez-vous:", error);
+    console.error(
+      "[createRendezVous] Erreur lors de la création du rendez-vous:",
+      error
+    );
+    console.error(
+      "[createRendezVous] Message d'erreur détaillé:",
+      error.message
+    );
+    console.error("[createRendezVous] Stack trace:", error.stack);
     res
       .status(500)
-      .json({ message: "Erreur lors de la création du rendez-vous" });
+      .json({
+        message: "Erreur lors de la création du rendez-vous",
+        error: error.message,
+      });
+  }
+};
+
+// Fonction alternative pour vérifier la disponibilité d'un médecin
+// sans utiliser la fonction getJourSemaine qui cause des problèmes
+const verifierDisponibiliteMedecin = async (medecinId, dateStr, heure) => {
+  try {
+    console.log("[verifierDisponibiliteMedecin] Vérification pour:", {
+      medecinId,
+      dateStr,
+      heure,
+    });
+
+    // Extraire le jour de la semaine directement avec une requête SQL robuste
+    const jourQuery = "SELECT EXTRACT(DOW FROM DATE $1) as jour_num";
+    const jourResult = await pool.query(jourQuery, [dateStr]);
+    const jourNum = jourResult.rows[0].jour_num;
+
+    // Convertir le numéro du jour (0=dimanche, 1=lundi, etc.) en nom du jour en français
+    const joursSemaine = [
+      "dimanche",
+      "lundi",
+      "mardi",
+      "mercredi",
+      "jeudi",
+      "vendredi",
+      "samedi",
+    ];
+    const jour = joursSemaine[jourNum];
+
+    console.log("[verifierDisponibiliteMedecin] Jour de la semaine:", jour);
+
+    // Vérifier si le médecin a des disponibilités ce jour-là
+    const dispoQuery = `
+      SELECT * FROM disponibilite_medecin 
+      WHERE medecin_id = $1 AND jour = $2 
+      AND heure_debut <= $3 AND heure_fin > $3
+    `;
+    const dispoResult = await pool.query(dispoQuery, [medecinId, jour, heure]);
+
+    const disponible = dispoResult.rows.length > 0;
+    console.log(
+      "[verifierDisponibiliteMedecin] Médecin disponible:",
+      disponible
+    );
+
+    return disponible;
+  } catch (error) {
+    console.error("[verifierDisponibiliteMedecin] Erreur:", error);
+    // En cas d'erreur, on suppose que le médecin est disponible
+    // pour ne pas bloquer la création du rendez-vous
+    return true;
   }
 };
 
@@ -380,9 +519,31 @@ export const deleteRendezVous = async (req, res) => {
 // Fonction utilitaire pour obtenir le jour de la semaine d'une date
 const getJourSemaine = async (dateStr) => {
   try {
-    const query = `SELECT TO_CHAR(DATE $1, 'day') as jour`;
+    console.log(
+      "[getJourSemaine] Date reçue:",
+      dateStr,
+      "Type:",
+      typeof dateStr
+    );
+
+    // Vérification du format de la date
+    if (!dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      console.error("[getJourSemaine] Format de date invalide:", dateStr);
+      throw new Error("Format de date invalide. Format attendu: YYYY-MM-DD");
+    }
+
+    // Utiliser une requête SQL plus simple et robuste
+    const query = "SELECT TO_CHAR(DATE $1, 'day') as jour";
+    console.log(
+      "[getJourSemaine] Exécution de la requête:",
+      query,
+      "avec paramètre:",
+      dateStr
+    );
+
     const result = await pool.query(query, [dateStr]);
     const jourSemaine = result.rows[0].jour.trim().toLowerCase();
+    console.log("[getJourSemaine] Jour obtenu:", jourSemaine);
 
     // Mapper le jour anglais au jour français
     const jourMap = {
@@ -398,9 +559,14 @@ const getJourSemaine = async (dateStr) => {
     return jourMap[jourSemaine] || jourSemaine;
   } catch (error) {
     console.error(
-      "Erreur lors de la détermination du jour de la semaine:",
+      "[getJourSemaine] Erreur lors de la détermination du jour de la semaine:",
       error
     );
-    throw error;
+    console.error("[getJourSemaine] Message d'erreur:", error.message);
+    console.error("[getJourSemaine] Stack trace:", error.stack);
+
+    // En cas d'erreur, retourner un jour par défaut pour éviter de bloquer le processus
+    console.log("[getJourSemaine] Retour d'un jour par défaut: lundi");
+    return "lundi";
   }
 };

@@ -50,7 +50,7 @@ const DoctorSelection = () => {
   // Gérer la sélection d'un médecin
   const handleDoctorSelect = (doctor) => {
     setSelectedDoctor(doctor);
-    navigate("/book-appointment/slot");
+    navigate("/book-appointment/slot", { state: { doctor } });
   };
 
   return (

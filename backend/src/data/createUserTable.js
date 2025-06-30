@@ -2,7 +2,7 @@ import pool from "../config/db.js";
 
 const createUserTable = async () => {
   const queryText = `
-    CREATE TABLE IF NOT EXISTS utilisateurs (
+    CREATE TABLE IF NOT EXISTS utilisateur (
       id SERIAL PRIMARY KEY,
       email VARCHAR(255) UNIQUE NOT NULL,
       password VARCHAR(255) NOT NULL,
@@ -23,12 +23,9 @@ const createUserTable = async () => {
 
   try {
     await pool.query(queryText);
-    console.log("Table utilisateurs créée avec succès");
+    console.log("Table utilisateur créée avec succès");
   } catch (error) {
-    console.error(
-      "Erreur lors de la création de la table utilisateurs:",
-      error
-    );
+    console.error("Erreur lors de la création de la table utilisateur:", error);
     throw error;
   }
 };
@@ -38,7 +35,7 @@ const createRefreshTokenTable = async () => {
     CREATE TABLE IF NOT EXISTS refresh_tokens (
       id SERIAL PRIMARY KEY,
       token VARCHAR(255) UNIQUE NOT NULL,
-      utilisateur_id INTEGER NOT NULL REFERENCES utilisateurs(id) ON DELETE CASCADE,
+      utilisateur_id INTEGER NOT NULL REFERENCES utilisateur(id) ON DELETE CASCADE,
       expires_at TIMESTAMP NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )

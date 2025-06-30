@@ -96,8 +96,8 @@ export const createOrUpdateProfile = async (req, res) => {
     if (checkResult.rows.length === 0) {
       // Créer un nouveau profil
       const insertQuery = `
-        INSERT INTO medecin (utilisateur_id, specialite, description)
-        VALUES ($1, $2, $3)
+      INSERT INTO medecin (utilisateur_id, specialite, description)
+      VALUES ($1, $2, $3)
       `;
       await pool.query(insertQuery, [utilisateur_id, specialite, description]);
     } else {
@@ -193,14 +193,15 @@ export const getMedecinsBySpecialite = async (req, res) => {
 
   try {
     const query = `
-      SELECT m.id, m.specialite, m.description, u.nom, u.prenom, u.email, u.ville
+      SELECT m.utilisateur_id as id, m.specialite, m.description, u.nom, u.prenom, u.email, u.ville,
+             u.adresse, u.code_postal, CONCAT(u.tel_indicatif, u.tel_numero) as tel
       FROM medecin m
       INNER JOIN utilisateur u ON m.utilisateur_id = u.id
       WHERE LOWER(m.specialite) = LOWER($1)
     `;
     const result = await pool.query(query, [specialite]);
 
-    res.status(200).json(result.rows);
+    res.status(200).json({ medecins: result.rows });
   } catch (error) {
     console.error(
       "Erreur lors de la récupération des médecins par spécialité:",

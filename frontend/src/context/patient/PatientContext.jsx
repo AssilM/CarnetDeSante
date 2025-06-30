@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "../AuthContext";
 import { createPatientService } from "../../services/api";
 import { createAuthConnector } from "../../services/http/apiConnector";
+import { useAppointmentContext } from "../AppointmentContext";
 
 // Fonction pour décoder un token JWT sans bibliothèque
 const decodeJWT = (token) => {
@@ -31,6 +32,27 @@ export const PatientProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { currentUser, accessToken, refreshToken } = useAuth();
+
+  // On doit toujours appeler les hooks au niveau supérieur, même si on n'utilise pas le résultat
+  // On capture les erreurs pour éviter qu'elles arrêtent le rendu
+  const [appointmentContextAvailable, setAppointmentContextAvailable] =
+    useState(false);
+  const [appointmentContext, setAppointmentContext] = useState(null);
+
+  // Tenter d'accéder au contexte des rendez-vous une seule fois au début
+  useEffect(() => {
+    try {
+      const context = useAppointmentContext();
+      if (context && context.updatePatientProfileData) {
+        setAppointmentContext(context);
+        setAppointmentContextAvailable(true);
+      }
+    } catch (error) {
+      console.log(
+        "AppointmentContext n'est pas disponible dans PatientProvider"
+      );
+    }
+  }, []);
 
   // Afficher tous les détails sur l'utilisateur connecté et décoder le token
   useEffect(() => {
@@ -116,6 +138,11 @@ export const PatientProvider = ({ children }) => {
         );
         console.log("[PatientContext] Profil récupéré:", profileData);
         setPatientProfile(profileData.patient);
+
+        // Mettre à jour le profil patient dans le contexte des rendez-vous
+        if (appointmentContextAvailable && appointmentContext) {
+          appointmentContext.updatePatientProfileData(profileData.patient);
+        }
 
         // Récupérer les informations médicales
         try {

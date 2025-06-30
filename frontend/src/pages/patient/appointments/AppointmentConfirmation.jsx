@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   FaArrowLeft,
   FaCalendarCheck,
@@ -7,21 +7,41 @@ import {
   FaMapMarkerAlt,
   FaCalendarAlt,
   FaClock,
+  FaClipboardList,
 } from "react-icons/fa";
-import { useDoctorContext, useAppointmentContext } from "../../../context";
+import { useAppointmentContext } from "../../../context";
 import PageWrapper from "../../../components/PageWrapper";
 
 const AppointmentConfirmation = () => {
   const navigate = useNavigate();
-  const { selectedDoctor, selectedDate, selectedSlot, resetSelection } =
-    useDoctorContext();
+  const location = useLocation();
   const { addAppointment } = useAppointmentContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [appointmentData, setAppointmentData] = useState(null);
+  const [motif, setMotif] = useState("Consultation médicale");
+
+  // Récupérer les données du rendez-vous depuis l'état de navigation
+  useEffect(() => {
+    if (
+      location.state?.doctor &&
+      location.state?.date &&
+      location.state?.time
+    ) {
+      setAppointmentData({
+        doctor: location.state.doctor,
+        date: location.state.date,
+        time: location.state.time,
+        formattedDate: location.state.formattedDate,
+        formattedTime: location.state.formattedTime,
+      });
+    } else {
+      navigate("/book-appointment");
+    }
+  }, [location.state, navigate]);
 
   // Rediriger si les informations ne sont pas complètes
-  if (!selectedDoctor || !selectedDate || !selectedSlot) {
-    navigate("/book-appointment");
+  if (!appointmentData) {
     return null;
   }
 
@@ -37,42 +57,68 @@ const AppointmentConfirmation = () => {
     });
   };
 
+  // Gérer le changement du motif
+  const handleMotifChange = (e) => {
+    setMotif(e.target.value);
+  };
+
   // Fonction pour confirmer le rendez-vous
   const handleConfirmAppointment = async () => {
+    console.log(
+      "[AppointmentConfirmation] Début de la confirmation du rendez-vous"
+    );
     setLoading(true);
     setError(null);
 
     try {
       // Créer l'objet de rendez-vous
-      const appointmentData = {
-        doctorId: selectedDoctor.id,
-        date: selectedDate,
-        time: selectedSlot,
-        title: "Consultation médicale", // Motif par défaut
+      const rdvData = {
+        doctorId: appointmentData.doctor.id,
+        date: appointmentData.date,
+        time: appointmentData.time,
+        motif: motif.trim(),
         doctor: {
-          name: `${selectedDoctor.prenom || ""} ${
-            selectedDoctor.nom || ""
+          name: `${appointmentData.doctor.prenom || ""} ${
+            appointmentData.doctor.nom || ""
           }`.trim(),
-          specialty: selectedDoctor.specialite || "",
-          address: selectedDoctor.adresse || "",
+          specialty: appointmentData.doctor.specialite || "",
+          address: appointmentData.doctor.adresse || "",
         },
-        location: selectedDoctor.adresse || "",
+        location: appointmentData.doctor.adresse || "",
       };
 
+      console.log("[AppointmentConfirmation] Données du rendez-vous:", rdvData);
+
       // Ajouter le rendez-vous via l'API
-      const result = await addAppointment(appointmentData);
+      console.log("[AppointmentConfirmation] Appel à addAppointment");
+      const result = await addAppointment(rdvData);
+      console.log(
+        "[AppointmentConfirmation] Résultat de addAppointment:",
+        result
+      );
 
       if (result) {
-        // Réinitialiser la sélection
-        resetSelection();
-
-        // Rediriger vers la page des rendez-vous
-        navigate("/appointments?tab=upcoming");
+        console.log(
+          "[AppointmentConfirmation] Redirection vers /appointments?tab=upcoming"
+        );
+        // Rediriger vers la page des rendez-vous avec un remplacement complet de l'historique
+        navigate("/appointments?tab=upcoming", { replace: true });
       } else {
+        console.error(
+          "[AppointmentConfirmation] Échec de la création du rendez-vous"
+        );
         setError("Impossible de créer le rendez-vous. Veuillez réessayer.");
       }
     } catch (err) {
-      console.error("Erreur lors de la création du rendez-vous:", err);
+      console.error(
+        "[AppointmentConfirmation] Erreur lors de la création du rendez-vous:",
+        err
+      );
+      console.error("[AppointmentConfirmation] Message d'erreur:", err.message);
+      console.error(
+        "[AppointmentConfirmation] Réponse d'erreur:",
+        err.response?.data
+      );
       setError("Une erreur est survenue. Veuillez réessayer plus tard.");
     } finally {
       setLoading(false);
@@ -85,7 +131,7 @@ const AppointmentConfirmation = () => {
         {/* En-tête avec bouton retour */}
         <div className="mb-6">
           <button
-            onClick={() => navigate("/book-appointment/slot")}
+            onClick={() => navigate(-1)}
             className="flex items-center text-gray-600 hover:text-gray-900"
           >
             <FaArrowLeft className="mr-2" />
@@ -104,7 +150,7 @@ const AppointmentConfirmation = () => {
             Confirmation de rendez-vous
           </h1>
           <p className="text-gray-600 mt-2">
-            Veuillez vérifier les informations avant de confirmer
+            Veuillez préciser le motif de votre rendez-vous
           </p>
         </div>
 
@@ -131,8 +177,8 @@ const AppointmentConfirmation = () => {
                 <div className="ml-3">
                   <p className="text-sm font-medium text-gray-900">Médecin</p>
                   <p className="text-sm text-gray-600">
-                    {selectedDoctor.prenom} {selectedDoctor.nom} -{" "}
-                    {selectedDoctor.specialite}
+                    {appointmentData.doctor.prenom} {appointmentData.doctor.nom}{" "}
+                    - {appointmentData.doctor.specialite}
                   </p>
                 </div>
               </div>
@@ -145,7 +191,10 @@ const AppointmentConfirmation = () => {
                 <div className="ml-3">
                   <p className="text-sm font-medium text-gray-900">Adresse</p>
                   <p className="text-sm text-gray-600">
-                    {selectedDoctor.adresse || "Non spécifiée"}
+                    {appointmentData.doctor.adresse || "Non spécifiée"}
+                    {appointmentData.doctor.code_postal &&
+                      appointmentData.doctor.ville &&
+                      `, ${appointmentData.doctor.code_postal} ${appointmentData.doctor.ville}`}
                   </p>
                 </div>
               </div>
@@ -158,7 +207,8 @@ const AppointmentConfirmation = () => {
                 <div className="ml-3">
                   <p className="text-sm font-medium text-gray-900">Date</p>
                   <p className="text-sm text-gray-600">
-                    {formatDate(selectedDate)}
+                    {appointmentData.formattedDate ||
+                      formatDate(appointmentData.date)}
                   </p>
                 </div>
               </div>
@@ -170,7 +220,28 @@ const AppointmentConfirmation = () => {
                 </div>
                 <div className="ml-3">
                   <p className="text-sm font-medium text-gray-900">Heure</p>
-                  <p className="text-sm text-gray-600">{selectedSlot}</p>
+                  <p className="text-sm text-gray-600">
+                    {appointmentData.formattedTime || appointmentData.time}
+                  </p>
+                </div>
+              </div>
+
+              {/* Motif */}
+              <div className="flex items-start pt-4 border-t border-gray-200">
+                <div className="flex-shrink-0 mt-1">
+                  <FaClipboardList className="text-primary w-5 h-5" />
+                </div>
+                <div className="ml-3 w-full">
+                  <p className="text-sm font-medium text-gray-900 mb-2">
+                    Motif de la consultation
+                  </p>
+                  <textarea
+                    value={motif}
+                    onChange={handleMotifChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                    rows="3"
+                    placeholder="Décrivez brièvement le motif de votre rendez-vous"
+                  ></textarea>
                 </div>
               </div>
             </div>
@@ -187,8 +258,12 @@ const AppointmentConfirmation = () => {
           </button>
           <button
             onClick={handleConfirmAppointment}
-            disabled={loading}
-            className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:bg-gray-400"
+            disabled={loading || !motif.trim()}
+            className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+              loading || !motif.trim()
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-primary text-white hover:bg-primary/90"
+            }`}
           >
             {loading ? "Confirmation en cours..." : "Confirmer le rendez-vous"}
           </button>

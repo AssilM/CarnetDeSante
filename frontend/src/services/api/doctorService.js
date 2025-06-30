@@ -128,6 +128,68 @@ const createDoctorService = (api) => {
     },
 
     /**
+     * Crée une nouvelle disponibilité pour un médecin
+     * @param {number} doctorId - ID du médecin
+     * @param {Object} availabilityData - Données de disponibilité (jour, heure_debut, heure_fin)
+     * @returns {Promise<Object>} Disponibilité créée
+     */
+    createAvailability: async (doctorId, availabilityData) => {
+      try {
+        const data = {
+          medecin_id: doctorId,
+          jour: availabilityData.jour,
+          heure_debut: availabilityData.heure_debut,
+          heure_fin: availabilityData.heure_fin,
+        };
+        const response = await api.post(`/disponibilite`, data);
+        return response.data;
+      } catch (error) {
+        console.error(`Erreur lors de la création de la disponibilité:`, error);
+        throw error;
+      }
+    },
+
+    /**
+     * Met à jour une disponibilité existante
+     * @param {number} availabilityId - ID de la disponibilité
+     * @param {Object} availabilityData - Données de disponibilité (jour, heure_debut, heure_fin)
+     * @returns {Promise<Object>} Disponibilité mise à jour
+     */
+    updateAvailability: async (availabilityId, availabilityData) => {
+      try {
+        const response = await api.put(
+          `/disponibilite/${availabilityId}`,
+          availabilityData
+        );
+        return response.data;
+      } catch (error) {
+        console.error(
+          `Erreur lors de la mise à jour de la disponibilité:`,
+          error
+        );
+        throw error;
+      }
+    },
+
+    /**
+     * Supprime une disponibilité
+     * @param {number} availabilityId - ID de la disponibilité
+     * @returns {Promise<Object>} Message de confirmation
+     */
+    deleteAvailability: async (availabilityId) => {
+      try {
+        const response = await api.delete(`/disponibilite/${availabilityId}`);
+        return response.data;
+      } catch (error) {
+        console.error(
+          `Erreur lors de la suppression de la disponibilité:`,
+          error
+        );
+        throw error;
+      }
+    },
+
+    /**
      * Récupère les médecins par spécialité
      * @param {string} specialty - Spécialité médicale
      * @returns {Promise<Array>} Liste des médecins de cette spécialité
