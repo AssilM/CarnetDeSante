@@ -11,7 +11,8 @@ const RegisterPage = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    tel: "",
+    tel_indicatif: "+33",
+    tel_numero: "",
     dateNaissance: "",
     sexe: "",
     specialite: "", // Pour les médecins uniquement
@@ -160,6 +161,22 @@ const RegisterPage = () => {
       newErrors.confirmPassword = "Les mots de passe ne correspondent pas";
     }
 
+    // Validation du numéro de téléphone
+    if (formData.tel_numero) {
+      const telRegex = /^\d{9,10}$/;
+      if (!telRegex.test(formData.tel_numero.replace(/\s/g, ""))) {
+        newErrors.tel_numero = "Format de numéro de téléphone invalide";
+      }
+    }
+
+    // Validation de l'indicatif téléphonique
+    if (formData.tel_indicatif) {
+      const indicatifRegex = /^\+\d{1,3}$/;
+      if (!indicatifRegex.test(formData.tel_indicatif)) {
+        newErrors.tel_indicatif = "Format d'indicatif invalide (ex: +33)";
+      }
+    }
+
     // Validation de la date de naissance
     if (formData.dateNaissance) {
       const today = new Date();
@@ -211,7 +228,8 @@ const RegisterPage = () => {
           password: formData.password,
           nom: formData.nom,
           prenom: formData.prenom,
-          tel: formData.tel,
+          tel_indicatif: formData.tel_indicatif,
+          tel_numero: formData.tel_numero,
           date_naissance: formData.dateNaissance,
           sexe: formData.sexe,
           role: role,
@@ -233,8 +251,8 @@ const RegisterPage = () => {
         // Enregistrer l'utilisateur avec toutes les données
         await register(userData);
 
-        // Redirection vers la page de connexion avec le même rôle
-        navigate(`/auth/login?role=${role}`);
+        // Ajouter un message de succès dans les paramètres de l'URL
+        navigate(`/auth/login?role=${role}&registered=success`);
       } catch (error) {
         console.error("Erreur d'inscription:", error);
         setRegisterError(
@@ -382,20 +400,53 @@ const RegisterPage = () => {
                 {/* Téléphone */}
                 <div>
                   <label
-                    htmlFor="tel"
+                    htmlFor="tel_numero"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
                     Téléphone
                   </label>
-                  <input
-                    type="tel"
-                    id="tel"
-                    name="tel"
-                    value={formData.tel}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Votre numéro de téléphone"
-                  />
+                  <div className="flex space-x-2">
+                    <div className="w-1/4">
+                      <input
+                        type="text"
+                        id="tel_indicatif"
+                        name="tel_indicatif"
+                        value={formData.tel_indicatif}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-2 border ${
+                          errors.tel_indicatif
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        } rounded-lg focus:ring-blue-500 focus:border-blue-500`}
+                        placeholder="+33"
+                      />
+                      {errors.tel_indicatif && (
+                        <p className="mt-1 text-red-500 text-xs">
+                          {errors.tel_indicatif}
+                        </p>
+                      )}
+                    </div>
+                    <div className="w-3/4">
+                      <input
+                        type="tel"
+                        id="tel_numero"
+                        name="tel_numero"
+                        value={formData.tel_numero}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-2 border ${
+                          errors.tel_numero
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        } rounded-lg focus:ring-blue-500 focus:border-blue-500`}
+                        placeholder="612345678"
+                      />
+                      {errors.tel_numero && (
+                        <p className="mt-1 text-red-500 text-xs">
+                          {errors.tel_numero}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Mot de passe */}

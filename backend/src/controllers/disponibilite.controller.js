@@ -1,23 +1,23 @@
 import pool from "../config/db.js";
 
-// Récupérer toutes les disponibilités d'un médecin
-export const getDisponibilitesForMedecin = async (req, res) => {
+// Récupérer les disponibilités d'un médecin
+export const getDisponibilitesByMedecinId = async (req, res) => {
   const { medecinId } = req.params;
 
   try {
     const query = `
       SELECT id, medecin_id, jour, heure_debut, heure_fin
-      FROM disponibilites_medecin
+      FROM disponibilite_medecin
       WHERE medecin_id = $1
       ORDER BY 
-        CASE jour 
-          WHEN 'lundi' THEN 1 
-          WHEN 'mardi' THEN 2 
-          WHEN 'mercredi' THEN 3 
-          WHEN 'jeudi' THEN 4 
-          WHEN 'vendredi' THEN 5 
-          WHEN 'samedi' THEN 6 
-          WHEN 'dimanche' THEN 7 
+        CASE 
+          WHEN jour = 'lundi' THEN 1
+          WHEN jour = 'mardi' THEN 2
+          WHEN jour = 'mercredi' THEN 3
+          WHEN jour = 'jeudi' THEN 4
+          WHEN jour = 'vendredi' THEN 5
+          WHEN jour = 'samedi' THEN 6
+          WHEN jour = 'dimanche' THEN 7
         END,
         heure_debut
     `;
@@ -26,84 +26,78 @@ export const getDisponibilitesForMedecin = async (req, res) => {
     res.status(200).json(result.rows);
   } catch (error) {
     console.error("Erreur lors de la récupération des disponibilités:", error);
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la récupération des disponibilités" });
+    res.status(500).json({
+      message: "Erreur lors de la récupération des disponibilités",
+    });
   }
 };
 
-// Ajouter une nouvelle disponibilité pour un médecin
-export const addDisponibilite = async (req, res) => {
+// Créer une nouvelle disponibilité
+export const createDisponibilite = async (req, res) => {
   const { medecin_id, jour, heure_debut, heure_fin } = req.body;
 
-  // Validation des données
-  if (!medecin_id || !jour || !heure_debut || !heure_fin) {
-    return res.status(400).json({ message: "Tous les champs sont requis" });
-  }
-
-  // Validation du jour
-  const joursValides = [
-    "lundi",
-    "mardi",
-    "mercredi",
-    "jeudi",
-    "vendredi",
-    "samedi",
-    "dimanche",
-  ];
-  if (!joursValides.includes(jour.toLowerCase())) {
-    return res.status(400).json({ message: "Jour invalide" });
+  // Vérifier que l'utilisateur est bien le médecin concerné ou un administrateur
+  if (req.userRole !== "admin" && req.userId !== parseInt(medecin_id)) {
+    return res.status(403).json({
+      message:
+        "Vous n'êtes pas autorisé à créer des disponibilités pour ce médecin",
+    });
   }
 
   try {
     // Vérifier si le médecin existe
-    const medecinQuery = `SELECT id FROM medecins WHERE id = $1`;
-    const medecinResult = await pool.query(medecinQuery, [medecin_id]);
+    const checkMedecinQuery = `
+      SELECT utilisateur_id FROM medecin WHERE utilisateur_id = $1
+    `;
+    const medecinResult = await pool.query(checkMedecinQuery, [medecin_id]);
 
     if (medecinResult.rows.length === 0) {
       return res.status(404).json({ message: "Médecin non trouvé" });
     }
 
-    // Vérifier les conflits de disponibilité
-    const conflitQuery = `
-      SELECT id FROM disponibilites_medecin
-      WHERE medecin_id = $1 AND jour = $2 AND 
-      ((heure_debut <= $3 AND heure_fin > $3) OR 
-       (heure_debut < $4 AND heure_fin >= $4) OR
-       (heure_debut >= $3 AND heure_fin <= $4))
+    // Vérifier si la disponibilité existe déjà pour ce médecin, jour et créneau horaire
+    const checkDispoQuery = `
+      SELECT id FROM disponibilite_medecin
+      WHERE medecin_id = $1 AND jour = $2 
+      AND (
+        (heure_debut <= $3 AND heure_fin > $3) OR
+        (heure_debut < $4 AND heure_fin >= $4) OR
+        (heure_debut >= $3 AND heure_fin <= $4)
+      )
     `;
-    const conflitResult = await pool.query(conflitQuery, [
+    const dispoResult = await pool.query(checkDispoQuery, [
       medecin_id,
       jour,
       heure_debut,
       heure_fin,
     ]);
 
-    if (conflitResult.rows.length > 0) {
-      return res
-        .status(400)
-        .json({ message: "Conflit avec une disponibilité existante" });
+    if (dispoResult.rows.length > 0) {
+      return res.status(400).json({
+        message:
+          "Une disponibilité existe déjà pour ce médecin à ce jour et créneau horaire",
+      });
     }
 
-    // Insérer la nouvelle disponibilité
+    // Créer la disponibilité
     const insertQuery = `
-      INSERT INTO disponibilites_medecin (medecin_id, jour, heure_debut, heure_fin)
+      INSERT INTO disponibilite_medecin (medecin_id, jour, heure_debut, heure_fin)
       VALUES ($1, $2, $3, $4)
       RETURNING id, medecin_id, jour, heure_debut, heure_fin
     `;
-    const insertResult = await pool.query(insertQuery, [
+    const result = await pool.query(insertQuery, [
       medecin_id,
-      jour.toLowerCase(),
+      jour,
       heure_debut,
       heure_fin,
     ]);
 
-    res.status(201).json(insertResult.rows[0]);
+    res.status(201).json(result.rows[0]);
   } catch (error) {
-    console.error("Erreur lors de l'ajout de la disponibilité:", error);
+    console.error("Erreur lors de la création de la disponibilité:", error);
     res
       .status(500)
-      .json({ message: "Erreur lors de l'ajout de la disponibilité" });
+      .json({ message: "Erreur lors de la création de la disponibilité" });
   }
 };
 
@@ -112,78 +106,44 @@ export const updateDisponibilite = async (req, res) => {
   const { id } = req.params;
   const { jour, heure_debut, heure_fin } = req.body;
 
-  // Validation des données
-  if (!jour || !heure_debut || !heure_fin) {
-    return res.status(400).json({ message: "Tous les champs sont requis" });
-  }
-
-  // Validation du jour
-  const joursValides = [
-    "lundi",
-    "mardi",
-    "mercredi",
-    "jeudi",
-    "vendredi",
-    "samedi",
-    "dimanche",
-  ];
-  if (!joursValides.includes(jour.toLowerCase())) {
-    return res.status(400).json({ message: "Jour invalide" });
-  }
-
   try {
-    // Récupérer la disponibilité actuelle
-    const getQuery = `SELECT medecin_id FROM disponibilites_medecin WHERE id = $1`;
-    const getResult = await pool.query(getQuery, [id]);
+    // Vérifier d'abord que la disponibilité existe et récupérer le medecin_id
+    const checkQuery = `SELECT medecin_id FROM disponibilite_medecin WHERE id = $1`;
+    const checkResult = await pool.query(checkQuery, [id]);
 
-    if (getResult.rows.length === 0) {
+    if (checkResult.rows.length === 0) {
       return res.status(404).json({ message: "Disponibilité non trouvée" });
     }
 
-    const medecin_id = getResult.rows[0].medecin_id;
+    const medecin_id = checkResult.rows[0].medecin_id;
 
-    // Vérifier les conflits de disponibilité
-    const conflitQuery = `
-      SELECT id FROM disponibilites_medecin
-      WHERE medecin_id = $1 AND jour = $2 AND id <> $3 AND 
-      ((heure_debut <= $4 AND heure_fin > $4) OR 
-       (heure_debut < $5 AND heure_fin >= $5) OR
-       (heure_debut >= $4 AND heure_fin <= $5))
-    `;
-    const conflitResult = await pool.query(conflitQuery, [
-      medecin_id,
-      jour,
-      id,
-      heure_debut,
-      heure_fin,
-    ]);
-
-    if (conflitResult.rows.length > 0) {
-      return res
-        .status(400)
-        .json({ message: "Conflit avec une disponibilité existante" });
+    // Vérifier que l'utilisateur est bien le médecin concerné ou un administrateur
+    if (req.userRole !== "admin" && req.userId !== medecin_id) {
+      return res.status(403).json({
+        message: "Vous n'êtes pas autorisé à modifier cette disponibilité",
+      });
     }
 
     // Mettre à jour la disponibilité
     const updateQuery = `
-      UPDATE disponibilites_medecin
+      UPDATE disponibilite_medecin
       SET jour = $1, heure_debut = $2, heure_fin = $3, updated_at = CURRENT_TIMESTAMP
       WHERE id = $4
       RETURNING id, medecin_id, jour, heure_debut, heure_fin
     `;
-    const updateResult = await pool.query(updateQuery, [
-      jour.toLowerCase(),
+    const result = await pool.query(updateQuery, [
+      jour,
       heure_debut,
       heure_fin,
       id,
     ]);
 
-    res.status(200).json(updateResult.rows[0]);
+    res.status(200).json(result.rows[0]);
   } catch (error) {
     console.error("Erreur lors de la mise à jour de la disponibilité:", error);
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la mise à jour de la disponibilité" });
+    res.status(500).json({
+      message: "Erreur lors de la mise à jour de la disponibilité",
+    });
   }
 };
 
@@ -192,28 +152,37 @@ export const deleteDisponibilite = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Vérifier si la disponibilité existe
-    const checkQuery = `SELECT id FROM disponibilites_medecin WHERE id = $1`;
+    // Vérifier d'abord que la disponibilité existe et récupérer le medecin_id
+    const checkQuery = `SELECT medecin_id FROM disponibilite_medecin WHERE id = $1`;
     const checkResult = await pool.query(checkQuery, [id]);
 
     if (checkResult.rows.length === 0) {
       return res.status(404).json({ message: "Disponibilité non trouvée" });
     }
 
+    const medecin_id = checkResult.rows[0].medecin_id;
+
+    // Vérifier que l'utilisateur est bien le médecin concerné ou un administrateur
+    if (req.userRole !== "admin" && req.userId !== medecin_id) {
+      return res.status(403).json({
+        message: "Vous n'êtes pas autorisé à supprimer cette disponibilité",
+      });
+    }
+
     // Supprimer la disponibilité
-    const deleteQuery = `DELETE FROM disponibilites_medecin WHERE id = $1 RETURNING id`;
+    const deleteQuery = `DELETE FROM disponibilite_medecin WHERE id = $1`;
     await pool.query(deleteQuery, [id]);
 
     res.status(200).json({ message: "Disponibilité supprimée avec succès" });
   } catch (error) {
     console.error("Erreur lors de la suppression de la disponibilité:", error);
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la suppression de la disponibilité" });
+    res.status(500).json({
+      message: "Erreur lors de la suppression de la disponibilité",
+    });
   }
 };
 
-// Récupérer les créneaux horaires disponibles pour un médecin à une date donnée
+// Récupérer les créneaux disponibles pour un médecin à une date donnée
 export const getCreneauxDisponibles = async (req, res) => {
   const { medecinId } = req.params;
   const { date } = req.query;
@@ -223,13 +192,17 @@ export const getCreneauxDisponibles = async (req, res) => {
   }
 
   try {
-    // Déterminer le jour de la semaine pour la date donnée
-    const jourQuery = `SELECT TO_CHAR(DATE $1, 'day') as jour`;
-    const jourResult = await pool.query(jourQuery, [date]);
-    const jourSemaine = jourResult.rows[0].jour.trim().toLowerCase();
+    // Récupérer le jour de la semaine pour la date donnée
+    const jourSemaineQuery = `
+      SELECT TO_CHAR(DATE $1, 'day') as jour_semaine
+    `;
+    const jourSemaineResult = await pool.query(jourSemaineQuery, [date]);
+    let jourSemaine = jourSemaineResult.rows[0].jour_semaine
+      .trim()
+      .toLowerCase();
 
-    // Mapper le jour anglais au jour français
-    const jourMap = {
+    // Convertir le jour en français (supposant que la date est en format SQL standard)
+    const joursMap = {
       monday: "lundi",
       tuesday: "mardi",
       wednesday: "mercredi",
@@ -238,85 +211,86 @@ export const getCreneauxDisponibles = async (req, res) => {
       saturday: "samedi",
       sunday: "dimanche",
     };
-
-    const jourFrancais = jourMap[jourSemaine] || jourSemaine;
+    jourSemaine = joursMap[jourSemaine] || jourSemaine;
 
     // Récupérer les disponibilités du médecin pour ce jour
-    const disponibilitesQuery = `
+    const dispoQuery = `
       SELECT heure_debut, heure_fin
-      FROM disponibilites_medecin
+      FROM disponibilite_medecin
       WHERE medecin_id = $1 AND jour = $2
     `;
-    const disponibilitesResult = await pool.query(disponibilitesQuery, [
-      medecinId,
-      jourFrancais,
-    ]);
+    const dispoResult = await pool.query(dispoQuery, [medecinId, jourSemaine]);
 
-    // Récupérer les rendez-vous existants pour ce médecin à cette date
-    const rendezVousQuery = `
+    if (dispoResult.rows.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    // Récupérer les rendez-vous déjà pris pour ce médecin à cette date
+    const rdvQuery = `
       SELECT heure, duree
       FROM rendez_vous
-      WHERE medecin_id = $1 AND date = $2 AND statut != 'annulé'
+      WHERE medecin_id = $1 AND date = $2
+      AND statut IN ('planifié', 'confirmé')
     `;
-    const rendezVousResult = await pool.query(rendezVousQuery, [
-      medecinId,
-      date,
-    ]);
+    const rdvResult = await pool.query(rdvQuery, [medecinId, date]);
 
-    // Générer les créneaux disponibles (par défaut 30 minutes)
-    const creneaux = [];
-    const dureeConsultation = 30; // en minutes
+    // Calculer les créneaux disponibles
+    const creneauxDisponibles = [];
+    const dureeConsultation = 30; // Durée d'une consultation en minutes
 
-    for (const dispo of disponibilitesResult.rows) {
-      // Convertir les heures de début et de fin en minutes
-      const debutMinutes =
-        parseInt(dispo.heure_debut.split(":")[0]) * 60 +
-        parseInt(dispo.heure_debut.split(":")[1]);
-      const finMinutes =
-        parseInt(dispo.heure_fin.split(":")[0]) * 60 +
-        parseInt(dispo.heure_fin.split(":")[1]);
+    dispoResult.rows.forEach((dispo) => {
+      const heureDebut = new Date(`1970-01-01T${dispo.heure_debut}Z`);
+      const heureFin = new Date(`1970-01-01T${dispo.heure_fin}Z`);
+      let currentSlot = new Date(heureDebut);
 
-      // Générer tous les créneaux possibles
-      for (let i = debutMinutes; i < finMinutes; i += dureeConsultation) {
-        const heureDebut = `${Math.floor(i / 60)
+      while (
+        currentSlot.getTime() + dureeConsultation * 60000 <=
+        heureFin.getTime()
+      ) {
+        // Vérifier si ce créneau est disponible (non réservé)
+        const creneauHeure = `${currentSlot
+          .getUTCHours()
           .toString()
-          .padStart(2, "0")}:${(i % 60).toString().padStart(2, "0")}`;
-        const heureFin = `${Math.floor((i + dureeConsultation) / 60)
-          .toString()
-          .padStart(2, "0")}:${((i + dureeConsultation) % 60)
+          .padStart(2, "0")}:${currentSlot
+          .getUTCMinutes()
           .toString()
           .padStart(2, "0")}`;
 
-        // Vérifier si ce créneau est disponible (non déjà réservé)
-        const creneauDisponible = !rendezVousResult.rows.some((rdv) => {
-          const rdvHeureMinutes =
-            parseInt(rdv.heure.split(":")[0]) * 60 +
-            parseInt(rdv.heure.split(":")[1]);
-          const rdvFinMinutes = rdvHeureMinutes + rdv.duree;
+        // Vérifier si ce créneau n'est pas déjà réservé
+        const isReserved = rdvResult.rows.some((rdv) => {
+          const rdvDebut = new Date(`1970-01-01T${rdv.heure}Z`);
+          const rdvFin = new Date(rdvDebut.getTime() + rdv.duree * 60000);
+          const slotDebut = currentSlot;
+          const slotFin = new Date(
+            slotDebut.getTime() + dureeConsultation * 60000
+          );
+
           return (
-            (i >= rdvHeureMinutes && i < rdvFinMinutes) || // Le début du créneau est dans un RDV
-            (i + dureeConsultation > rdvHeureMinutes &&
-              i + dureeConsultation <= rdvFinMinutes) || // La fin du créneau est dans un RDV
-            (i <= rdvHeureMinutes && i + dureeConsultation >= rdvFinMinutes)
-          ); // Le créneau englobe un RDV
+            (slotDebut >= rdvDebut && slotDebut < rdvFin) ||
+            (slotFin > rdvDebut && slotFin <= rdvFin) ||
+            (slotDebut <= rdvDebut && slotFin >= rdvFin)
+          );
         });
 
-        if (creneauDisponible) {
-          creneaux.push({ heureDebut, heureFin });
+        if (!isReserved) {
+          creneauxDisponibles.push(creneauHeure);
         }
-      }
-    }
 
-    res.status(200).json(creneaux);
+        // Passer au créneau suivant
+        currentSlot = new Date(
+          currentSlot.getTime() + dureeConsultation * 60000
+        );
+      }
+    });
+
+    res.status(200).json(creneauxDisponibles);
   } catch (error) {
     console.error(
       "Erreur lors de la récupération des créneaux disponibles:",
       error
     );
-    res
-      .status(500)
-      .json({
-        message: "Erreur lors de la récupération des créneaux disponibles",
-      });
+    res.status(500).json({
+      message: "Erreur lors de la récupération des créneaux disponibles",
+    });
   }
 };

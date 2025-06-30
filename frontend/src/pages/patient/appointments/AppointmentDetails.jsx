@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaCalendarAlt,
@@ -13,25 +13,58 @@ import PageWrapper from "../../../components/PageWrapper";
 
 const AppointmentDetails = () => {
   const navigate = useNavigate();
-  const { selectedItem, clearSelectedItem } = useAppointmentContext();
+  const { selectedAppointment, cancelAppointment } = useAppointmentContext();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Si aucun rendez-vous n'est sélectionné, rediriger vers la liste
-  if (!selectedItem) {
+  if (!selectedAppointment) {
     navigate("/appointments");
     return null;
   }
 
   const handleBack = () => {
-    clearSelectedItem();
     navigate(-1);
   };
 
+  // Gérer l'annulation du rendez-vous
+  const handleCancelAppointment = async () => {
+    if (window.confirm("Êtes-vous sûr de vouloir annuler ce rendez-vous ?")) {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const success = await cancelAppointment(selectedAppointment.id);
+        if (success) {
+          navigate("/appointments?tab=past");
+        } else {
+          setError("Impossible d'annuler le rendez-vous");
+        }
+      } catch (err) {
+        console.error("Erreur lors de l'annulation du rendez-vous:", err);
+        setError("Une erreur est survenue lors de l'annulation");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   // Déterminer si le rendez-vous est passé ou à venir
-  const isPast = selectedItem.timestamp <= new Date().getTime();
-  const statusClass = isPast
-    ? "bg-gray-200 text-gray-700"
-    : "bg-green-100 text-green-800";
-  const statusText = isPast ? "Terminé" : "Confirmé";
+  const isPast =
+    selectedAppointment.timestamp <= new Date().getTime() ||
+    selectedAppointment.status === "annulé";
+
+  // Déterminer la classe et le texte du statut
+  let statusClass = "bg-green-100 text-green-800";
+  let statusText = "Confirmé";
+
+  if (selectedAppointment.status === "annulé") {
+    statusClass = "bg-red-100 text-red-800";
+    statusText = "Annulé";
+  } else if (isPast) {
+    statusClass = "bg-gray-200 text-gray-700";
+    statusText = "Terminé";
+  }
 
   return (
     <PageWrapper className="bg-gray-50">
@@ -47,6 +80,13 @@ const AppointmentDetails = () => {
           </button>
         </div>
 
+        {/* Affichage de l'erreur si nécessaire */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            {error}
+          </div>
+        )}
+
         {/* Carte principale */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           {/* En-tête de la carte */}
@@ -57,9 +97,9 @@ const AppointmentDetails = () => {
               </div>
               <div className="flex-1">
                 <h1 className="text-2xl font-semibold text-gray-900">
-                  {selectedItem.title}
+                  {selectedAppointment.title}
                 </h1>
-                <p className="text-gray-500">{selectedItem.date}</p>
+                <p className="text-gray-500">{selectedAppointment.date}</p>
               </div>
               <div
                 className={`px-3 py-1 rounded-full text-sm font-medium ${statusClass}`}
@@ -78,8 +118,13 @@ const AppointmentDetails = () => {
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Médecin</h3>
                   <p className="text-base text-gray-900">
-                    {selectedItem.doctor}
+                    {selectedAppointment.doctor.name}
                   </p>
+                  {selectedAppointment.doctor.specialty && (
+                    <p className="text-sm text-gray-600">
+                      {selectedAppointment.doctor.specialty}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -88,7 +133,9 @@ const AppointmentDetails = () => {
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Lieu</h3>
                   <p className="text-base text-gray-900">
-                    {selectedItem.location}
+                    {selectedAppointment.location ||
+                      selectedAppointment.doctor.address ||
+                      "Non spécifié"}
                   </p>
                 </div>
               </div>
@@ -98,12 +145,12 @@ const AppointmentDetails = () => {
                 <div>
                   <h3 className="text-sm font-medium text-gray-500">Heure</h3>
                   <p className="text-base text-gray-900">
-                    {selectedItem.time || "Heure non précisée"}
+                    {selectedAppointment.time || "Heure non précisée"}
                   </p>
                 </div>
               </div>
 
-              {selectedItem.description && (
+              {selectedAppointment.description && (
                 <div className="flex items-start gap-3">
                   <FaInfoCircle className="text-primary mt-1 flex-shrink-0" />
                   <div>
@@ -111,7 +158,7 @@ const AppointmentDetails = () => {
                       Détails
                     </h3>
                     <p className="text-base text-gray-900">
-                      {selectedItem.description}
+                      {selectedAppointment.description}
                     </p>
                   </div>
                 </div>
@@ -121,25 +168,35 @@ const AppointmentDetails = () => {
             {/* Actions disponibles */}
             <div className="pt-4 border-t border-gray-200">
               <div className="flex flex-wrap gap-3">
-                {!isPast && (
+                {!isPast && selectedAppointment.status !== "annulé" && (
                   <>
                     <button
-                      onClick={() => console.log("Modifier le rendez-vous")}
+                      onClick={() =>
+                        navigate(
+                          `/book-appointment/edit/${selectedAppointment.id}`
+                        )
+                      }
                       className="px-4 py-2 text-sm font-medium text-primary bg-white border border-primary rounded-md hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                     >
                       Modifier
                     </button>
                     <button
-                      onClick={() => console.log("Annuler le rendez-vous")}
-                      className="px-4 py-2 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      onClick={handleCancelAppointment}
+                      disabled={loading}
+                      className="px-4 py-2 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-300"
                     >
-                      Annuler
+                      {loading ? "Annulation en cours..." : "Annuler"}
                     </button>
                   </>
                 )}
-                {isPast && (
+                {isPast && selectedAppointment.status !== "annulé" && (
                   <button
-                    onClick={() => console.log("Ajouter un document lié")}
+                    onClick={() =>
+                      navigate(
+                        "/documents/add?type=appointment&id=" +
+                          selectedAppointment.id
+                      )
+                    }
                     className="px-4 py-2 text-sm font-medium text-primary bg-white border border-primary rounded-md hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                   >
                     Ajouter un document

@@ -1,45 +1,20 @@
 import pool from "../config/db.js";
 
-// Récupérer tous les rendez-vous d'un patient
-export const getRendezVousByPatient = async (req, res) => {
-  const { patientId } = req.params;
-
+// Récupérer tous les rendez-vous
+export const getAllRendezVous = async (req, res) => {
   try {
     const query = `
-      SELECT rv.id, rv.date, rv.heure, rv.duree, rv.statut, rv.motif, rv.adresse,
-             m.id AS medecin_id, u.nom AS medecin_nom, u.prenom AS medecin_prenom, m.specialite
+      SELECT rv.id, rv.patient_id, rv.medecin_id, rv.date, rv.heure, rv.duree, rv.statut, rv.motif, rv.adresse,
+             p_user.nom as patient_nom, p_user.prenom as patient_prenom,
+             m_user.nom as medecin_nom, m_user.prenom as medecin_prenom, m.specialite
       FROM rendez_vous rv
-      INNER JOIN medecins m ON rv.medecin_id = m.id
-      INNER JOIN utilisateurs u ON m.utilisateur_id = u.id
-      WHERE rv.patient_id = $1
+      INNER JOIN patient p ON rv.patient_id = p.utilisateur_id
+      INNER JOIN medecin m ON rv.medecin_id = m.utilisateur_id
+      INNER JOIN utilisateur p_user ON p.utilisateur_id = p_user.id
+      INNER JOIN utilisateur m_user ON m.utilisateur_id = m_user.id
       ORDER BY rv.date DESC, rv.heure DESC
     `;
-    const result = await pool.query(query, [patientId]);
-
-    res.status(200).json(result.rows);
-  } catch (error) {
-    console.error("Erreur lors de la récupération des rendez-vous:", error);
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la récupération des rendez-vous" });
-  }
-};
-
-// Récupérer tous les rendez-vous d'un médecin
-export const getRendezVousByMedecin = async (req, res) => {
-  const { medecinId } = req.params;
-
-  try {
-    const query = `
-      SELECT rv.id, rv.date, rv.heure, rv.duree, rv.statut, rv.motif, rv.adresse,
-             p.id AS patient_id, u.nom AS patient_nom, u.prenom AS patient_prenom
-      FROM rendez_vous rv
-      INNER JOIN patients p ON rv.patient_id = p.id
-      INNER JOIN utilisateurs u ON p.utilisateur_id = u.id
-      WHERE rv.medecin_id = $1
-      ORDER BY rv.date, rv.heure
-    `;
-    const result = await pool.query(query, [medecinId]);
+    const result = await pool.query(query);
 
     res.status(200).json(result.rows);
   } catch (error) {
@@ -56,14 +31,14 @@ export const getRendezVousById = async (req, res) => {
 
   try {
     const query = `
-      SELECT rv.id, rv.date, rv.heure, rv.duree, rv.statut, rv.motif, rv.adresse,
-             p.id AS patient_id, up.nom AS patient_nom, up.prenom AS patient_prenom,
-             m.id AS medecin_id, um.nom AS medecin_nom, um.prenom AS medecin_prenom, m.specialite
+      SELECT rv.id, rv.patient_id, rv.medecin_id, rv.date, rv.heure, rv.duree, rv.statut, rv.motif, rv.adresse,
+             p_user.nom as patient_nom, p_user.prenom as patient_prenom,
+             m_user.nom as medecin_nom, m_user.prenom as medecin_prenom, m.specialite
       FROM rendez_vous rv
-      INNER JOIN patients p ON rv.patient_id = p.id
-      INNER JOIN utilisateurs up ON p.utilisateur_id = up.id
-      INNER JOIN medecins m ON rv.medecin_id = m.id
-      INNER JOIN utilisateurs um ON m.utilisateur_id = um.id
+      INNER JOIN patient p ON rv.patient_id = p.utilisateur_id
+      INNER JOIN medecin m ON rv.medecin_id = m.utilisateur_id
+      INNER JOIN utilisateur p_user ON p.utilisateur_id = p_user.id
+      INNER JOIN utilisateur m_user ON m.utilisateur_id = m_user.id
       WHERE rv.id = $1
     `;
     const result = await pool.query(query, [id]);
@@ -81,57 +56,59 @@ export const getRendezVousById = async (req, res) => {
   }
 };
 
-// Récupérer les rendez-vous à venir pour un médecin
-export const getUpcomingRendezVousByMedecin = async (req, res) => {
-  const { medecinId } = req.params;
-
-  try {
-    const query = `
-      SELECT rv.id, rv.date, rv.heure, rv.duree, rv.statut, rv.motif, rv.adresse,
-             p.id AS patient_id, u.nom AS patient_nom, u.prenom AS patient_prenom
-      FROM rendez_vous rv
-      INNER JOIN patients p ON rv.patient_id = p.id
-      INNER JOIN utilisateurs u ON p.utilisateur_id = u.id
-      WHERE rv.medecin_id = $1 AND rv.date >= CURRENT_DATE 
-            AND (rv.date > CURRENT_DATE OR (rv.date = CURRENT_DATE AND rv.heure >= CURRENT_TIME))
-            AND rv.statut != 'annulé'
-      ORDER BY rv.date, rv.heure
-    `;
-    const result = await pool.query(query, [medecinId]);
-
-    res.status(200).json(result.rows);
-  } catch (error) {
-    console.error("Erreur lors de la récupération des rendez-vous:", error);
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la récupération des rendez-vous" });
-  }
-};
-
-// Récupérer les rendez-vous à venir pour un patient
-export const getUpcomingRendezVousByPatient = async (req, res) => {
+// Récupérer les rendez-vous par patient ID
+export const getRendezVousByPatientId = async (req, res) => {
   const { patientId } = req.params;
 
   try {
     const query = `
-      SELECT rv.id, rv.date, rv.heure, rv.duree, rv.statut, rv.motif, rv.adresse,
-             m.id AS medecin_id, u.nom AS medecin_nom, u.prenom AS medecin_prenom, m.specialite
+      SELECT rv.id, rv.patient_id, rv.medecin_id, rv.date, rv.heure, rv.duree, rv.statut, rv.motif, rv.adresse,
+             m_user.nom as medecin_nom, m_user.prenom as medecin_prenom, m.specialite
       FROM rendez_vous rv
-      INNER JOIN medecins m ON rv.medecin_id = m.id
-      INNER JOIN utilisateurs u ON m.utilisateur_id = u.id
-      WHERE rv.patient_id = $1 AND rv.date >= CURRENT_DATE 
-            AND (rv.date > CURRENT_DATE OR (rv.date = CURRENT_DATE AND rv.heure >= CURRENT_TIME))
-            AND rv.statut != 'annulé'
-      ORDER BY rv.date, rv.heure
+      INNER JOIN medecin m ON rv.medecin_id = m.utilisateur_id
+      INNER JOIN utilisateur m_user ON m.utilisateur_id = m_user.id
+      WHERE rv.patient_id = $1
+      ORDER BY rv.date DESC, rv.heure DESC
     `;
     const result = await pool.query(query, [patientId]);
 
     res.status(200).json(result.rows);
   } catch (error) {
-    console.error("Erreur lors de la récupération des rendez-vous:", error);
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la récupération des rendez-vous" });
+    console.error(
+      "Erreur lors de la récupération des rendez-vous du patient:",
+      error
+    );
+    res.status(500).json({
+      message: "Erreur lors de la récupération des rendez-vous du patient",
+    });
+  }
+};
+
+// Récupérer les rendez-vous par médecin ID
+export const getRendezVousByMedecinId = async (req, res) => {
+  const { medecinId } = req.params;
+
+  try {
+    const query = `
+      SELECT rv.id, rv.patient_id, rv.medecin_id, rv.date, rv.heure, rv.duree, rv.statut, rv.motif, rv.adresse,
+             p_user.nom as patient_nom, p_user.prenom as patient_prenom
+      FROM rendez_vous rv
+      INNER JOIN patient p ON rv.patient_id = p.utilisateur_id
+      INNER JOIN utilisateur p_user ON p.utilisateur_id = p_user.id
+      WHERE rv.medecin_id = $1
+      ORDER BY rv.date DESC, rv.heure DESC
+    `;
+    const result = await pool.query(query, [medecinId]);
+
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error(
+      "Erreur lors de la récupération des rendez-vous du médecin:",
+      error
+    );
+    res.status(500).json({
+      message: "Erreur lors de la récupération des rendez-vous du médecin",
+    });
   }
 };
 
@@ -142,16 +119,14 @@ export const createRendezVous = async (req, res) => {
 
   // Validation des données
   if (!patient_id || !medecin_id || !date || !heure) {
-    return res
-      .status(400)
-      .json({
-        message: "Les champs patient_id, medecin_id, date et heure sont requis",
-      });
+    return res.status(400).json({
+      message: "Les champs patient_id, medecin_id, date et heure sont requis",
+    });
   }
 
   try {
     // Vérifier si le patient existe
-    const patientQuery = `SELECT id FROM patients WHERE id = $1`;
+    const patientQuery = `SELECT utilisateur_id FROM patient WHERE utilisateur_id = $1`;
     const patientResult = await pool.query(patientQuery, [patient_id]);
 
     if (patientResult.rows.length === 0) {
@@ -159,7 +134,7 @@ export const createRendezVous = async (req, res) => {
     }
 
     // Vérifier si le médecin existe
-    const medecinQuery = `SELECT id FROM medecins WHERE id = $1`;
+    const medecinQuery = `SELECT utilisateur_id FROM medecin WHERE utilisateur_id = $1`;
     const medecinResult = await pool.query(medecinQuery, [medecin_id]);
 
     if (medecinResult.rows.length === 0) {
@@ -171,18 +146,16 @@ export const createRendezVous = async (req, res) => {
 
     // Vérifier si le médecin a des disponibilités ce jour-là
     const dispoQuery = `
-      SELECT * FROM disponibilites_medecin 
+      SELECT * FROM disponibilite_medecin 
       WHERE medecin_id = $1 AND jour = $2 
       AND heure_debut <= $3 AND heure_fin > $3
     `;
     const dispoResult = await pool.query(dispoQuery, [medecin_id, jour, heure]);
 
     if (dispoResult.rows.length === 0) {
-      return res
-        .status(400)
-        .json({
-          message: "Le médecin n'est pas disponible à cette date et heure",
-        });
+      return res.status(400).json({
+        message: "Le médecin n'est pas disponible à cette date et heure",
+      });
     }
 
     // Vérifier s'il y a un conflit avec un autre rendez-vous
@@ -258,7 +231,7 @@ export const updateRendezVous = async (req, res) => {
 
       // Vérifier si le médecin a des disponibilités ce jour-là
       const dispoQuery = `
-        SELECT * FROM disponibilites_medecin 
+        SELECT * FROM disponibilite_medecin 
         WHERE medecin_id = $1 AND jour = $2 
         AND heure_debut <= $3 AND heure_fin > $3
       `;
@@ -269,11 +242,9 @@ export const updateRendezVous = async (req, res) => {
       ]);
 
       if (dispoResult.rows.length === 0) {
-        return res
-          .status(400)
-          .json({
-            message: "Le médecin n'est pas disponible à cette date et heure",
-          });
+        return res.status(400).json({
+          message: "Le médecin n'est pas disponible à cette date et heure",
+        });
       }
 
       // Vérifier s'il y a un conflit avec un autre rendez-vous
@@ -382,6 +353,27 @@ export const cancelRendezVous = async (req, res) => {
     res
       .status(500)
       .json({ message: "Erreur lors de l'annulation du rendez-vous" });
+  }
+};
+
+// Supprimer un rendez-vous (réservé aux administrateurs)
+export const deleteRendezVous = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const deleteQuery = `DELETE FROM rendez_vous WHERE id = $1 RETURNING id`;
+    const result = await pool.query(deleteQuery, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Rendez-vous non trouvé" });
+    }
+
+    res.status(200).json({ message: "Rendez-vous supprimé avec succès" });
+  } catch (error) {
+    console.error("Erreur lors de la suppression du rendez-vous:", error);
+    res
+      .status(500)
+      .json({ message: "Erreur lors de la suppression du rendez-vous" });
   }
 };
 

@@ -1,22 +1,32 @@
-import { Router } from "express";
-import * as disponibiliteController from "../controllers/disponibilite.controller.js";
-import { verifyToken } from "../middlewares/auth.middleware.js";
+import express from "express";
+import {
+  getDisponibilitesByMedecinId,
+  createDisponibilite,
+  updateDisponibilite,
+  deleteDisponibilite,
+  getCreneauxDisponibles,
+} from "../controllers/disponibilite.controller.js";
+import { authenticate, authorize } from "../middlewares/auth.middleware.js";
 
-const router = Router();
+const router = express.Router();
 
 // Routes publiques
-router.get(
-  "/medecin/:medecinId",
-  disponibiliteController.getDisponibilitesForMedecin
-);
-router.get(
-  "/medecin/:medecinId/creneaux",
-  disponibiliteController.getCreneauxDisponibles
-);
+// GET /api/disponibilites/medecin/:medecinId - Récupérer toutes les disponibilités d'un médecin
+router.get("/medecin/:medecinId", getDisponibilitesByMedecinId);
 
-// Routes protégées (nécessitent authentification)
-router.post("/", verifyToken, disponibiliteController.addDisponibilite);
-router.put("/:id", verifyToken, disponibiliteController.updateDisponibilite);
-router.delete("/:id", verifyToken, disponibiliteController.deleteDisponibilite);
+// GET /api/disponibilites/medecin/:medecinId/creneaux - Récupérer les créneaux disponibles pour un médecin
+router.get("/medecin/:medecinId/creneaux", getCreneauxDisponibles);
+
+// Routes protégées
+router.use(authenticate);
+
+// POST /api/disponibilites - Créer une nouvelle disponibilité
+router.post("/", authorize(["medecin", "admin"]), createDisponibilite);
+
+// PUT /api/disponibilites/:id - Mettre à jour une disponibilité
+router.put("/:id", authorize(["medecin", "admin"]), updateDisponibilite);
+
+// DELETE /api/disponibilites/:id - Supprimer une disponibilité
+router.delete("/:id", authorize(["medecin", "admin"]), deleteDisponibilite);
 
 export default router;

@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 export const getAllUsers = async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, email, nom, prenom, role, tel, date_naissance, sexe, adresse, code_postal, ville FROM utilisateurs ORDER BY id"
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville FROM utilisateur ORDER BY id"
     );
 
     res.status(200).json({
@@ -25,7 +25,7 @@ export const getUserById = async (req, res) => {
     const userId = req.params.id;
 
     const result = await pool.query(
-      "SELECT id, email, nom, prenom, role, tel, date_naissance, sexe, adresse, code_postal, ville FROM utilisateurs WHERE id = $1",
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville FROM utilisateur WHERE id = $1",
       [userId]
     );
 
@@ -50,7 +50,7 @@ export const getMe = async (req, res) => {
     const userId = req.userId;
 
     const result = await pool.query(
-      "SELECT id, email, nom, prenom, role, tel, date_naissance, sexe, adresse, code_postal, ville FROM utilisateurs WHERE id = $1",
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville FROM utilisateur WHERE id = $1",
       [userId]
     );
 
@@ -67,7 +67,8 @@ export const getMe = async (req, res) => {
         nom: user.nom,
         prenom: user.prenom,
         role: user.role,
-        tel: user.tel,
+        tel_indicatif: user.tel_indicatif,
+        tel_numero: user.tel_numero,
         date_naissance: user.date_naissance,
         sexe: user.sexe,
         adresse: user.adresse,
@@ -91,7 +92,8 @@ export const updateUser = async (req, res) => {
       nom,
       prenom,
       email,
-      tel,
+      tel_indicatif,
+      tel_numero,
       date_naissance,
       sexe,
       adresse,
@@ -102,7 +104,7 @@ export const updateUser = async (req, res) => {
     // Vérifier si l'email est déjà utilisé par un autre utilisateur
     if (email) {
       const emailCheck = await pool.query(
-        "SELECT * FROM utilisateurs WHERE email = $1 AND id != $2",
+        "SELECT * FROM utilisateur WHERE email = $1 AND id != $2",
         [email, userId]
       );
       if (emailCheck.rows.length > 0) {
@@ -111,7 +113,7 @@ export const updateUser = async (req, res) => {
     }
 
     // Construire la requête de mise à jour dynamiquement
-    let query = "UPDATE utilisateurs SET ";
+    let query = "UPDATE utilisateur SET ";
     const updateFields = [];
     const values = [];
     let paramIndex = 1;
@@ -128,9 +130,13 @@ export const updateUser = async (req, res) => {
       updateFields.push(`email = $${paramIndex++}`);
       values.push(email);
     }
-    if (tel) {
-      updateFields.push(`tel = $${paramIndex++}`);
-      values.push(tel);
+    if (tel_indicatif) {
+      updateFields.push(`tel_indicatif = $${paramIndex++}`);
+      values.push(tel_indicatif);
+    }
+    if (tel_numero) {
+      updateFields.push(`tel_numero = $${paramIndex++}`);
+      values.push(tel_numero);
     }
     if (date_naissance) {
       updateFields.push(`date_naissance = $${paramIndex++}`);
@@ -161,7 +167,7 @@ export const updateUser = async (req, res) => {
     }
 
     query += updateFields.join(", ");
-    query += ` WHERE id = $${paramIndex} RETURNING id, email, nom, prenom, role, tel, date_naissance, sexe, adresse, code_postal, ville`;
+    query += ` WHERE id = $${paramIndex} RETURNING id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville`;
     values.push(userId);
 
     const result = await pool.query(query, values);
@@ -189,9 +195,8 @@ export const updatePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
 
     // Vérifier si l'utilisateur existe
-
     const userResult = await pool.query(
-      "SELECT * FROM utilisateurs WHERE id = $1",
+      "SELECT * FROM utilisateur WHERE id = $1",
       [userId]
     );
 
@@ -215,7 +220,7 @@ export const updatePassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
     // Mettre à jour le mot de passe
-    await pool.query("UPDATE utilisateurs SET password = $1 WHERE id = $2", [
+    await pool.query("UPDATE utilisateur SET password = $1 WHERE id = $2", [
       hashedPassword,
       userId,
     ]);
@@ -238,7 +243,7 @@ export const deleteUser = async (req, res) => {
 
     // Vérifier si l'utilisateur existe
     const userCheck = await pool.query(
-      "SELECT * FROM utilisateurs WHERE id = $1",
+      "SELECT * FROM utilisateur WHERE id = $1",
       [userId]
     );
 
@@ -247,12 +252,12 @@ export const deleteUser = async (req, res) => {
     }
 
     // Supprimer les refresh tokens associés
-    await pool.query("DELETE FROM refresh_tokens WHERE utilisateur_id = $1", [
+    await pool.query("DELETE FROM refresh_token WHERE utilisateur_id = $1", [
       userId,
     ]);
 
     // Supprimer l'utilisateur
-    await pool.query("DELETE FROM utilisateurs WHERE id = $1", [userId]);
+    await pool.query("DELETE FROM utilisateur WHERE id = $1", [userId]);
 
     res.status(200).json({
       message: "Utilisateur supprimé avec succès",
@@ -271,7 +276,7 @@ export const getUsersByRole = async (req, res) => {
     const { role } = req.params;
 
     const result = await pool.query(
-      "SELECT id, email, nom, prenom, role, tel, date_naissance, sexe, adresse, code_postal, ville FROM utilisateurs WHERE role = $1 ORDER BY nom, prenom",
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville FROM utilisateur WHERE role = $1 ORDER BY nom, prenom",
       [role]
     );
 

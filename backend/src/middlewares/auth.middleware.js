@@ -1,79 +1,98 @@
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import pool from "../config/db.js";
 
 dotenv.config();
 
-// Middleware pour vérifier le token JWT
-export const verifyToken = (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // Format "Bearer TOKEN"
-
-  if (!token) {
-    return res.status(403).json({ message: "Accès refusé. Token manquant." });
-  }
-
+// Middleware pour vérifier l'authentification via token JWT
+export const authenticate = async (req, res, next) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.id;
-    req.userRole = decoded.role;
-    next();
-  } catch (error) {
-    return res.status(401).json({ message: "Token invalide ou expiré" });
-  }
-};
-
-// Middleware pour vérifier les rôles
-export const checkRole = (roles) => {
-  return (req, res, next) => {
-    if (!req.userRole) {
-      return res.status(403).json({ message: "Rôle non spécifié" });
+    // Récupérer le token d'autorisation
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res
+        .status(401)
+        .json({ message: "Token d'authentification requis" });
     }
 
-    if (roles.includes(req.userRole)) {
-      next();
-    } else {
-      res
-        .status(403)
-        .json({ message: "Accès refusé. Permissions insuffisantes." });
-    }
-  };
-};
+    const token = authHeader.split(" ")[1];
 
-// Middleware pour vérifier si l'utilisateur est un administrateur
-export const isAdmin = (req, res, next) => {
-  if (req.userRole !== "admin") {
-    return res
-      .status(403)
-      .json({ message: "Accès réservé aux administrateurs" });
-  }
-  next();
-};
+    // Vérifier et décoder le token
+    jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
+      if (err) {
+        console.error("Erreur de vérification du token:", err.message);
+        return res.status(401).json({ message: "Token invalide ou expiré" });
+      }
 
-// Middleware pour vérifier si l'utilisateur est un médecin
-export const isDoctor = (req, res, next) => {
-  if (req.userRole !== "doctor") {
-    return res.status(403).json({ message: "Accès réservé aux médecins" });
-  }
-  next();
-};
+      console.log("Token décodé:", decoded);
 
-// Middleware pour vérifier si l'utilisateur est un patient
-export const isPatient = (req, res, next) => {
-  if (req.userRole !== "patient") {
-    return res.status(403).json({ message: "Accès réservé aux patients" });
-  }
-  next();
-};
+      // Stocker les informations de l'utilisateur dans la requête
+      req.userId = decoded.id;
+      req.userEmail = decoded.email;
+      req.userRole = decoded.role;
 
-// Middleware pour vérifier si l'utilisateur est le propriétaire de la ressource ou un admin
-export const isOwnerOrAdmin = (req, res, next) => {
-  const resourceId = req.params.id;
+      // Vérifier que l'utilisateur existe toujours en base
+      try {
+        console.log(
+          `Vérification de l'utilisateur ${decoded.id} dans la base de données`
+        );
+        // Essayer d'abord avec la table "utilisateur"
+        const query = "SELECT id, email, role FROM utilisateur WHERE id = $1";
+        const result = await pool.query(query, [decoded.id]);
 
-  if (req.userId == resourceId || req.userRole === "admin") {
-    next();
-  } else {
-    res.status(403).json({
-      message: "Vous n'êtes pas autorisé à accéder à cette ressource",
+        if (result.rows.length === 0) {
+          console.log(
+            `Utilisateur ${decoded.id} non trouvé dans la table "utilisateur"`
+          );
+          return res.status(401).json({ message: "Utilisateur non trouvé" });
+        }
+
+        console.log(
+          `Utilisateur ${decoded.id} trouvé dans la base de données:`,
+          result.rows[0]
+        );
+
+        // Passer à la suite
+        next();
+      } catch (dbError) {
+        console.error(
+          "Erreur lors de la vérification de l'utilisateur:",
+          dbError
+        );
+        return res.status(500).json({
+          message:
+            "Erreur serveur lors de la vérification de l'authentification",
+        });
+      }
     });
+  } catch (error) {
+    console.error("Erreur d'authentification:", error);
+    return res
+      .status(500)
+      .json({ message: "Erreur serveur lors de l'authentification" });
   }
+};
+
+// Middleware pour vérifier les autorisations par rôle
+export const authorize = (roles) => {
+  return (req, res, next) => {
+    // Vérifier si le middleware d'authentification a bien été exécuté d'abord
+    if (!req.userId || !req.userRole) {
+      return res.status(500).json({
+        message:
+          "Erreur de configuration des middlewares: authenticate doit être appelé avant authorize",
+      });
+    }
+
+    // Convertir un rôle unique en tableau pour faciliter la vérification
+    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+
+    // Vérifier si le rôle de l'utilisateur est autorisé
+    if (!allowedRoles.includes(req.userRole)) {
+      return res.status(403).json({ message: "Accès non autorisé" });
+    }
+
+    // Autorisation accordée, passer à la suite
+    next();
+  };
 };

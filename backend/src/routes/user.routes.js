@@ -3,33 +3,29 @@ import {
   getAllUsers,
   getUserById,
   updateUser,
-  updatePassword,
   deleteUser,
+  updatePassword,
   getUsersByRole,
   getMe,
 } from "../controllers/user.controller.js";
-import {
-  verifyToken,
-  isAdmin,
-  isOwnerOrAdmin,
-} from "../middlewares/auth.middleware.js";
+import { authenticate, authorize } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-// Routes protégées par authentification
-router.use(verifyToken);
+// Toutes les routes nécessitent une authentification
+router.use(authenticate);
 
-// Route pour récupérer l'utilisateur connecté (me)
-router.get("/me", getMe);
-
-// Routes accessibles à tous les utilisateurs authentifiés (mais limitées à leur propre profil ou aux admins)
-router.get("/:id", isOwnerOrAdmin, getUserById);
-router.put("/:id", isOwnerOrAdmin, updateUser);
-router.put("/:id/password", isOwnerOrAdmin, updatePassword);
+// Routes accessibles à tous les utilisateurs authentifiés
+router.get("/:id", getUserById);
+router.put("/:id", updateUser);
+router.put("/:id/password", updatePassword);
 
 // Routes accessibles uniquement aux administrateurs
-router.get("/", isAdmin, getAllUsers);
-router.get("/role/:role", isAdmin, getUsersByRole);
-router.delete("/:id", isAdmin, deleteUser);
+router.get("/", authorize("admin"), getAllUsers);
+router.get("/role/:role", authorize("admin"), getUsersByRole);
+router.delete("/:id", authorize("admin"), deleteUser);
+
+// Routes protégées par authentification
+router.get("/me", getMe);
 
 export default router;

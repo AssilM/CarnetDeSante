@@ -3,6 +3,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useUserContext } from "../../../context/UserContext";
 import { usePatientContext } from "../../../context/patient/PatientContext";
+import { authService } from "../../../services/api";
 
 const InfoSection = () => {
   const { currentUser } = useAuth();
@@ -10,6 +11,19 @@ const InfoSection = () => {
   const { patientProfile, medicalInfo, refreshMedicalInfo } =
     usePatientContext();
   const navigate = useNavigate();
+
+  // Fonction de diagnostic d'authentification
+  const runAuthDiagnostic = async () => {
+    try {
+      console.log("Exécution du diagnostic d'authentification...");
+      const result = await authService.checkAuth();
+      console.log("Résultat du diagnostic:", result);
+      alert("Diagnostic terminé. Vérifiez la console pour les détails.");
+    } catch (error) {
+      console.error("Erreur lors du diagnostic:", error);
+      alert("Erreur lors du diagnostic. Vérifiez la console pour les détails.");
+    }
+  };
 
   // Charger les informations médicales si elles ne sont pas déjà chargées
   useEffect(() => {
@@ -90,12 +104,21 @@ const InfoSection = () => {
         <h3 className="text-lg font-semibold text-gray-800">
           Informations personnelles
         </h3>
-        <button
-          onClick={handleModify}
-          className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded-md hover:bg-blue-100 transition-colors"
-        >
-          Modifier
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={runAuthDiagnostic}
+            className="text-sm bg-yellow-50 text-yellow-600 px-3 py-1 rounded-md hover:bg-yellow-100 transition-colors"
+            title="Exécuter un diagnostic de l'authentification"
+          >
+            Diagnostiquer
+          </button>
+          <button
+            onClick={handleModify}
+            className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded-md hover:bg-blue-100 transition-colors"
+          >
+            Modifier
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">

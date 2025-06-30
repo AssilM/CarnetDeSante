@@ -1,7 +1,7 @@
 import app from "./app.js";
 import dotenv from "dotenv";
 import pool from "./config/db.js";
-import initTables from "./data/createTables.js";
+import initTables, { dropAllTables } from "./data/createTables.js";
 import seedDatabase from "./data/seedData.js";
 
 dotenv.config();
@@ -11,6 +11,9 @@ const port = process.env.PORT || 3001;
 // Créer les tables et générer des données de test
 const initDatabase = async () => {
   try {
+    // Pour réinitialiser complètement la base de données, décommentez la ligne suivante
+    //await dropAllTables();
+
     // Initialiser les tables
     await initTables();
     console.log("Base de données initialisée avec succès");

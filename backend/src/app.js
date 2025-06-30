@@ -19,12 +19,12 @@ app.use(express.json());
 
 // Routes API
 app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/patients", patientRoutes);
-app.use("/api/medecins", medecinRoutes);
-app.use("/api/disponibilites", disponibiliteRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/patient", patientRoutes);
+app.use("/api/medecin", medecinRoutes);
+app.use("/api/disponibilite", disponibiliteRoutes);
 app.use("/api/rendez-vous", rendezVousRoutes);
-app.use("/api/admins", adminRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Routes de test
 app.get("/", (req, res) => {

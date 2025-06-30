@@ -2,6 +2,7 @@ import React from "react";
 import AppRoutes from "./routes";
 import { AuthProvider } from "./context";
 import ConditionalProviders from "./providers/ConditionalProviders";
+import Notification from "./components/Notification";
 
 /**
  * Composant principal de l'application
@@ -11,6 +12,7 @@ import ConditionalProviders from "./providers/ConditionalProviders";
 const App = () => (
   <AuthProvider>
     <ConditionalProviders>
+      <Notification />
       <AppRoutes />
     </ConditionalProviders>
   </AuthProvider>

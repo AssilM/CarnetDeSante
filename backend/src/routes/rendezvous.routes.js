@@ -1,32 +1,45 @@
-import { Router } from "express";
-import * as rendezVousController from "../controllers/rendezvous.controller.js";
-import { verifyToken } from "../middlewares/auth.middleware.js";
+import express from "express";
+import {
+  getAllRendezVous,
+  getRendezVousById,
+  getRendezVousByPatientId,
+  getRendezVousByMedecinId,
+  createRendezVous,
+  updateRendezVous,
+  cancelRendezVous,
+  deleteRendezVous,
+} from "../controllers/rendezvous.controller.js";
+import { authenticate, authorize } from "../middlewares/auth.middleware.js";
 
-const router = Router();
+const router = express.Router();
 
-// Routes protégées (nécessitent authentification)
-router.use(verifyToken);
+// Routes protégées
+router.use(authenticate);
 
-// Route pour récupérer un rendez-vous spécifique
-router.get("/:id", rendezVousController.getRendezVousById);
+// Routes pour tous les utilisateurs authentifiés
+// GET /api/rendez-vous/:id - Récupérer un rendez-vous par son ID
+router.get("/:id", getRendezVousById);
 
-// Routes pour les patients
-router.get("/patient/:patientId", rendezVousController.getRendezVousByPatient);
-router.get(
-  "/patient/:patientId/upcoming",
-  rendezVousController.getUpcomingRendezVousByPatient
-);
+// GET /api/rendez-vous/patient/:patientId - Récupérer les rendez-vous d'un patient
+router.get("/patient/:patientId", getRendezVousByPatientId);
 
-// Routes pour les médecins
-router.get("/medecin/:medecinId", rendezVousController.getRendezVousByMedecin);
-router.get(
-  "/medecin/:medecinId/upcoming",
-  rendezVousController.getUpcomingRendezVousByMedecin
-);
+// GET /api/rendez-vous/medecin/:medecinId - Récupérer les rendez-vous d'un médecin
+router.get("/medecin/:medecinId", getRendezVousByMedecinId);
 
-// Routes pour la gestion des rendez-vous
-router.post("/", rendezVousController.createRendezVous);
-router.put("/:id", rendezVousController.updateRendezVous);
-router.patch("/:id/cancel", rendezVousController.cancelRendezVous);
+// POST /api/rendez-vous - Créer un nouveau rendez-vous
+router.post("/", createRendezVous);
+
+// PUT /api/rendez-vous/:id - Mettre à jour un rendez-vous
+router.put("/:id", updateRendezVous);
+
+// PUT /api/rendez-vous/:id/annuler - Annuler un rendez-vous
+router.put("/:id/annuler", cancelRendezVous);
+
+// Routes pour les administrateurs
+// GET /api/rendez-vous - Récupérer tous les rendez-vous
+router.get("/", authorize("admin"), getAllRendezVous);
+
+// DELETE /api/rendez-vous/:id - Supprimer un rendez-vous
+router.delete("/:id", authorize("admin"), deleteRendezVous);
 
 export default router;

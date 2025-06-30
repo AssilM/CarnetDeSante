@@ -11,7 +11,7 @@ const hashPassword = async (password) => {
 const createTestUsers = async () => {
   try {
     // Vérifier si des utilisateurs existent déjà
-    const checkQuery = "SELECT COUNT(*) as count FROM utilisateurs";
+    const checkQuery = "SELECT COUNT(*) as count FROM utilisateur";
     const checkResult = await pool.query(checkQuery);
 
     if (checkResult.rows[0].count > 0) {
@@ -32,7 +32,8 @@ const createTestUsers = async () => {
         password,
         nom: "Dupont",
         prenom: "Jean",
-        tel: "0601020304",
+        tel_indicatif: "+33",
+        tel_numero: "601020304",
         date_naissance: "1980-01-15",
         sexe: "homme",
         adresse: "123 Rue du Patient",
@@ -45,7 +46,8 @@ const createTestUsers = async () => {
         password,
         nom: "Martin",
         prenom: "Sophie",
-        tel: "0602030405",
+        tel_indicatif: "+33",
+        tel_numero: "602030405",
         date_naissance: "1990-05-20",
         sexe: "femme",
         adresse: "456 Avenue du Patient",
@@ -59,7 +61,8 @@ const createTestUsers = async () => {
         password,
         nom: "Dubois",
         prenom: "Pierre",
-        tel: "0701020304",
+        tel_indicatif: "+33",
+        tel_numero: "701020304",
         date_naissance: "1975-03-10",
         sexe: "homme",
         adresse: "789 Boulevard du Médecin",
@@ -72,7 +75,8 @@ const createTestUsers = async () => {
         password,
         nom: "Lefebvre",
         prenom: "Marie",
-        tel: "0702030405",
+        tel_indicatif: "+33",
+        tel_numero: "702030405",
         date_naissance: "1982-07-22",
         sexe: "femme",
         adresse: "101 Rue du Cabinet",
@@ -86,7 +90,8 @@ const createTestUsers = async () => {
         password,
         nom: "Admin",
         prenom: "Super",
-        tel: "0600000000",
+        tel_indicatif: "+33",
+        tel_numero: "600000000",
         date_naissance: "1985-12-25",
         sexe: "homme",
         adresse: "1 Place de l'Admin",
@@ -99,10 +104,10 @@ const createTestUsers = async () => {
     // Insérer les utilisateurs dans la base de données
     for (const user of users) {
       const insertQuery = `
-        INSERT INTO utilisateurs (
-          email, password, nom, prenom, tel, date_naissance, sexe, 
+        INSERT INTO utilisateur (
+          email, password, nom, prenom, tel_indicatif, tel_numero, date_naissance, sexe, 
           adresse, code_postal, ville, role
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         RETURNING id
       `;
 
@@ -111,7 +116,8 @@ const createTestUsers = async () => {
         user.password,
         user.nom,
         user.prenom,
-        user.tel,
+        user.tel_indicatif,
+        user.tel_numero,
         user.date_naissance,
         user.sexe,
         user.adresse,
@@ -155,18 +161,13 @@ const createPatientProfile = async (userId) => {
     const poids = Math.floor(Math.random() * 50) + 50; // Poids entre 50 et 100 kg
 
     const insertQuery = `
-      INSERT INTO patients (utilisateur_id, groupe_sanguin, taille, poids)
+      INSERT INTO patient (utilisateur_id, groupe_sanguin, taille, poids)
       VALUES ($1, $2, $3, $4)
-      RETURNING id
     `;
 
-    const result = await pool.query(insertQuery, [
-      userId,
-      groupeSanguin,
-      taille,
-      poids,
-    ]);
-    return result.rows[0].id;
+    await pool.query(insertQuery, [userId, groupeSanguin, taille, poids]);
+
+    return userId;
   } catch (error) {
     console.error("Erreur lors de la création du profil patient:", error);
     throw error;
@@ -189,22 +190,16 @@ const createMedecinProfile = async (userId) => {
     const description = `${specialite} expérimenté avec plusieurs années de pratique.`;
 
     const insertQuery = `
-      INSERT INTO medecins (utilisateur_id, specialite, description)
+      INSERT INTO medecin (utilisateur_id, specialite, description)
       VALUES ($1, $2, $3)
-      RETURNING id
     `;
 
-    const result = await pool.query(insertQuery, [
-      userId,
-      specialite,
-      description,
-    ]);
-    const medecinId = result.rows[0].id;
+    await pool.query(insertQuery, [userId, specialite, description]);
 
     // Créer des disponibilités pour ce médecin
-    await createMedecinDisponibilites(medecinId);
+    await createMedecinDisponibilites(userId);
 
-    return medecinId;
+    return userId;
   } catch (error) {
     console.error("Erreur lors de la création du profil médecin:", error);
     throw error;
@@ -215,13 +210,12 @@ const createMedecinProfile = async (userId) => {
 const createAdminProfile = async (userId) => {
   try {
     const insertQuery = `
-      INSERT INTO administrateurs (utilisateur_id, niveau_acces)
+      INSERT INTO administrateur (utilisateur_id, niveau_acces)
       VALUES ($1, $2)
-      RETURNING id
     `;
 
-    const result = await pool.query(insertQuery, [userId, "super-admin"]);
-    return result.rows[0].id;
+    await pool.query(insertQuery, [userId, "super-admin"]);
+    return userId;
   } catch (error) {
     console.error(
       "Erreur lors de la création du profil administrateur:",
@@ -242,27 +236,26 @@ const createMedecinDisponibilites = async (medecinId) => {
       // Matin (8h-12h)
       disponibilites.push({
         medecin_id: medecinId,
-        jour,
-        heure_debut: "08:00:00",
-        heure_fin: "12:00:00",
+        jour: jour,
+        heure_debut: "08:00",
+        heure_fin: "12:00",
       });
 
       // Après-midi (14h-18h)
       disponibilites.push({
         medecin_id: medecinId,
-        jour,
-        heure_debut: "14:00:00",
-        heure_fin: "18:00:00",
+        jour: jour,
+        heure_debut: "14:00",
+        heure_fin: "18:00",
       });
     }
 
-    // Insérer les disponibilités dans la base de données
+    // Insérer les disponibilités
     for (const dispo of disponibilites) {
       const insertQuery = `
-        INSERT INTO disponibilites_medecin (medecin_id, jour, heure_debut, heure_fin)
+        INSERT INTO disponibilite_medecin (medecin_id, jour, heure_debut, heure_fin)
         VALUES ($1, $2, $3, $4)
       `;
-
       await pool.query(insertQuery, [
         dispo.medecin_id,
         dispo.jour,
@@ -279,12 +272,86 @@ const createMedecinDisponibilites = async (medecinId) => {
   }
 };
 
-// Exécution du script de génération des données de test
+// Création de rendez-vous de test
+const createTestRendezVous = async () => {
+  try {
+    // Récupérer tous les patients
+    const patientsQuery = "SELECT utilisateur_id FROM patient";
+    const patientsResult = await pool.query(patientsQuery);
+    const patients = patientsResult.rows;
+
+    // Récupérer tous les médecins
+    const medecinsQuery = "SELECT utilisateur_id FROM medecin";
+    const medecinsResult = await pool.query(medecinsQuery);
+    const medecins = medecinsResult.rows;
+
+    // Si pas de patients ou de médecins, sortir
+    if (patients.length === 0 || medecins.length === 0) {
+      console.log("Pas de patients ou de médecins pour créer des rendez-vous");
+      return;
+    }
+
+    // Créer quelques rendez-vous
+    const today = new Date();
+    const statuts = ["planifié", "confirmé", "annulé", "terminé"];
+
+    for (let i = 0; i < 5; i++) {
+      const patient = patients[Math.floor(Math.random() * patients.length)];
+      const medecin = medecins[Math.floor(Math.random() * medecins.length)];
+
+      // Date dans les 30 prochains jours
+      const date = new Date(
+        today.getTime() + Math.random() * 30 * 24 * 60 * 60 * 1000
+      );
+      const dateStr = date.toISOString().split("T")[0];
+
+      // Heure entre 8h et 18h
+      const hour = Math.floor(Math.random() * 10) + 8;
+      const minute = Math.floor(Math.random() * 4) * 15; // 0, 15, 30, 45
+      const heure = `${hour.toString().padStart(2, "0")}:${minute
+        .toString()
+        .padStart(2, "0")}`;
+
+      const duree = [15, 30, 45, 60][Math.floor(Math.random() * 4)];
+      const statut = statuts[Math.floor(Math.random() * statuts.length)];
+      const motif = "Consultation de routine";
+      const adresse = "Cabinet médical";
+
+      const insertQuery = `
+        INSERT INTO rendez_vous (
+          patient_id, medecin_id, date, heure, duree, statut, motif, adresse
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `;
+      await pool.query(insertQuery, [
+        patient.utilisateur_id,
+        medecin.utilisateur_id,
+        dateStr,
+        heure,
+        duree,
+        statut,
+        motif,
+        adresse,
+      ]);
+    }
+
+    console.log("Rendez-vous de test créés avec succès");
+  } catch (error) {
+    console.error("Erreur lors de la création des rendez-vous de test:", error);
+    throw error;
+  }
+};
+
+// Fonction pour initialiser la base de données avec des données de test
 const seedDatabase = async () => {
   try {
     await createTestUsers();
+    await createTestRendezVous();
+    console.log("Base de données initialisée avec succès");
   } catch (error) {
-    console.error("Erreur lors de la génération des données de test:", error);
+    console.error(
+      "Erreur lors de l'initialisation de la base de données:",
+      error
+    );
   }
 };
 

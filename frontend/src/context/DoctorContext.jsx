@@ -1,6 +1,13 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { useAuth } from "./AuthContext";
-import DoctorApi from "./api/DoctorApi";
+import { createDoctorService } from "../services/api";
+import { createAuthConnector } from "../services/http";
 
 // Créer un contexte pour les médecins
 const DoctorContext = createContext(null);
@@ -11,21 +18,29 @@ export const DoctorProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [doctorProfile, setDoctorProfile] = useState(null);
-  const { currentUser, accessToken } = useAuth();
+  const { currentUser, accessToken, refreshToken, testExpireToken } = useAuth();
+
+  // Créer une instance du service docteur
+  const [doctorService, setDoctorService] = useState(null);
+
+  // Initialiser l'API authentifiée lorsque le token change
+  useEffect(() => {
+    if (accessToken) {
+      console.log("[DoctorContext] Création d'une API authentifiée");
+      const authenticatedApi = createAuthConnector({
+        accessToken,
+        refreshToken,
+        onSessionExpired: testExpireToken,
+      });
+      setDoctorService(createDoctorService(authenticatedApi));
+    } else {
+      setDoctorService(null);
+    }
+  }, [accessToken, refreshToken, testExpireToken]);
 
   // État pour stocker les spécialités disponibles
-  const [specialties] = useState([
-    "Médecin généraliste",
-    "Dermatologue",
-    "Cardiologue",
-    "Pédiatre",
-    "Ophtalmologue",
-    "Gynécologue",
-    "Dentiste",
-    "ORL",
-    "Rhumatologue",
-    "Psychiatre",
-  ]);
+  const [specialties, setSpecialties] = useState([]);
+  const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
 
   // État pour le médecin actuellement sélectionné
   const [selectedDoctor, setSelectedDoctor] = useState(null);
@@ -33,40 +48,64 @@ export const DoctorProvider = ({ children }) => {
   // État pour la date et le créneau sélectionnés
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [availableSlots, setAvailableSlots] = useState({});
 
-  // Fonction pour charger les médecins (appelée manuellement)
-  const loadDoctors = async () => {
+  // Fonction pour charger les médecins
+  const loadDoctors = useCallback(async () => {
+    if (loading || !doctorService) return [];
+
     try {
       setLoading(true);
       setError(null);
-      const response = await DoctorApi.getAllDoctors();
-      setDoctors(response.medecins || []);
-      return response.medecins || [];
+      console.log("[DoctorContext] Chargement des médecins");
+      const response = await doctorService.getAllDoctors();
+      console.log("[DoctorContext] Médecins chargés:", response);
+
+      const medecinsList = Array.isArray(response)
+        ? response
+        : response.medecins || [];
+      setDoctors(medecinsList);
+
+      // Extraire les spécialités uniques
+      if (medecinsList.length > 0) {
+        const uniqueSpecialties = [
+          ...new Set(medecinsList.map((doc) => doc.specialite)),
+        ].filter(Boolean);
+        setSpecialties(uniqueSpecialties);
+      }
+
+      setHasLoadedInitialData(true);
+      return medecinsList;
     } catch (err) {
-      console.error("Erreur lors du chargement des médecins:", err);
+      console.error(
+        "[DoctorContext] Erreur lors du chargement des médecins:",
+        err
+      );
       setError("Impossible de charger la liste des médecins");
       return [];
     } finally {
       setLoading(false);
     }
-  };
+  }, [loading, doctorService]);
 
   // Charger le profil du médecin si l'utilisateur est connecté en tant que médecin
   useEffect(() => {
     const fetchDoctorProfile = async () => {
-      if (!currentUser || currentUser.role !== "medecin") {
+      if (!currentUser || currentUser.role !== "medecin" || !doctorService) {
         return;
       }
 
       try {
         setLoading(true);
-        const profileData = await DoctorApi.getProfile(
-          currentUser.id,
-          accessToken
-        );
+        console.log("[DoctorContext] Chargement du profil médecin");
+        const profileData = await doctorService.getDoctorProfile();
+        console.log("[DoctorContext] Profil médecin chargé:", profileData);
         setDoctorProfile(profileData.medecin);
       } catch (err) {
-        console.error("Erreur lors du chargement du profil médecin:", err);
+        console.error(
+          "[DoctorContext] Erreur lors du chargement du profil médecin:",
+          err
+        );
         setError("Impossible de charger votre profil médecin");
       } finally {
         setLoading(false);
@@ -74,84 +113,138 @@ export const DoctorProvider = ({ children }) => {
     };
 
     fetchDoctorProfile();
-  }, [currentUser, accessToken]);
+  }, [currentUser, doctorService]);
+
+  // Charger la liste des spécialités au démarrage
+  useEffect(() => {
+    // Charger les données seulement une fois au démarrage et si le service est disponible
+    if (!hasLoadedInitialData && !loading && doctorService) {
+      loadDoctors();
+    }
+  }, [hasLoadedInitialData, loadDoctors, loading, doctorService]);
 
   // Fonctions pour filtrer les médecins
-  const getDoctorsBySpecialty = async (specialty) => {
-    try {
-      setLoading(true);
-      const response = await DoctorApi.getDoctorsBySpecialty(specialty);
-      return response.medecins || [];
-    } catch (err) {
-      console.error("Erreur lors de la recherche par spécialité:", err);
-      setError("Impossible de trouver des médecins pour cette spécialité");
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  };
+  const getDoctorsBySpecialty = useCallback(
+    async (specialty) => {
+      if (!doctorService) return [];
 
-  const searchDoctors = (query) => {
-    if (!query) return doctors;
+      try {
+        setLoading(true);
+        const response = await doctorService.getDoctorsBySpecialty(specialty);
+        return response.medecins || [];
+      } catch (err) {
+        console.error(
+          "[DoctorContext] Erreur lors de la recherche par spécialité:",
+          err
+        );
+        setError("Impossible de trouver des médecins pour cette spécialité");
+        return [];
+      } finally {
+        setLoading(false);
+      }
+    },
+    [doctorService]
+  );
 
-    const searchTerm = query.toLowerCase();
-    return doctors.filter(
-      (doctor) =>
-        doctor.nom?.toLowerCase().includes(searchTerm) ||
-        doctor.prenom?.toLowerCase().includes(searchTerm) ||
-        doctor.specialite?.toLowerCase().includes(searchTerm)
-    );
-  };
+  const searchDoctors = useCallback(
+    (query) => {
+      if (!query) return doctors;
+
+      const searchTerm = query.toLowerCase();
+      return doctors.filter(
+        (doctor) =>
+          doctor.nom?.toLowerCase().includes(searchTerm) ||
+          doctor.prenom?.toLowerCase().includes(searchTerm) ||
+          doctor.specialite?.toLowerCase().includes(searchTerm)
+      );
+    },
+    [doctors]
+  );
 
   // Fonction pour obtenir les créneaux disponibles d'un médecin à une date donnée
-  const getAvailableSlots = async (doctorId, date) => {
-    // Cette fonction devrait être implémentée pour appeler l'API
-    // Pour l'instant, on retourne des données fictives
-    const doctor = doctors.find((doc) => doc.id === doctorId);
-    if (!doctor) return [];
+  const getAvailableSlots = useCallback(
+    async (doctorId, date) => {
+      if (!doctorService) return [];
 
-    const daySlots = doctor.availableSlots?.find((slot) => slot.date === date);
-    return daySlots ? daySlots.slots : [];
-  };
+      const cacheKey = `${doctorId}-${date}`;
 
-  // Fonction pour réserver un créneau
-  const bookAppointment = async (appointment) => {
-    // Cette fonction devrait être implémentée pour appeler l'API
-    // Pour l'instant, on simule une réservation réussie
-    return true;
-  };
+      // Vérifier si les créneaux sont déjà en cache
+      if (availableSlots[cacheKey]) {
+        return availableSlots[cacheKey];
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await doctorService.getAvailableSlots(doctorId, date);
+        const slots = response.creneaux || [];
+
+        // Mettre en cache les créneaux
+        setAvailableSlots((prev) => ({
+          ...prev,
+          [cacheKey]: slots,
+        }));
+
+        return slots;
+      } catch (err) {
+        console.error(
+          "[DoctorContext] Erreur lors de la récupération des créneaux disponibles:",
+          err
+        );
+        setError("Impossible de récupérer les créneaux disponibles");
+        return [];
+      } finally {
+        setLoading(false);
+      }
+    },
+    [availableSlots, doctorService]
+  );
+
+  // Réinitialiser la sélection
+  const resetSelection = useCallback(() => {
+    setSelectedDoctor(null);
+    setSelectedDate(null);
+    setSelectedSlot(null);
+  }, []);
 
   // Créer un profil médecin lors de l'inscription
-  const createDoctorProfile = async (userId, doctorData, token) => {
+  const createDoctorProfile = async (userId, doctorData) => {
+    if (!doctorService) return null;
+
     try {
-      const response = await DoctorApi.createOrUpdateProfile(
+      const response = await doctorService.createOrUpdateDoctorProfile(
         userId,
-        doctorData,
-        token
+        doctorData
       );
       return response;
     } catch (error) {
-      console.error("Erreur lors de la création du profil médecin:", error);
+      console.error(
+        "[DoctorContext] Erreur lors de la création du profil médecin:",
+        error
+      );
       throw error;
     }
   };
 
   // Mettre à jour le profil médecin
   const updateDoctorProfile = async (doctorData) => {
-    if (!currentUser) return null;
+    if (!currentUser || !doctorService) return null;
 
     try {
       setLoading(true);
       setError(null);
-      const response = await DoctorApi.createOrUpdateProfile(
+      const response = await doctorService.createOrUpdateDoctorProfile(
         currentUser.id,
-        doctorData,
-        accessToken
+        doctorData
       );
       setDoctorProfile(response.medecin);
       return response.medecin;
     } catch (error) {
-      console.error("Erreur lors de la mise à jour du profil médecin:", error);
+      console.error(
+        "[DoctorContext] Erreur lors de la mise à jour du profil médecin:",
+        error
+      );
       setError("Impossible de mettre à jour votre profil");
       throw error;
     } finally {
@@ -174,7 +267,7 @@ export const DoctorProvider = ({ children }) => {
     getDoctorsBySpecialty,
     searchDoctors,
     getAvailableSlots,
-    bookAppointment,
+    resetSelection,
     doctorProfile,
     createDoctorProfile,
     updateDoctorProfile,

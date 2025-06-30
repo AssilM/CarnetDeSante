@@ -21,6 +21,9 @@ const SlotSelection = () => {
 
   const [selectedDateState, setSelectedDateState] = useState("");
   const [availableDates, setAvailableDates] = useState([]);
+  const [slots, setSlots] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Rediriger si aucun médecin n'est sélectionné
   useEffect(() => {
@@ -29,14 +32,63 @@ const SlotSelection = () => {
       return;
     }
 
-    // Extraire les dates disponibles du médecin sélectionné
-    const dates = selectedDoctor.availableSlots.map((slot) => slot.date);
+    // Générer des dates disponibles pour les 30 prochains jours
+    const dates = generateAvailableDates(30);
     setAvailableDates(dates);
   }, [selectedDoctor, navigate]);
 
-  const availableSlots = selectedDateState
-    ? getAvailableSlots(selectedDoctor?.id, selectedDateState)
-    : [];
+  // Générer des dates disponibles pour les N prochains jours
+  const generateAvailableDates = (days) => {
+    const dates = [];
+    const today = new Date();
+
+    for (let i = 1; i <= days; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+
+      // Exclure les weekends si nécessaire
+      const dayOfWeek = date.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        // Exclure dimanche (0) et samedi (6)
+        const formattedDate = formatDateForAPI(date);
+        dates.push(formattedDate);
+      }
+    }
+
+    return dates;
+  };
+
+  // Formater une date pour l'API (YYYY-MM-DD)
+  const formatDateForAPI = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // Charger les créneaux disponibles lorsque la date change
+  useEffect(() => {
+    const fetchAvailableSlots = async () => {
+      if (!selectedDateState || !selectedDoctor) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+        const availableSlots = await getAvailableSlots(
+          selectedDoctor.id,
+          selectedDateState
+        );
+        setSlots(availableSlots);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des créneaux:", err);
+        setError("Impossible de récupérer les créneaux disponibles");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAvailableSlots();
+  }, [selectedDateState, selectedDoctor, getAvailableSlots]);
 
   const handleSelectDate = (date) => {
     setSelectedDateState(date);
@@ -70,7 +122,7 @@ const SlotSelection = () => {
             onClick={() =>
               navigate(
                 "/book-appointment/doctor?specialty=" +
-                  encodeURIComponent(selectedDoctor.specialty)
+                  encodeURIComponent(selectedDoctor.specialite)
               )
             }
             className="flex items-center text-gray-600 hover:text-gray-900"
@@ -86,26 +138,33 @@ const SlotSelection = () => {
             <div className="flex-shrink-0 mr-4">
               <div className="w-16 h-16 bg-gray-200 rounded-full overflow-hidden">
                 <img
-                  src={selectedDoctor.image || "https://via.placeholder.com/64"}
-                  alt={`${selectedDoctor.name}`}
+                  src={selectedDoctor.photo || "https://via.placeholder.com/64"}
+                  alt={`${selectedDoctor.prenom} ${selectedDoctor.nom}`}
                   className="w-full h-full object-cover"
                 />
               </div>
             </div>
             <div className="flex-1">
               <h2 className="text-xl font-semibold text-gray-900">
-                {selectedDoctor.name}
+                {selectedDoctor.prenom} {selectedDoctor.nom}
               </h2>
               <p className="text-primary font-medium">
-                {selectedDoctor.specialty}
+                {selectedDoctor.specialite}
               </p>
               <div className="flex items-center mt-2 text-sm text-gray-600">
                 <FaMapMarkerAlt className="mr-2 text-gray-500" />
-                {selectedDoctor.address}
+                {selectedDoctor.adresse || "Adresse non spécifiée"}
               </div>
             </div>
           </div>
         </div>
+
+        {/* Affichage de l'erreur si nécessaire */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            {error}
+          </div>
+        )}
 
         {/* Sélection de date et créneau */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -124,7 +183,7 @@ const SlotSelection = () => {
               <FaCalendarAlt className="mr-2 text-primary" /> Dates disponibles
             </h4>
             <div className="flex flex-wrap gap-2">
-              {availableDates.map((date) => (
+              {availableDates.slice(0, 10).map((date) => (
                 <button
                   key={date}
                   onClick={() => handleSelectDate(date)}
@@ -146,17 +205,21 @@ const SlotSelection = () => {
               <FaClock className="mr-2 text-primary" /> Créneaux disponibles
             </h4>
 
-            {!selectedDateState ? (
+            {loading ? (
+              <div className="text-center py-4">
+                <p className="text-gray-600">Chargement des créneaux...</p>
+              </div>
+            ) : !selectedDateState ? (
               <p className="text-gray-600 text-sm">
                 Veuillez d'abord sélectionner une date
               </p>
-            ) : availableSlots.length === 0 ? (
+            ) : slots.length === 0 ? (
               <p className="text-gray-600 text-sm">
                 Aucun créneau disponible pour cette date
               </p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                {availableSlots.map((slot) => (
+                {slots.map((slot) => (
                   <button
                     key={slot}
                     onClick={() => handleSelectSlot(slot)}
