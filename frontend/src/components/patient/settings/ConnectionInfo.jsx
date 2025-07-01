@@ -34,6 +34,24 @@ const ConnectionInfo = () => {
     return parts.length > 0 ? parts.join(", ") : "Non renseignée";
   };
 
+  // Formatage du numéro de téléphone avec indicatif
+  const formatPhoneNumber = () => {
+    if (!user.telIndicatif && !user.telNumero) return "Non renseigné";
+
+    const indicatif = user.telIndicatif || "";
+    const numero = user.telNumero || "";
+
+    if (indicatif && numero) {
+      return `${indicatif} ${numero}`;
+    } else if (numero) {
+      return numero;
+    } else if (indicatif) {
+      return indicatif;
+    }
+
+    return "Non renseigné";
+  };
+
   return (
     <div>
       <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">
@@ -97,7 +115,7 @@ const ConnectionInfo = () => {
                 <div className="min-w-0">
                   <div className="font-medium">Numéro de téléphone</div>
                   <div className="text-gray-600 truncate">
-                    {user.phone || "Non renseigné"}
+                    {formatPhoneNumber()}
                   </div>
                 </div>
               </div>

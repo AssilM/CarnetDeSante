@@ -1,3 +1,4 @@
+import React from "react";
 import { createItemContext } from "./ItemContext";
 
 // Créer un contexte spécifique pour le profil médical
@@ -21,3 +22,29 @@ export const {
   Provider: HealthEventProvider,
   useItemContext: useHealthEventContext,
 } = createItemContext("HealthEvent");
+
+// Provider qui regroupe tous les providers médicaux
+export const MedicalProvider = ({ children }) => (
+  <MedicalInfoProvider>
+    <MedicalHistoryProvider>
+      <AllergyProvider>
+        <HealthEventProvider>{children}</HealthEventProvider>
+      </AllergyProvider>
+    </MedicalHistoryProvider>
+  </MedicalInfoProvider>
+);
+
+// Hook combiné pour accéder à tous les contextes médicaux
+export const useMedicalContext = () => {
+  const medicalInfo = useMedicalInfoContext();
+  const medicalHistory = useMedicalHistoryContext();
+  const allergy = useAllergyContext();
+  const healthEvent = useHealthEventContext();
+
+  return {
+    medicalInfo,
+    medicalHistory,
+    allergy,
+    healthEvent,
+  };
+};

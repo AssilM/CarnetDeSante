@@ -11,10 +11,13 @@ const RegisterPage = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    tel: "",
+    tel_indicatif: "+33",
+    tel_numero: "",
     dateNaissance: "",
     sexe: "",
     specialite: "", // Pour les médecins uniquement
+    groupeSanguin: "", // Pour les patients uniquement
+    poids: "", // Pour les patients uniquement
   });
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("patient");
@@ -158,6 +161,22 @@ const RegisterPage = () => {
       newErrors.confirmPassword = "Les mots de passe ne correspondent pas";
     }
 
+    // Validation du numéro de téléphone
+    if (formData.tel_numero) {
+      const telRegex = /^\d{9,10}$/;
+      if (!telRegex.test(formData.tel_numero.replace(/\s/g, ""))) {
+        newErrors.tel_numero = "Format de numéro de téléphone invalide";
+      }
+    }
+
+    // Validation de l'indicatif téléphonique
+    if (formData.tel_indicatif) {
+      const indicatifRegex = /^\+\d{1,3}$/;
+      if (!indicatifRegex.test(formData.tel_indicatif)) {
+        newErrors.tel_indicatif = "Format d'indicatif invalide (ex: +33)";
+      }
+    }
+
     // Validation de la date de naissance
     if (formData.dateNaissance) {
       const today = new Date();
@@ -184,6 +203,14 @@ const RegisterPage = () => {
       newErrors.specialite = "La spécialité est requise pour les médecins";
     }
 
+    // Validation du poids pour les patients
+    if (role === "patient" && formData.poids) {
+      const poids = parseFloat(formData.poids);
+      if (isNaN(poids) || poids <= 0 || poids > 500) {
+        newErrors.poids = "Veuillez entrer un poids valide (entre 1 et 500 kg)";
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -195,20 +222,37 @@ const RegisterPage = () => {
       setRegisterError("");
 
       try {
-        await register({
+        // Préparer les données d'inscription en fonction du rôle
+        const userData = {
           email: formData.email,
           password: formData.password,
           nom: formData.nom,
           prenom: formData.prenom,
-          tel: formData.tel,
+          tel_indicatif: formData.tel_indicatif,
+          tel_numero: formData.tel_numero,
           date_naissance: formData.dateNaissance,
           sexe: formData.sexe,
           role: role,
-          specialite: role === "medecin" ? formData.specialite : null,
-        });
+        };
 
-        // Redirection vers la page de connexion avec le même rôle
-        navigate(`/auth/login?role=${role}`);
+        // Ajouter les données spécifiques au rôle
+        if (role === "patient") {
+          userData.patient_data = {
+            groupe_sanguin: formData.groupeSanguin || null,
+            poids: formData.poids ? parseFloat(formData.poids) : null,
+          };
+        } else if (role === "medecin") {
+          userData.medecin_data = {
+            specialite: formData.specialite,
+            description: `Dr. ${formData.prenom} ${formData.nom}, ${formData.specialite}`,
+          };
+        }
+
+        // Enregistrer l'utilisateur avec toutes les données
+        await register(userData);
+
+        // Ajouter un message de succès dans les paramètres de l'URL
+        navigate(`/auth/login?role=${role}&registered=success`);
       } catch (error) {
         console.error("Erreur d'inscription:", error);
         setRegisterError(
@@ -356,20 +400,53 @@ const RegisterPage = () => {
                 {/* Téléphone */}
                 <div>
                   <label
-                    htmlFor="tel"
+                    htmlFor="tel_numero"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
                     Téléphone
                   </label>
-                  <input
-                    type="tel"
-                    id="tel"
-                    name="tel"
-                    value={formData.tel}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Votre numéro de téléphone"
-                  />
+                  <div className="flex space-x-2">
+                    <div className="w-1/4">
+                      <input
+                        type="text"
+                        id="tel_indicatif"
+                        name="tel_indicatif"
+                        value={formData.tel_indicatif}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-2 border ${
+                          errors.tel_indicatif
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        } rounded-lg focus:ring-blue-500 focus:border-blue-500`}
+                        placeholder="+33"
+                      />
+                      {errors.tel_indicatif && (
+                        <p className="mt-1 text-red-500 text-xs">
+                          {errors.tel_indicatif}
+                        </p>
+                      )}
+                    </div>
+                    <div className="w-3/4">
+                      <input
+                        type="tel"
+                        id="tel_numero"
+                        name="tel_numero"
+                        value={formData.tel_numero}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-2 border ${
+                          errors.tel_numero
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        } rounded-lg focus:ring-blue-500 focus:border-blue-500`}
+                        placeholder="612345678"
+                      />
+                      {errors.tel_numero && (
+                        <p className="mt-1 text-red-500 text-xs">
+                          {errors.tel_numero}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Mot de passe */}
@@ -545,6 +622,66 @@ const RegisterPage = () => {
                     {errors.specialite && (
                       <p className="mt-1 text-red-500 text-sm">
                         {errors.specialite}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Groupe sanguin (pour les patients uniquement) */}
+                {role === "patient" && (
+                  <div>
+                    <label
+                      htmlFor="groupeSanguin"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Groupe sanguin
+                    </label>
+                    <select
+                      id="groupeSanguin"
+                      name="groupeSanguin"
+                      value={formData.groupeSanguin}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Sélectionnez</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Poids (pour les patients uniquement) */}
+                {role === "patient" && (
+                  <div>
+                    <label
+                      htmlFor="poids"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Poids (kg)
+                    </label>
+                    <input
+                      type="number"
+                      id="poids"
+                      name="poids"
+                      value={formData.poids}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-2 border ${
+                        errors.poids ? "border-red-500" : "border-gray-300"
+                      } rounded-lg focus:ring-blue-500 focus:border-blue-500`}
+                      placeholder="Votre poids en kg"
+                      min="1"
+                      max="500"
+                      step="0.1"
+                    />
+                    {errors.poids && (
+                      <p className="mt-1 text-red-500 text-sm">
+                        {errors.poids}
                       </p>
                     )}
                   </div>

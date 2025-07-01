@@ -2,7 +2,8 @@ import React from "react";
 import {
   DoctorProvider,
   DocumentProvider,
-  AppointmentProvider,
+  DoctorAppointmentProvider,
+  DoctorAvailabilityProvider,
 } from "../../context";
 
 /**
@@ -13,7 +14,9 @@ const StaffProviders = ({ children }) => {
   return (
     <DoctorProvider>
       <DocumentProvider>
-        <AppointmentProvider>{children}</AppointmentProvider>
+        <DoctorAppointmentProvider>
+          <DoctorAvailabilityProvider>{children}</DoctorAvailabilityProvider>
+        </DoctorAppointmentProvider>
       </DocumentProvider>
     </DoctorProvider>
   );

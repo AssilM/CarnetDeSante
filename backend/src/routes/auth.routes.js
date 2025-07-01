@@ -5,16 +5,26 @@ import {
   signout,
   refreshToken,
   getMe,
+  checkUserAuth,
 } from "../controllers/auth.controller.js";
-import { verifyToken } from "../middlewares/auth.middleware.js";
+import { authenticate } from "../middlewares/auth.middleware.js";
+import {
+  validateRegistrationData,
+  checkEmailUnique,
+  validateLoginData,
+} from "../middlewares/validation/auth.validation.js";
 
 const router = express.Router();
 
-// Routes d'authentification
-router.post("/signup", signup);
-router.post("/signin", signin);
-router.post("/signout", signout);
+// Routes publiques
+router.post("/signup", validateRegistrationData, checkEmailUnique, signup);
+router.post("/signin", validateLoginData, signin);
 router.post("/refresh-token", refreshToken);
-router.get("/me", verifyToken, getMe);
+
+// Routes protégées
+router.use(authenticate);
+router.get("/me", getMe);
+router.post("/signout", signout);
+router.get("/check", checkUserAuth);
 
 export default router;

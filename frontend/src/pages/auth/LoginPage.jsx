@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "../../assets/logo-C.svg";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../context/AuthContext";
+import { useAppContext } from "../../context/AppContext";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -11,10 +12,12 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
+  const { showSuccess } = useAppContext();
 
   useEffect(() => {
     // Récupérer le rôle depuis l'URL
@@ -22,6 +25,14 @@ const LoginPage = () => {
     const roleParam = params.get("role");
     if (roleParam && ["patient", "medecin", "admin"].includes(roleParam)) {
       setRole(roleParam);
+    }
+
+    // Vérifier si l'utilisateur vient de s'inscrire
+    const registered = params.get("registered");
+    if (registered === "success") {
+      setSuccessMessage(
+        "Inscription réussie ! Vous pouvez maintenant vous connecter."
+      );
     }
   }, [location.search]);
 
@@ -109,6 +120,7 @@ const LoginPage = () => {
     e.preventDefault();
     setIsLoading(true);
     setLoginError("");
+    setSuccessMessage("");
 
     try {
       const user = await login(email, password);
@@ -122,6 +134,9 @@ const LoginPage = () => {
         setIsLoading(false);
         return;
       }
+
+      // Afficher un message de succès
+      showSuccess(`Connexion réussie. Bienvenue, ${user.prenom} ${user.nom} !`);
 
       // Redirection en fonction du rôle
       if (user.role === "patient") {
@@ -197,6 +212,12 @@ const LoginPage = () => {
             <h3 className="text-xl font-medium text-center mb-6">
               Se connecter
             </h3>
+
+            {successMessage && (
+              <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">
+                {successMessage}
+              </div>
+            )}
 
             {loginError && (
               <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">

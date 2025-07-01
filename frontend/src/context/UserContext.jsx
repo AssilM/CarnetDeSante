@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
+import { createUserService } from "../services/api";
+import { httpService } from "../services/http";
+
+// Créer une instance du service utilisateur
+const userService = createUserService(httpService);
 
 const UserContext = createContext();
 
@@ -12,7 +17,7 @@ export const useUserContext = () => {
 };
 
 export const UserProvider = ({ children }) => {
-  const { currentUser, apiService } = useAuth();
+  const { currentUser } = useAuth();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -33,7 +38,8 @@ export const UserProvider = ({ children }) => {
           lastName: currentUser.nom,
           fullName: `${currentUser.prenom} ${currentUser.nom}`,
           email: currentUser.email,
-          phone: currentUser.tel || "",
+          telIndicatif: currentUser.tel_indicatif || "+33",
+          telNumero: currentUser.tel_numero || "",
           username: `${currentUser.prenom?.toLowerCase()}.${currentUser.nom?.toLowerCase()}`,
           role: currentUser.role,
           dateNaissance: currentUser.date_naissance,
@@ -62,7 +68,7 @@ export const UserProvider = ({ children }) => {
   const updateUserInfo = async (userId, updatedData) => {
     try {
       setError(null);
-      const response = await apiService.users.update(userId, updatedData);
+      const response = await userService.updateUser(userId, updatedData);
 
       // Mettre à jour les données locales
       setUserData((prevData) => ({
@@ -71,7 +77,8 @@ export const UserProvider = ({ children }) => {
         lastName: response.user.nom,
         fullName: `${response.user.prenom} ${response.user.nom}`,
         email: response.user.email,
-        phone: response.user.tel || "",
+        telIndicatif: response.user.tel_indicatif || "+33",
+        telNumero: response.user.tel_numero || "",
         dateNaissance: response.user.date_naissance,
         sexe: response.user.sexe,
         adresse: response.user.adresse || "",
@@ -93,7 +100,7 @@ export const UserProvider = ({ children }) => {
   const updatePassword = async (userId, currentPassword, newPassword) => {
     try {
       setError(null);
-      const response = await apiService.users.updatePassword(userId, {
+      const response = await userService.updatePassword(userId, {
         currentPassword,
         newPassword,
       });
@@ -115,10 +122,10 @@ export const UserProvider = ({ children }) => {
         error,
         updateUserInfo,
         updatePassword,
-        getAllUsers: apiService.users.getAll,
-        getUserById: apiService.users.getById,
-        getUsersByRole: apiService.users.getByRole,
-        deleteUser: apiService.users.delete,
+        getAllUsers: userService.getAllUsers,
+        getUserById: userService.getUserById,
+        getUsersByRole: userService.getUsersByRole,
+        deleteUser: userService.deleteUser,
       }}
     >
       {children}

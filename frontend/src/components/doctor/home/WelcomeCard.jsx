@@ -1,8 +1,55 @@
 import React from "react";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth, useDoctorAppointmentContext } from "../../../context";
+import { FaCalendarAlt, FaSearch } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 const WelcomeCard = () => {
   const { currentUser } = useAuth();
+  const { appointments } = useDoctorAppointmentContext();
+  const navigate = useNavigate();
+
+  // Fonction sécurisée pour formatter les dates
+  const formatDateForComparison = (date) => {
+    try {
+      if (!(date instanceof Date) || isNaN(date.getTime())) {
+        return "";
+      }
+      return date.toISOString().split("T")[0];
+    } catch (error) {
+      console.error("Erreur lors du formatage de la date:", error);
+      return "";
+    }
+  };
+
+  // Compter les rendez-vous du jour
+  const today = formatDateForComparison(new Date());
+  const todayAppointments = appointments.filter((appointment) => {
+    try {
+      if (!appointment.timestamp) return false;
+
+      const appointmentDate = new Date(appointment.timestamp);
+      if (isNaN(appointmentDate.getTime())) return false;
+
+      return formatDateForComparison(appointmentDate) === today;
+    } catch (error) {
+      console.error("Erreur lors de la vérification d'un rendez-vous:", error);
+      return false;
+    }
+  });
+
+  // Naviguer vers la page de gestion d'agenda
+  const handleCalendarClick = () => {
+    navigate("/doctor/availability");
+  };
+
+  // Naviguer vers la page de recherche de patients
+  const handleSearchClick = () => {
+    // Faire défiler vers la section de recherche sur la page actuelle
+    const searchSection = document.querySelector("[data-search-section]");
+    if (searchSection) {
+      searchSection.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
     <div className="bg-blue-700 text-white p-6 rounded-lg">
@@ -12,7 +59,7 @@ const WelcomeCard = () => {
             Bienvenue Dr. {currentUser?.nom} {currentUser?.prenom}
           </h2>
           <p className="mt-2 text-blue-100">
-            Vous avez 8 rendez-vous aujourd'hui et 3 nouveaux messages
+            Vous avez {todayAppointments.length} rendez-vous aujourd'hui
           </p>
         </div>
         <div className="bg-white p-4 rounded-full">
@@ -33,38 +80,18 @@ const WelcomeCard = () => {
         </div>
       </div>
       <div className="mt-6 flex space-x-4">
-        <button className="bg-white text-blue-700 px-4 py-2 rounded-md hover:bg-blue-50 transition font-medium flex items-center">
-          <svg
-            className="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            ></path>
-          </svg>
+        <button
+          onClick={handleCalendarClick}
+          className="bg-white text-blue-700 px-4 py-2 rounded-md hover:bg-blue-50 transition font-medium flex items-center"
+        >
+          <FaCalendarAlt className="w-5 h-5 mr-2" />
           Agenda du jour
         </button>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-800 transition font-medium flex items-center border border-blue-300">
-          <svg
-            className="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            ></path>
-          </svg>
+        <button
+          onClick={handleSearchClick}
+          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-800 transition font-medium flex items-center border border-blue-300"
+        >
+          <FaSearch className="w-5 h-5 mr-2" />
           Rechercher un patient
         </button>
       </div>

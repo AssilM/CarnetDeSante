@@ -1,174 +1,367 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  FaArrowLeft,
-  FaCalendarAlt,
-  FaClock,
-  FaUserMd,
-  FaMapMarkerAlt,
-} from "react-icons/fa";
-import { useDoctorContext } from "../../../context";
+import { useNavigate, useLocation } from "react-router-dom";
+import { FaCalendarAlt, FaClock, FaArrowLeft } from "react-icons/fa";
+import { useAppContext } from "../../../context";
+import { createDoctorService } from "../../../services/api";
+import { httpService } from "../../../services/http";
 import PageWrapper from "../../../components/PageWrapper";
+
+const doctorService = createDoctorService(httpService);
 
 const SlotSelection = () => {
   const navigate = useNavigate();
-  const {
-    selectedDoctor,
-    getAvailableSlots,
-    setSelectedDate,
-    setSelectedSlot,
-  } = useDoctorContext();
+  const location = useLocation();
+  const { showError } = useAppContext();
 
-  const [selectedDateState, setSelectedDateState] = useState("");
-  const [availableDates, setAvailableDates] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedSlot, setSelectedSlot] = useState("");
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [availableDays, setAvailableDays] = useState([]);
+  const [doctor, setDoctor] = useState(null);
+  const [jourDisponibilites, setJourDisponibilites] = useState(null);
 
-  // Rediriger si aucun médecin n'est sélectionné
+  // Récupérer les informations du médecin depuis l'état de navigation
   useEffect(() => {
-    if (!selectedDoctor) {
+    if (location.state?.doctor) {
+      setDoctor(location.state.doctor);
+    } else {
       navigate("/book-appointment");
+    }
+  }, [location.state, navigate]);
+
+  // Générer les dates disponibles pour les 30 prochains jours
+  useEffect(() => {
+    if (!doctor) return;
+
+    const generateAvailableDates = async () => {
+      const days = [];
+      const today = new Date();
+
+      // Générer les dates pour les 30 prochains jours
+      for (let i = 0; i < 30; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+
+        // Formater la date pour l'affichage et l'API
+        const formattedDate = formatDateForAPI(date);
+        const dayOfWeek = getDayOfWeek(date);
+
+        days.push({
+          date: formattedDate,
+          dayName: dayOfWeek,
+          formattedDisplay: formatDateForDisplay(date),
+          dayNumber: date.getDate(),
+          month: getMonthName(date),
+        });
+      }
+
+      setAvailableDays(days);
+    };
+
+    generateAvailableDates();
+  }, [doctor]);
+
+  // Charger les créneaux disponibles lorsque la date est sélectionnée
+  useEffect(() => {
+    if (!selectedDate || !doctor) return;
+
+    const fetchAvailableSlots = async () => {
+      setLoading(true);
+      try {
+        const response = await doctorService.getAvailableSlots(
+          doctor.id,
+          selectedDate
+        );
+        setAvailableSlots(response.creneaux || []);
+        setJourDisponibilites(response.jour || null);
+      } catch (error) {
+        console.error("Erreur lors de la récupération des créneaux:", error);
+        showError("Impossible de récupérer les créneaux disponibles");
+        setAvailableSlots([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAvailableSlots();
+  }, [selectedDate, doctor, showError]);
+
+  // Formater une date pour l'API (YYYY-MM-DD)
+  const formatDateForAPI = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // Formater une date pour l'affichage (DD/MM/YYYY)
+  const formatDateForDisplay = (date) => {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Obtenir le nom du jour de la semaine
+  const getDayOfWeek = (date) => {
+    const days = [
+      "Dimanche",
+      "Lundi",
+      "Mardi",
+      "Mercredi",
+      "Jeudi",
+      "Vendredi",
+      "Samedi",
+    ];
+    return days[date.getDay()];
+  };
+
+  // Obtenir le nom du mois
+  const getMonthName = (date) => {
+    const months = [
+      "Janvier",
+      "Février",
+      "Mars",
+      "Avril",
+      "Mai",
+      "Juin",
+      "Juillet",
+      "Août",
+      "Septembre",
+      "Octobre",
+      "Novembre",
+      "Décembre",
+    ];
+    return months[date.getMonth()];
+  };
+
+  // Formater l'heure pour l'affichage (HH:MM:SS -> HH:MM)
+  const formatTimeForDisplay = (timeString) => {
+    if (!timeString) return "";
+    return timeString.substring(0, 5);
+  };
+
+  // Gérer la sélection d'un créneau
+  const handleSlotSelection = (slot) => {
+    setSelectedSlot(slot.heure);
+  };
+
+  // Gérer la soumission du formulaire
+  const handleSubmit = () => {
+    if (!selectedDate || !selectedSlot) {
+      showError("Veuillez sélectionner une date et un créneau horaire");
       return;
     }
 
-    // Extraire les dates disponibles du médecin sélectionné
-    const dates = selectedDoctor.availableSlots.map((slot) => slot.date);
-    setAvailableDates(dates);
-  }, [selectedDoctor, navigate]);
-
-  const availableSlots = selectedDateState
-    ? getAvailableSlots(selectedDoctor?.id, selectedDateState)
-    : [];
-
-  const handleSelectDate = (date) => {
-    setSelectedDateState(date);
-  };
-
-  const handleSelectSlot = (slot) => {
-    setSelectedDate(selectedDateState);
-    setSelectedSlot(slot);
-    navigate("/book-appointment/confirmation");
-  };
-
-  // Formater une date pour l'affichage
-  const formatDate = (dateString) => {
-    const [year, month, day] = dateString.split("-");
-    const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString("fr-FR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
+    navigate("/book-appointment/confirmation", {
+      state: {
+        doctor,
+        date: selectedDate,
+        time: selectedSlot,
+        formattedDate: availableDays.find((day) => day.date === selectedDate)
+          ?.formattedDisplay,
+        formattedTime: formatTimeForDisplay(selectedSlot),
+      },
     });
   };
 
-  if (!selectedDoctor) return null;
+  // Regrouper les créneaux par période de la journée
+  const groupSlotsByPeriod = () => {
+    const morning = [];
+    const afternoon = [];
+    const evening = [];
+
+    availableSlots.forEach((slot) => {
+      const hour = parseInt(slot.heure.split(":")[0], 10);
+
+      if (hour < 12) {
+        morning.push(slot);
+      } else if (hour < 18) {
+        afternoon.push(slot);
+      } else {
+        evening.push(slot);
+      }
+    });
+
+    return { morning, afternoon, evening };
+  };
+
+  const { morning, afternoon, evening } = groupSlotsByPeriod();
 
   return (
-    <PageWrapper className="bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* En-tête avec bouton retour */}
-        <div className="mb-6">
-          <button
-            onClick={() =>
-              navigate(
-                "/book-appointment/doctor?specialty=" +
-                  encodeURIComponent(selectedDoctor.specialty)
-              )
-            }
-            className="flex items-center text-gray-600 hover:text-gray-900"
-          >
-            <FaArrowLeft className="mr-2" />
-            Retour à la liste des médecins
-          </button>
-        </div>
+    <PageWrapper className="p-4 md:p-6">
+      <div className="max-w-4xl mx-auto">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center text-blue-600 mb-6"
+        >
+          <FaArrowLeft className="mr-2" /> Retour
+        </button>
 
-        {/* Informations du médecin */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="flex items-start">
-            <div className="flex-shrink-0 mr-4">
-              <div className="w-16 h-16 bg-gray-200 rounded-full overflow-hidden">
-                <img
-                  src={selectedDoctor.image || "https://via.placeholder.com/64"}
-                  alt={`${selectedDoctor.name}`}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {selectedDoctor.name}
-              </h2>
-              <p className="text-primary font-medium">
-                {selectedDoctor.specialty}
+        <h1 className="text-2xl font-bold text-blue-800 mb-6">
+          Choisir un créneau
+        </h1>
+
+        {doctor && (
+          <div className="bg-blue-50 p-4 rounded-lg mb-6">
+            <h2 className="font-semibold text-lg mb-2">
+              Dr. {doctor.nom} {doctor.prenom}
+            </h2>
+            <p className="text-gray-600">{doctor.specialite}</p>
+            {doctor.adresse && (
+              <p className="text-gray-600">
+                {doctor.adresse}, {doctor.code_postal} {doctor.ville}
               </p>
-              <div className="flex items-center mt-2 text-sm text-gray-600">
-                <FaMapMarkerAlt className="mr-2 text-gray-500" />
-                {selectedDoctor.address}
-              </div>
-            </div>
+            )}
+            {doctor.tel && (
+              <p className="text-gray-600">Téléphone: {doctor.tel}</p>
+            )}
           </div>
-        </div>
+        )}
 
-        {/* Sélection de date et créneau */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="border-b border-gray-200 p-4">
-            <h3 className="text-lg font-medium text-gray-900">
-              Sélectionnez une date et un créneau
-            </h3>
-            <p className="text-sm text-gray-600 mt-1">
-              Choisissez parmi les disponibilités suivantes
-            </p>
-          </div>
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="font-semibold text-lg mb-4 flex items-center">
+            <FaCalendarAlt className="mr-2 text-blue-600" /> Sélectionner une
+            date
+          </h2>
 
-          {/* Sélection de date */}
-          <div className="p-4 border-b border-gray-200">
-            <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-              <FaCalendarAlt className="mr-2 text-primary" /> Dates disponibles
-            </h4>
-            <div className="flex flex-wrap gap-2">
-              {availableDates.map((date) => (
+          <div className="overflow-x-auto pb-4">
+            <div className="flex space-x-2 min-w-max">
+              {availableDays.map((day) => (
                 <button
-                  key={date}
-                  onClick={() => handleSelectDate(date)}
-                  className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-                    selectedDateState === date
-                      ? "bg-primary text-white"
-                      : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                  key={day.date}
+                  onClick={() => setSelectedDate(day.date)}
+                  className={`flex flex-col items-center p-3 rounded-lg min-w-[80px] transition-colors ${
+                    selectedDate === day.date
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 hover:bg-gray-200"
                   }`}
                 >
-                  {formatDate(date)}
+                  <span className="text-xs font-medium">{day.dayName}</span>
+                  <span className="text-xl font-bold">{day.dayNumber}</span>
+                  <span className="text-xs">{day.month}</span>
                 </button>
               ))}
             </div>
           </div>
+        </div>
 
-          {/* Sélection de créneau */}
-          <div className="p-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-              <FaClock className="mr-2 text-primary" /> Créneaux disponibles
-            </h4>
+        {selectedDate && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="font-semibold text-lg mb-4 flex items-center">
+              <FaClock className="mr-2 text-blue-600" /> Créneaux disponibles
+            </h2>
 
-            {!selectedDateState ? (
-              <p className="text-gray-600 text-sm">
-                Veuillez d'abord sélectionner une date
-              </p>
+            {jourDisponibilites && (
+              <div className="mb-4 text-sm text-gray-600">
+                <p>
+                  Jour sélectionné:{" "}
+                  <span className="font-medium capitalize">
+                    {jourDisponibilites}
+                  </span>
+                </p>
+              </div>
+            )}
+
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Chargement des créneaux...</p>
+              </div>
             ) : availableSlots.length === 0 ? (
-              <p className="text-gray-600 text-sm">
-                Aucun créneau disponible pour cette date
-              </p>
+              <div className="text-center py-8 text-gray-500">
+                <p>Aucun créneau disponible pour cette date.</p>
+                <p className="mt-2">Veuillez sélectionner une autre date.</p>
+              </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                {availableSlots.map((slot) => (
+              <div className="space-y-6">
+                {morning.length > 0 && (
+                  <div>
+                    <h3 className="text-md font-medium text-gray-700 mb-2">
+                      Matin
+                    </h3>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                      {morning.map((slot) => (
+                        <button
+                          key={slot.heure}
+                          onClick={() => handleSlotSelection(slot)}
+                          className={`p-2 rounded text-center transition-colors ${
+                            selectedSlot === slot.heure
+                              ? "bg-blue-600 text-white"
+                              : "bg-blue-50 hover:bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {formatTimeForDisplay(slot.heure)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {afternoon.length > 0 && (
+                  <div>
+                    <h3 className="text-md font-medium text-gray-700 mb-2">
+                      Après-midi
+                    </h3>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                      {afternoon.map((slot) => (
+                        <button
+                          key={slot.heure}
+                          onClick={() => handleSlotSelection(slot)}
+                          className={`p-2 rounded text-center transition-colors ${
+                            selectedSlot === slot.heure
+                              ? "bg-blue-600 text-white"
+                              : "bg-blue-50 hover:bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {formatTimeForDisplay(slot.heure)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {evening.length > 0 && (
+                  <div>
+                    <h3 className="text-md font-medium text-gray-700 mb-2">
+                      Soir
+                    </h3>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                      {evening.map((slot) => (
+                        <button
+                          key={slot.heure}
+                          onClick={() => handleSlotSelection(slot)}
+                          className={`p-2 rounded text-center transition-colors ${
+                            selectedSlot === slot.heure
+                              ? "bg-blue-600 text-white"
+                              : "bg-blue-50 hover:bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {formatTimeForDisplay(slot.heure)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-4 mt-6 border-t">
                   <button
-                    key={slot}
-                    onClick={() => handleSelectSlot(slot)}
-                    className="px-4 py-3 bg-gray-100 rounded-lg text-center hover:bg-gray-200 transition-colors"
+                    onClick={handleSubmit}
+                    disabled={!selectedSlot}
+                    className={`w-full py-3 rounded-lg font-medium ${
+                      selectedSlot
+                        ? "bg-blue-600 text-white hover:bg-blue-700"
+                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    }`}
                   >
-                    <span className="font-medium text-gray-800">{slot}</span>
+                    Confirmer ce créneau
                   </button>
-                ))}
+                </div>
               </div>
             )}
           </div>
-        </div>
+        )}
       </div>
     </PageWrapper>
   );

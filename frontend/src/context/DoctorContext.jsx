@@ -1,113 +1,46 @@
-import React, { createContext, useContext, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+import { useAuth } from "./AuthContext";
+import { createDoctorService } from "../services/api";
+import { createAuthConnector } from "../services/http";
 
 // Créer un contexte pour les médecins
 const DoctorContext = createContext(null);
 
 export const DoctorProvider = ({ children }) => {
   // État pour stocker la liste des médecins
-  const [doctors, setDoctors] = useState([
-    {
-      id: "doc-1",
-      name: "Dr. Martin Dupont",
-      specialty: "Médecin généraliste",
-      address: "15 rue de la Santé, 75001 Paris",
-      phone: "01 23 45 67 89",
-      image: "https://randomuser.me/api/portraits/men/41.jpg",
-      rating: 4.8,
-      availableSlots: [
-        {
-          date: "2024-05-20",
-          slots: ["09:00", "10:00", "11:00", "14:00", "15:00"],
-        },
-        { date: "2024-05-21", slots: ["09:00", "10:00", "14:00", "16:00"] },
-        { date: "2024-05-22", slots: ["11:00", "14:00", "15:00", "16:00"] },
-      ],
-    },
-    {
-      id: "doc-2",
-      name: "Dr. Sophie Laurent",
-      specialty: "Dermatologue",
-      address: "22 avenue Montaigne, 75008 Paris",
-      phone: "01 34 56 78 90",
-      image: "https://randomuser.me/api/portraits/women/65.jpg",
-      rating: 4.9,
-      availableSlots: [
-        { date: "2024-05-20", slots: ["14:00", "15:00", "16:00"] },
-        { date: "2024-05-21", slots: ["09:00", "10:00", "11:00"] },
-        { date: "2024-05-22", slots: ["14:00", "15:00", "16:00", "17:00"] },
-      ],
-    },
-    {
-      id: "doc-3",
-      name: "Dr. Thomas Bernard",
-      specialty: "Cardiologue",
-      address: "8 boulevard Haussmann, 75009 Paris",
-      phone: "01 45 67 89 01",
-      image: "https://randomuser.me/api/portraits/men/32.jpg",
-      rating: 4.7,
-      availableSlots: [
-        { date: "2024-05-20", slots: ["08:00", "09:00", "16:00", "17:00"] },
-        { date: "2024-05-21", slots: ["08:00", "09:00", "10:00", "11:00"] },
-        { date: "2024-05-23", slots: ["14:00", "15:00", "16:00"] },
-      ],
-    },
-    {
-      id: "doc-4",
-      name: "Dr. Emma Petit",
-      specialty: "Pédiatre",
-      address: "5 rue des Enfants, 75015 Paris",
-      phone: "01 56 78 90 12",
-      image: "https://randomuser.me/api/portraits/women/31.jpg",
-      rating: 4.9,
-      availableSlots: [
-        { date: "2024-05-20", slots: ["09:00", "10:00", "11:00", "14:00"] },
-        { date: "2024-05-22", slots: ["09:00", "10:00", "11:00"] },
-        { date: "2024-05-23", slots: ["14:00", "15:00", "16:00"] },
-      ],
-    },
-    {
-      id: "doc-5",
-      name: "Dr. Jean Moreau",
-      specialty: "Ophtalmologue",
-      address: "18 rue de la Vision, 75006 Paris",
-      phone: "01 67 89 01 23",
-      image: "https://randomuser.me/api/portraits/men/64.jpg",
-      rating: 4.6,
-      availableSlots: [
-        { date: "2024-05-21", slots: ["14:00", "15:00", "16:00", "17:00"] },
-        { date: "2024-05-22", slots: ["14:00", "15:00", "16:00"] },
-        { date: "2024-05-24", slots: ["09:00", "10:00", "11:00"] },
-      ],
-    },
-    {
-      id: "doc-6",
-      name: "Dr. Marie Lefebvre",
-      specialty: "Gynécologue",
-      address: "27 avenue des Femmes, 75011 Paris",
-      phone: "01 78 90 12 34",
-      image: "https://randomuser.me/api/portraits/women/44.jpg",
-      rating: 4.8,
-      availableSlots: [
-        { date: "2024-05-20", slots: ["09:00", "10:00", "11:00"] },
-        { date: "2024-05-21", slots: ["14:00", "15:00", "16:00"] },
-        { date: "2024-05-25", slots: ["09:00", "10:00", "11:00", "14:00"] },
-      ],
-    },
-  ]);
+  const [doctors, setDoctors] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [doctorProfile, setDoctorProfile] = useState(null);
+  const { currentUser, accessToken, refreshToken, testExpireToken } = useAuth();
+
+  // Créer une instance du service docteur
+  const [doctorService, setDoctorService] = useState(null);
+
+  // Initialiser l'API authentifiée lorsque le token change
+  useEffect(() => {
+    if (accessToken) {
+      console.log("[DoctorContext] Création d'une API authentifiée");
+      const authenticatedApi = createAuthConnector({
+        accessToken,
+        refreshToken,
+        onSessionExpired: testExpireToken,
+      });
+      setDoctorService(createDoctorService(authenticatedApi));
+    } else {
+      setDoctorService(null);
+    }
+  }, [accessToken, refreshToken, testExpireToken]);
 
   // État pour stocker les spécialités disponibles
-  const [specialties] = useState([
-    "Médecin généraliste",
-    "Dermatologue",
-    "Cardiologue",
-    "Pédiatre",
-    "Ophtalmologue",
-    "Gynécologue",
-    "Dentiste",
-    "ORL",
-    "Rhumatologue",
-    "Psychiatre",
-  ]);
+  const [specialties, setSpecialties] = useState([]);
+  const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
 
   // État pour le médecin actuellement sélectionné
   const [selectedDoctor, setSelectedDoctor] = useState(null);
@@ -115,66 +48,215 @@ export const DoctorProvider = ({ children }) => {
   // État pour la date et le créneau sélectionnés
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [availableSlots, setAvailableSlots] = useState({});
 
-  // Fonctions pour filtrer les médecins
-  const getDoctorsBySpecialty = (specialty) => {
-    return doctors.filter((doctor) => doctor.specialty === specialty);
-  };
+  // Fonction pour charger les médecins
+  const loadDoctors = useCallback(async () => {
+    if (loading || !doctorService) return [];
 
-  const searchDoctors = (query) => {
-    if (!query) return doctors;
+    try {
+      setLoading(true);
+      setError(null);
+      console.log("[DoctorContext] Chargement des médecins");
+      const response = await doctorService.getAllDoctors();
+      console.log("[DoctorContext] Médecins chargés:", response);
 
-    const searchTerm = query.toLowerCase();
-    return doctors.filter(
-      (doctor) =>
-        doctor.name.toLowerCase().includes(searchTerm) ||
-        doctor.specialty.toLowerCase().includes(searchTerm)
-    );
-  };
+      const medecinsList = Array.isArray(response)
+        ? response
+        : response.medecins || [];
+      setDoctors(medecinsList);
 
-  // Fonction pour obtenir les créneaux disponibles d'un médecin à une date donnée
-  const getAvailableSlots = (doctorId, date) => {
-    const doctor = doctors.find((doc) => doc.id === doctorId);
-    if (!doctor) return [];
+      // Extraire les spécialités uniques
+      if (medecinsList.length > 0) {
+        const uniqueSpecialties = [
+          ...new Set(medecinsList.map((doc) => doc.specialite)),
+        ].filter(Boolean);
+        setSpecialties(uniqueSpecialties);
+      }
 
-    const daySlots = doctor.availableSlots.find((slot) => slot.date === date);
-    return daySlots ? daySlots.slots : [];
-  };
+      setHasLoadedInitialData(true);
+      return medecinsList;
+    } catch (err) {
+      console.error(
+        "[DoctorContext] Erreur lors du chargement des médecins:",
+        err
+      );
+      setError("Impossible de charger la liste des médecins");
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, doctorService]);
 
-  // Fonction pour réserver un créneau
-  const bookAppointment = (appointment) => {
-    // Mettre à jour les créneaux disponibles
-    const doctor = doctors.find((doc) => doc.id === appointment.doctorId);
-    if (!doctor) return false;
+  // Charger le profil du médecin si l'utilisateur est connecté en tant que médecin
+  useEffect(() => {
+    const fetchDoctorProfile = async () => {
+      if (!currentUser || currentUser.role !== "medecin" || !doctorService) {
+        return;
+      }
 
-    // Trouver le jour correspondant
-    const dayIndex = doctor.availableSlots.findIndex(
-      (day) => day.date === appointment.date
-    );
-    if (dayIndex === -1) return false;
-
-    // Supprimer le créneau réservé
-    const updatedSlots = [...doctor.availableSlots];
-    updatedSlots[dayIndex] = {
-      ...updatedSlots[dayIndex],
-      slots: updatedSlots[dayIndex].slots.filter(
-        (slot) => slot !== appointment.time
-      ),
+      try {
+        setLoading(true);
+        console.log("[DoctorContext] Chargement du profil médecin");
+        const profileData = await doctorService.getDoctorProfile();
+        console.log("[DoctorContext] Profil médecin chargé:", profileData);
+        setDoctorProfile(profileData.medecin);
+      } catch (err) {
+        console.error(
+          "[DoctorContext] Erreur lors du chargement du profil médecin:",
+          err
+        );
+        setError("Impossible de charger votre profil médecin");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    // Mettre à jour le médecin
-    const updatedDoctor = { ...doctor, availableSlots: updatedSlots };
-    const updatedDoctors = doctors.map((doc) =>
-      doc.id === updatedDoctor.id ? updatedDoctor : doc
-    );
+    fetchDoctorProfile();
+  }, [currentUser, doctorService]);
 
-    setDoctors(updatedDoctors);
-    return true;
+  // Charger la liste des spécialités au démarrage
+  useEffect(() => {
+    // Charger les données seulement une fois au démarrage et si le service est disponible
+    if (!hasLoadedInitialData && !loading && doctorService) {
+      loadDoctors();
+    }
+  }, [hasLoadedInitialData, loadDoctors, loading, doctorService]);
+
+  // Fonctions pour filtrer les médecins
+  const getDoctorsBySpecialty = useCallback(
+    async (specialty) => {
+      if (!doctorService) return [];
+
+      try {
+        setLoading(true);
+        const response = await doctorService.getDoctorsBySpecialty(specialty);
+        return response.medecins || [];
+      } catch (err) {
+        console.error(
+          "[DoctorContext] Erreur lors de la recherche par spécialité:",
+          err
+        );
+        setError("Impossible de trouver des médecins pour cette spécialité");
+        return [];
+      } finally {
+        setLoading(false);
+      }
+    },
+    [doctorService]
+  );
+
+  const searchDoctors = useCallback(
+    (query) => {
+      if (!query) return doctors;
+
+      const searchTerm = query.toLowerCase();
+      return doctors.filter(
+        (doctor) =>
+          doctor.nom?.toLowerCase().includes(searchTerm) ||
+          doctor.prenom?.toLowerCase().includes(searchTerm) ||
+          doctor.specialite?.toLowerCase().includes(searchTerm)
+      );
+    },
+    [doctors]
+  );
+
+  // Fonction pour obtenir les créneaux disponibles d'un médecin à une date donnée
+  const getAvailableSlots = useCallback(
+    async (doctorId, date) => {
+      if (!doctorService) return [];
+
+      const cacheKey = `${doctorId}-${date}`;
+
+      // Vérifier si les créneaux sont déjà en cache
+      if (availableSlots[cacheKey]) {
+        return availableSlots[cacheKey];
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await doctorService.getAvailableSlots(doctorId, date);
+        const slots = response.creneaux || [];
+
+        // Mettre en cache les créneaux
+        setAvailableSlots((prev) => ({
+          ...prev,
+          [cacheKey]: slots,
+        }));
+
+        return slots;
+      } catch (err) {
+        console.error(
+          "[DoctorContext] Erreur lors de la récupération des créneaux disponibles:",
+          err
+        );
+        setError("Impossible de récupérer les créneaux disponibles");
+        return [];
+      } finally {
+        setLoading(false);
+      }
+    },
+    [availableSlots, doctorService]
+  );
+
+  // Réinitialiser la sélection
+  const resetSelection = useCallback(() => {
+    setSelectedDoctor(null);
+    setSelectedDate(null);
+    setSelectedSlot(null);
+  }, []);
+
+  // Créer un profil médecin lors de l'inscription
+  const createDoctorProfile = async (userId, doctorData) => {
+    if (!doctorService) return null;
+
+    try {
+      const response = await doctorService.createOrUpdateDoctorProfile(
+        userId,
+        doctorData
+      );
+      return response;
+    } catch (error) {
+      console.error(
+        "[DoctorContext] Erreur lors de la création du profil médecin:",
+        error
+      );
+      throw error;
+    }
+  };
+
+  // Mettre à jour le profil médecin
+  const updateDoctorProfile = async (doctorData) => {
+    if (!currentUser || !doctorService) return null;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await doctorService.createOrUpdateDoctorProfile(
+        currentUser.id,
+        doctorData
+      );
+      setDoctorProfile(response.medecin);
+      return response.medecin;
+    } catch (error) {
+      console.error(
+        "[DoctorContext] Erreur lors de la mise à jour du profil médecin:",
+        error
+      );
+      setError("Impossible de mettre à jour votre profil");
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Valeurs exposées par le contexte
   const value = {
     doctors,
+    loading,
+    error,
     specialties,
     selectedDoctor,
     setSelectedDoctor,
@@ -185,7 +267,11 @@ export const DoctorProvider = ({ children }) => {
     getDoctorsBySpecialty,
     searchDoctors,
     getAvailableSlots,
-    bookAppointment,
+    resetSelection,
+    doctorProfile,
+    createDoctorProfile,
+    updateDoctorProfile,
+    loadDoctors,
   };
 
   return (

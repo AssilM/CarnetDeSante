@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaCalendarAlt } from "react-icons/fa";
 import { useAppointmentContext } from "../../../context";
@@ -8,7 +8,13 @@ import { ItemsList } from "../../../components/patient/common";
 const Appointments = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { selectItem, setItems, items } = useAppointmentContext();
+  const {
+    selectAppointment,
+    getUpcomingAppointments,
+    getPastAppointments,
+    loading,
+    error,
+  } = useAppointmentContext();
 
   // Lecture du paramètre de requête pour définir l'onglet actif initial
   const queryParams = new URLSearchParams(location.search);
@@ -25,80 +31,17 @@ const Appointments = () => {
     navigate(`/appointments?tab=${tab}`);
   };
 
-  // Initialisation des données de test
-  useEffect(() => {
-    if (items.length === 0) {
-      setItems([
-        {
-          id: "1",
-          title: "Rendez-vous chez le dentiste",
-          date: "10/05/2025",
-          doctor: "Docteur X",
-          location: "Cabinet médical",
-          description: "Contrôle dentaire régulier",
-          pinned: true,
-          type: "dental",
-          status: "confirmed",
-          timestamp: new Date(2025, 4, 10).getTime(),
-        },
-        {
-          id: "2",
-          title: "Suivi médical général",
-          date: "12/06/2025",
-          doctor: "Docteur Y",
-          location: "Hôpital B",
-          description: "Bilan annuel de santé",
-          pinned: false,
-          type: "general",
-          status: "confirmed",
-          timestamp: new Date(2025, 5, 12).getTime(),
-        },
-        {
-          id: "3",
-          title: "Examen ophtalmologique",
-          date: "20/02/2024",
-          doctor: "Docteur Z",
-          location: "Clinique C",
-          description: "Contrôle de la vue",
-          pinned: false,
-          type: "ophthalmology",
-          status: "completed",
-          timestamp: new Date(2024, 1, 20).getTime(),
-        },
-        {
-          id: "4",
-          title: "Consultation cardiologie",
-          date: "15/01/2024",
-          doctor: "Docteur A",
-          location: "Centre Cardiologique",
-          description: "Électrocardiogramme et bilan",
-          pinned: false,
-          type: "cardiology",
-          status: "completed",
-          timestamp: new Date(2024, 0, 15).getTime(),
-        },
-      ]);
-    }
-  }, [setItems, items.length]);
-
-  // Filtrer les rendez-vous selon l'onglet actif
-  const currentDate = new Date().getTime();
-  const upcomingAppointments = items.filter(
-    (item) => item.timestamp > currentDate
-  );
-  const pastAppointments = items.filter(
-    (item) => item.timestamp <= currentDate
-  );
+  // Récupérer les rendez-vous selon l'onglet actif
+  const upcomingAppointments = getUpcomingAppointments();
+  const pastAppointments = getPastAppointments();
 
   const handleViewDetails = (appointment) => {
-    selectItem(appointment);
+    selectAppointment(appointment);
     navigate("/appointments/details");
   };
 
   const handleAddAppointment = () => {
-    // Cette fonction sera implémentée plus tard pour la prise de rendez-vous
-    console.log("Prendre un rendez-vous");
-    navigate("/book");
+    navigate("/book-appointment");
   };
 
   return (
@@ -154,9 +97,22 @@ const Appointments = () => {
         </div>
       </div>
 
+      {/* Affichage de l'erreur si nécessaire */}
+      {error && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            {error}
+          </div>
+        </div>
+      )}
+
       {/* Contenu principal - Affichage conditionnel selon l'onglet actif */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {activeTab === "upcoming" ? (
+        {loading ? (
+          <div className="text-center py-8">
+            <p className="text-gray-600">Chargement des rendez-vous...</p>
+          </div>
+        ) : activeTab === "upcoming" ? (
           // Section Rendez-vous à venir
           <ItemsList
             items={upcomingAppointments}
@@ -167,13 +123,14 @@ const Appointments = () => {
             onViewDetails={handleViewDetails}
             addButtonText="Prendre rendez-vous"
             itemNameField="title"
-            itemSubtitleField="doctor"
+            itemSubtitleField="doctor.name"
             countText={`${upcomingAppointments.length} ${
               upcomingAppointments.length > 1
                 ? "rendez-vous programmés"
                 : "rendez-vous programmé"
             }`}
             showPinnedSection={false}
+            emptyMessage="Vous n'avez pas de rendez-vous à venir"
           />
         ) : (
           // Section Rendez-vous passés
@@ -184,13 +141,14 @@ const Appointments = () => {
             description="Historique de vos rendez-vous médicaux"
             onViewDetails={handleViewDetails}
             itemNameField="title"
-            itemSubtitleField="doctor"
+            itemSubtitleField="doctor.name"
             countText={`${pastAppointments.length} ${
               pastAppointments.length > 1
                 ? "rendez-vous passés"
                 : "rendez-vous passé"
             }`}
             showPinnedSection={false}
+            emptyMessage="Vous n'avez pas d'historique de rendez-vous"
           />
         )}
       </div>
