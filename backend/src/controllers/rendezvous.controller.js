@@ -117,7 +117,7 @@ export const createRendezVous = async (req, res) => {
   const { patient_id, medecin_id, date, heure, duree, motif, adresse } =
     req.body;
 
-  console.log("[createRendezVous] Données reçues:", {
+  console.log("[createRendezVous] Données reçues après middleware:", {
     patient_id,
     medecin_id,
     date,
@@ -125,140 +125,39 @@ export const createRendezVous = async (req, res) => {
     duree,
     motif,
     adresse,
-    types: {
-      patient_id: typeof patient_id,
-      medecin_id: typeof medecin_id,
-      date: typeof date,
-      heure: typeof heure,
-      duree: typeof duree,
-      motif: typeof motif,
-      adresse: typeof adresse,
-    },
   });
 
-  // Validation des données
-  if (!patient_id || !medecin_id || !date || !heure) {
-    console.log("[createRendezVous] Données invalides:", {
-      patient_id: !!patient_id,
-      medecin_id: !!medecin_id,
-      date: !!date,
-      heure: !!heure,
-    });
-    return res.status(400).json({
-      message: "Les champs patient_id, medecin_id, date et heure sont requis",
-    });
-  }
-
   try {
-    // Vérifier si le patient existe
-    const patientQuery = `SELECT utilisateur_id FROM patient WHERE utilisateur_id = $1`;
-    console.log("[createRendezVous] Vérification patient:", {
-      query: patientQuery,
-      patient_id,
-    });
-    const patientResult = await pool.query(patientQuery, [patient_id]);
+    // Toutes les validations sont maintenant gérées par les middlewares:
+    // - validateAppointmentData: vérifie que les champs requis sont présents et valides
+    // - convertAppointmentTypes: convertit les types de données
+    // - checkPatientExists: vérifie que le patient existe
+    // - checkDoctorExists: vérifie que le médecin existe
+    // - checkDoctorAvailability: vérifie la disponibilité du médecin
+    // - checkAppointmentConflict: vérifie les conflits de rendez-vous
 
-    if (patientResult.rows.length === 0) {
-      console.log("[createRendezVous] Patient non trouvé:", patient_id);
-      return res.status(404).json({ message: "Patient non trouvé" });
-    }
-
-    // Vérifier si le médecin existe
-    const medecinQuery = `SELECT utilisateur_id FROM medecin WHERE utilisateur_id = $1`;
-    console.log("[createRendezVous] Vérification médecin:", {
-      query: medecinQuery,
-      medecin_id,
-    });
-    const medecinResult = await pool.query(medecinQuery, [medecin_id]);
-
-    if (medecinResult.rows.length === 0) {
-      console.log("[createRendezVous] Médecin non trouvé:", medecin_id);
-      return res.status(404).json({ message: "Médecin non trouvé" });
-    }
-
-    // Méthode alternative pour vérifier la disponibilité du médecin
-    // sans utiliser getJourSemaine qui cause des problèmes
-    const disponible = await verifierDisponibiliteMedecin(
-      medecin_id,
-      date,
-      heure
-    );
-
-    if (!disponible) {
-      console.log("[createRendezVous] Médecin non disponible:", {
-        medecin_id,
-        date,
-        heure,
-      });
-      return res.status(400).json({
-        message: "Le médecin n'est pas disponible à cette date et heure",
-      });
-    }
-
-    // Vérifier s'il y a un conflit avec un autre rendez-vous
+    // On peut directement créer le rendez-vous
     const dureeValue = duree || 30; // durée par défaut : 30 minutes
-    const conflitQuery = `
-      SELECT * FROM rendez_vous
-      WHERE medecin_id = $1 AND date = $2 
-      AND statut != 'annulé'
-      AND (
-        (heure <= $3 AND (heure + (duree || ' minutes')::interval) > $3) OR
-        (heure < ($3 + ($4 || ' minutes')::interval) AND (heure + (duree || ' minutes')::interval) >= ($3 + ($4 || ' minutes')::interval)) OR
-        (heure >= $3 AND (heure + (duree || ' minutes')::interval) <= ($3 + ($4 || ' minutes')::interval))
-      )
-    `;
-    console.log("[createRendezVous] Vérification conflit:", {
-      query: conflitQuery,
-      params: [medecin_id, date, heure, dureeValue],
-      types: {
-        medecin_id: typeof medecin_id,
-        date: typeof date,
-        heure: typeof heure,
-        dureeValue: typeof dureeValue,
-      },
-    });
-    const conflitResult = await pool.query(conflitQuery, [
-      medecin_id,
-      date,
-      heure,
-      dureeValue,
-    ]);
-
-    if (conflitResult.rows.length > 0) {
-      console.log(
-        "[createRendezVous] Conflit de rendez-vous:",
-        conflitResult.rows
-      );
-      return res.status(400).json({ message: "Ce créneau est déjà réservé" });
-    }
-
-    // Créer le rendez-vous
     const insertQuery = `
       INSERT INTO rendez_vous (patient_id, medecin_id, date, heure, duree, motif, adresse)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING id, patient_id, medecin_id, date, heure, duree, statut, motif, adresse
     `;
-    console.log("[createRendezVous] Insertion rendez-vous:", {
-      query: insertQuery,
-      params: [
+
+    console.log(
+      "[createRendezVous] Préparation de l'insertion avec les paramètres:",
+      {
         patient_id,
         medecin_id,
         date,
         heure,
         dureeValue,
-        motif || null,
-        adresse || null,
-      ],
-      types: {
-        patient_id: typeof patient_id,
-        medecin_id: typeof medecin_id,
-        date: typeof date,
-        heure: typeof heure,
-        dureeValue: typeof dureeValue,
-        motif: typeof motif,
-        adresse: typeof adresse,
-      },
-    });
+        motif: motif || null,
+        adresse: adresse || null,
+      }
+    );
+
+    console.log("[createRendezVous] Exécution de la requête d'insertion");
     const insertResult = await pool.query(insertQuery, [
       patient_id,
       medecin_id,
@@ -284,12 +183,43 @@ export const createRendezVous = async (req, res) => {
       error.message
     );
     console.error("[createRendezVous] Stack trace:", error.stack);
-    res
-      .status(500)
-      .json({
-        message: "Erreur lors de la création du rendez-vous",
-        error: error.message,
+
+    // Vérifier si c'est une erreur de contrainte de clé étrangère
+    if (error.code === "23503") {
+      console.error("[createRendezVous] Erreur de clé étrangère. Détails:", {
+        constraint: error.constraint,
+        detail: error.detail,
+        table: error.table,
       });
+
+      return res.status(400).json({
+        message:
+          "Erreur de référence: un des identifiants (patient ou médecin) n'existe pas",
+        detail: error.detail,
+      });
+    }
+
+    // Vérifier si c'est une erreur de violation de contrainte unique
+    if (error.code === "23505") {
+      console.error(
+        "[createRendezVous] Erreur de contrainte unique. Détails:",
+        {
+          constraint: error.constraint,
+          detail: error.detail,
+          table: error.table,
+        }
+      );
+
+      return res.status(400).json({
+        message: "Ce rendez-vous existe déjà",
+        detail: error.detail,
+      });
+    }
+
+    res.status(500).json({
+      message: "Erreur lors de la création du rendez-vous",
+      error: error.message,
+    });
   }
 };
 

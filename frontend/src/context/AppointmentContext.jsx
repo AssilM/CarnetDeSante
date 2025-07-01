@@ -80,6 +80,98 @@ export const AppointmentProvider = ({ children }) => {
     }
   }, [currentUser, patientProfile, accessToken, isPatient, isDoctor]);
 
+  // Récupérer un rendez-vous par son ID
+  const getAppointmentById = async (appointmentId) => {
+    console.log(
+      `[AppointmentContext] Récupération du rendez-vous #${appointmentId}`
+    );
+
+    if (!currentUser) {
+      console.error("[AppointmentContext] Erreur: utilisateur non connecté");
+      setError("Vous devez être connecté pour accéder à ce rendez-vous");
+      return null;
+    }
+
+    // Vérifier d'abord si le rendez-vous est déjà dans la liste locale
+    const localAppointment = appointments.find(
+      (appt) => appt.id === appointmentId || appt.id === String(appointmentId)
+    );
+
+    if (localAppointment) {
+      console.log(
+        `[AppointmentContext] Rendez-vous #${appointmentId} trouvé localement`
+      );
+      return localAppointment;
+    }
+
+    // Si non trouvé localement, essayer de le récupérer depuis l'API
+    try {
+      setLoading(true);
+      setError(null);
+      console.log(
+        `[AppointmentContext] Récupération du rendez-vous #${appointmentId} depuis l'API`
+      );
+
+      const response = await appointmentService.getAppointmentById(
+        appointmentId
+      );
+
+      if (!response) {
+        console.log(
+          `[AppointmentContext] Rendez-vous #${appointmentId} non trouvé`
+        );
+        return null;
+      }
+
+      // Formater les données du rendez-vous
+      const formattedAppointment = {
+        id: response.id.toString(),
+        title: response.motif || "Rendez-vous médical",
+        date: formatDateForDisplay(response.date),
+        time: formatTimeForDisplay(response.heure),
+        doctor: {
+          id: response.medecin_id,
+          name: response.medecin_nom
+            ? `Dr. ${response.medecin_prenom || ""} ${
+                response.medecin_nom || ""
+              }`.trim()
+            : "Dr. Inconnu",
+          specialty: response.specialite || "",
+          address: response.adresse || "",
+        },
+        status: response.statut,
+        location: response.adresse || "Cabinet médical",
+        description: response.motif || "Consultation médicale",
+        timestamp: new Date(response.date + "T" + response.heure).getTime(),
+        rawData: response,
+      };
+
+      console.log(
+        `[AppointmentContext] Rendez-vous #${appointmentId} récupéré:`,
+        formattedAppointment
+      );
+
+      // Ajouter à la liste locale si pas déjà présent
+      setAppointments((prev) => {
+        if (!prev.some((appt) => appt.id === formattedAppointment.id)) {
+          return [...prev, formattedAppointment];
+        }
+        return prev;
+      });
+
+      return formattedAppointment;
+    } catch (err) {
+      console.error(
+        `[AppointmentContext] Erreur lors de la récupération du rendez-vous #${appointmentId}:`,
+        err
+      );
+      setError("Impossible de récupérer les détails du rendez-vous");
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Mettre à jour le profil patient depuis l'extérieur (sera appelé par PatientContext)
   const updatePatientProfileData = (profile) => {
     if (profile) {
@@ -246,6 +338,7 @@ export const AppointmentProvider = ({ children }) => {
     getUpcomingAppointments,
     getPastAppointments,
     updatePatientProfileData,
+    getAppointmentById,
   };
 
   return (

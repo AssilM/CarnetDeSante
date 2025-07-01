@@ -20,9 +20,22 @@ export const DoctorAppointmentProvider = ({ children }) => {
   // Charger les rendez-vous du médecin connecté
   useEffect(() => {
     const fetchDoctorAppointments = async () => {
-      if (!currentUser || currentUser.role !== "medecin") return;
+      if (!currentUser || currentUser.role !== "medecin") {
+        console.log(
+          "[DoctorAppointmentContext] Utilisateur non connecté ou non médecin:",
+          {
+            currentUser: currentUser?.role,
+            userId: currentUser?.id,
+          }
+        );
+        return;
+      }
 
       try {
+        console.log(
+          "[DoctorAppointmentContext] Début du chargement des rendez-vous pour le médecin:",
+          currentUser.id
+        );
         setLoading(true);
         setError(null);
 
@@ -31,29 +44,113 @@ export const DoctorAppointmentProvider = ({ children }) => {
           currentUser.id
         );
 
-        // Transformer les données pour correspondre au format attendu par l'interface
-        const formattedAppointments = response.map((appointment) => ({
-          id: appointment.id.toString(),
-          title: appointment.motif || `Rendez-vous médical`,
-          date: formatDateForDisplay(appointment.date),
-          time: formatTimeForDisplay(appointment.heure),
-          patient: {
-            id: appointment.patient_id,
-            name: appointment.patient_nom || "Patient",
-          },
-          status: appointment.statut,
-          location: appointment.adresse || "Cabinet médical",
-          description: appointment.motif || "Consultation médicale",
-          timestamp: new Date(
-            appointment.date + "T" + appointment.heure
-          ).getTime(),
-          rawData: appointment, // Conserver les données brutes si nécessaire
-        }));
+        console.log(
+          "[DoctorAppointmentContext] Réponse brute de l'API:",
+          response
+        );
 
+        // Transformer les données pour correspondre au format attendu par l'interface
+        const formattedAppointments = response.map((appointment) => {
+          console.log(
+            "[DoctorAppointmentContext] Traitement du rendez-vous:",
+            appointment
+          );
+
+          // Générer un timestamp fiable à partir de la date et de l'heure
+          let timestamp;
+          try {
+            let datePart = "";
+            let heurePart = "";
+            if (appointment.date) {
+              // Si la date est déjà au format ISO, on prend la partie date uniquement
+              datePart = appointment.date.split("T")[0];
+            }
+            if (appointment.heure) {
+              // On prend HH:MM si possible
+              heurePart = appointment.heure.substring(0, 5);
+            }
+            if (datePart && heurePart) {
+              timestamp = new Date(datePart + "T" + heurePart).getTime();
+            } else if (appointment.date) {
+              timestamp = new Date(appointment.date).getTime();
+            } else {
+              timestamp = Date.now();
+            }
+            if (isNaN(timestamp)) {
+              console.warn(
+                "[DoctorAppointmentContext] Timestamp NaN pour",
+                appointment
+              );
+              timestamp = Date.now();
+            }
+          } catch {
+            timestamp = Date.now();
+          }
+
+          // Extraire la date au format YYYY-MM-DD (locale) depuis la chaîne ISO
+          let dateOnly = "";
+          if (appointment.date) {
+            try {
+              const d = new Date(appointment.date);
+              const year = d.getFullYear();
+              const month = String(d.getMonth() + 1).padStart(2, "0");
+              const day = String(d.getDate()).padStart(2, "0");
+              dateOnly = `${year}-${month}-${day}`;
+            } catch {
+              dateOnly = "";
+            }
+          }
+
+          return {
+            id: appointment.id.toString(),
+            title: appointment.motif || `Rendez-vous médical`,
+            date: formatDateForDisplay(appointment.date),
+            time: formatTimeForDisplay(appointment.heure),
+            dateRaw: appointment.date,
+            dateOnly,
+            patient: {
+              id: appointment.patient_id,
+              name:
+                `${appointment.patient_nom || ""} ${
+                  appointment.patient_prenom || ""
+                }`.trim() || "Patient",
+            },
+            status: appointment.statut || "confirmé",
+            location: appointment.adresse || "Cabinet médical",
+            description: appointment.motif || "Consultation médicale",
+            timestamp: timestamp,
+            rawData: appointment, // Conserver les données brutes si nécessaire
+          };
+        });
+
+        console.log(
+          "[DoctorAppointmentContext] Rendez-vous formatés:",
+          formattedAppointments
+        );
         setAppointments(formattedAppointments);
       } catch (err) {
-        console.error("Erreur lors du chargement des rendez-vous:", err);
-        setError("Impossible de charger vos rendez-vous");
+        console.error(
+          "[DoctorAppointmentContext] Erreur lors du chargement des rendez-vous:",
+          err
+        );
+        console.error("[DoctorAppointmentContext] Détails de l'erreur:", {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
+          url: err.config?.url,
+        });
+
+        if (err.response?.status === 401) {
+          setError("Session expirée. Veuillez vous reconnecter.");
+        } else if (err.response?.status === 404) {
+          setError("Aucun rendez-vous trouvé pour ce médecin.");
+        } else if (err.code === "ECONNREFUSED") {
+          setError(
+            "Impossible de se connecter au serveur. Vérifiez que le backend est démarré."
+          );
+        } else {
+          setError(`Impossible de charger vos rendez-vous: ${err.message}`);
+        }
       } finally {
         setLoading(false);
       }
@@ -65,14 +162,32 @@ export const DoctorAppointmentProvider = ({ children }) => {
   // Formater une date pour l'affichage (YYYY-MM-DD -> DD/MM/YYYY)
   const formatDateForDisplay = (dateString) => {
     if (!dateString) return "";
-    const [year, month, day] = dateString.split("-");
-    return `${day}/${month}/${year}`;
+    try {
+      const [year, month, day] = dateString.split("-");
+      return `${day}/${month}/${year}`;
+    } catch (error) {
+      console.error(
+        "[DoctorAppointmentContext] Erreur lors du formatage de la date:",
+        dateString,
+        error
+      );
+      return dateString || "";
+    }
   };
 
   // Formater une heure pour l'affichage (HH:MM:SS -> HH:MM)
   const formatTimeForDisplay = (timeString) => {
     if (!timeString) return "";
-    return timeString.substring(0, 5);
+    try {
+      return timeString.substring(0, 5);
+    } catch (error) {
+      console.error(
+        "[DoctorAppointmentContext] Erreur lors du formatage de l'heure:",
+        timeString,
+        error
+      );
+      return timeString || "";
+    }
   };
 
   // Sélectionner un rendez-vous
@@ -102,8 +217,18 @@ export const DoctorAppointmentProvider = ({ children }) => {
         adresse: appointmentData.location || null,
       };
 
+      console.log(
+        "[DoctorAppointmentContext] Création d'un nouveau rendez-vous:",
+        apiData
+      );
+
       // Créer le rendez-vous via l'API
       const response = await appointmentService.createAppointment(apiData);
+
+      console.log(
+        "[DoctorAppointmentContext] Rendez-vous créé avec succès:",
+        response
+      );
 
       // Ajouter le rendez-vous à la liste locale
       const newAppointment = {
@@ -111,6 +236,8 @@ export const DoctorAppointmentProvider = ({ children }) => {
         title: response.motif || "Rendez-vous médical",
         date: formatDateForDisplay(response.date),
         time: formatTimeForDisplay(response.heure),
+        dateRaw: response.date,
+        dateOnly: response.dateOnly,
         patient: {
           id: response.patient_id,
           name: appointmentData.patient?.name || "Patient",
@@ -125,7 +252,10 @@ export const DoctorAppointmentProvider = ({ children }) => {
       setAppointments((prev) => [...prev, newAppointment]);
       return newAppointment;
     } catch (err) {
-      console.error("Erreur lors de la création du rendez-vous:", err);
+      console.error(
+        "[DoctorAppointmentContext] Erreur lors de la création du rendez-vous:",
+        err
+      );
       setError("Impossible de créer le rendez-vous");
       return null;
     } finally {
@@ -144,6 +274,11 @@ export const DoctorAppointmentProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
+      console.log(
+        "[DoctorAppointmentContext] Annulation du rendez-vous:",
+        appointmentId
+      );
+
       // Annuler le rendez-vous via l'API
       await appointmentService.cancelAppointment(appointmentId);
 
@@ -156,7 +291,10 @@ export const DoctorAppointmentProvider = ({ children }) => {
 
       return true;
     } catch (err) {
-      console.error("Erreur lors de l'annulation du rendez-vous:", err);
+      console.error(
+        "[DoctorAppointmentContext] Erreur lors de l'annulation du rendez-vous:",
+        err
+      );
       setError("Impossible d'annuler le rendez-vous");
       return false;
     } finally {

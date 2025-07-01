@@ -26,6 +26,14 @@ export const authenticate = async (req, res, next) => {
 
       console.log("Token décodé:", decoded);
 
+      // Vérifier que le token contient les informations nécessaires
+      if (!decoded.id || !decoded.role) {
+        console.error("Token incomplet:", decoded);
+        return res
+          .status(401)
+          .json({ message: "Token invalide (informations manquantes)" });
+      }
+
       // Stocker les informations de l'utilisateur dans la requête
       req.userId = decoded.id;
       req.userEmail = decoded.email;

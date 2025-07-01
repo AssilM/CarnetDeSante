@@ -42,18 +42,30 @@ const createAppointmentService = (api) => {
     },
 
     /**
-     * Récupère les détails d'un rendez-vous
-     * @param {number} appointmentId - ID du rendez-vous
+     * Récupère un rendez-vous spécifique par son ID
+     * @param {number|string} appointmentId - ID du rendez-vous à récupérer
      * @returns {Promise<Object>} Détails du rendez-vous
      */
     getAppointmentById: async (appointmentId) => {
       try {
+        console.log(
+          `[appointmentService] Récupération du rendez-vous #${appointmentId}`
+        );
         const response = await api.get(`/rendez-vous/${appointmentId}`);
+        console.log(
+          `[appointmentService] Rendez-vous #${appointmentId} récupéré:`,
+          response.data
+        );
         return response.data;
       } catch (error) {
         console.error(
-          `Erreur lors de la récupération du rendez-vous #${appointmentId}:`,
+          `[appointmentService] Erreur lors de la récupération du rendez-vous #${appointmentId}:`,
           error
+        );
+        console.error("[appointmentService] Message d'erreur:", error.message);
+        console.error(
+          "[appointmentService] Réponse d'erreur:",
+          error.response?.data
         );
         throw error;
       }

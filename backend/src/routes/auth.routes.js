@@ -8,18 +8,23 @@ import {
   checkUserAuth,
 } from "../controllers/auth.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
+import {
+  validateRegistrationData,
+  checkEmailUnique,
+  validateLoginData,
+} from "../middlewares/validation/auth.validation.js";
 
 const router = express.Router();
 
 // Routes publiques
-router.post("/signup", signup);
-router.post("/signin", signin);
+router.post("/signup", validateRegistrationData, checkEmailUnique, signup);
+router.post("/signin", validateLoginData, signin);
 router.post("/refresh-token", refreshToken);
 
 // Routes protégées
 router.use(authenticate);
-router.post("/signout", signout);
 router.get("/me", getMe);
-router.get("/check-auth", checkUserAuth);
+router.post("/signout", signout);
+router.get("/check", checkUserAuth);
 
 export default router;

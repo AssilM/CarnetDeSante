@@ -18,6 +18,7 @@ const AppointmentConfirmation = () => {
   const { addAppointment } = useAppointmentContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
   const [appointmentData, setAppointmentData] = useState(null);
   const [motif, setMotif] = useState("Consultation médicale");
 
@@ -69,6 +70,7 @@ const AppointmentConfirmation = () => {
     );
     setLoading(true);
     setError(null);
+    setSuccess(false);
 
     try {
       // Créer l'objet de rendez-vous
@@ -98,11 +100,15 @@ const AppointmentConfirmation = () => {
       );
 
       if (result) {
-        console.log(
-          "[AppointmentConfirmation] Redirection vers /appointments?tab=upcoming"
-        );
-        // Rediriger vers la page des rendez-vous avec un remplacement complet de l'historique
-        navigate("/appointments?tab=upcoming", { replace: true });
+        console.log("[AppointmentConfirmation] Rendez-vous créé avec succès");
+        setSuccess(true);
+
+        // Attendre 2 secondes avant de rediriger pour montrer le message de succès
+        setTimeout(() => {
+          navigate(`/appointment-details/${result.id}`, {
+            state: { appointment: result, fromConfirmation: true },
+          });
+        }, 2000);
       } else {
         console.error(
           "[AppointmentConfirmation] Échec de la création du rendez-vous"
@@ -154,6 +160,17 @@ const AppointmentConfirmation = () => {
           </p>
         </div>
 
+        {/* Affichage du message de succès */}
+        {success && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 flex items-center">
+            <FaCalendarCheck className="mr-2 text-green-500" />
+            <span>
+              Votre rendez-vous a été créé avec succès ! Redirection vers les
+              détails...
+            </span>
+          </div>
+        )}
+
         {/* Affichage de l'erreur si nécessaire */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
@@ -162,87 +179,90 @@ const AppointmentConfirmation = () => {
         )}
 
         {/* Détails du rendez-vous */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-          <div className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900">
               Détails du rendez-vous
             </h2>
-
-            <div className="space-y-4">
-              {/* Médecin */}
-              <div className="flex items-start">
-                <div className="flex-shrink-0 mt-1">
-                  <FaUserMd className="text-primary w-5 h-5" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-900">Médecin</p>
-                  <p className="text-sm text-gray-600">
-                    {appointmentData.doctor.prenom} {appointmentData.doctor.nom}{" "}
-                    - {appointmentData.doctor.specialite}
-                  </p>
-                </div>
+          </div>
+          <div className="p-6 space-y-6">
+            {/* Médecin */}
+            <div className="flex items-start">
+              <div className="flex-shrink-0 mt-1">
+                <FaUserMd className="text-primary" />
               </div>
-
-              {/* Adresse */}
-              <div className="flex items-start">
-                <div className="flex-shrink-0 mt-1">
-                  <FaMapMarkerAlt className="text-primary w-5 h-5" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-900">Adresse</p>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-gray-500">Médecin</h3>
+                <p className="text-base text-gray-900">
+                  {`${appointmentData.doctor.prenom || ""} ${
+                    appointmentData.doctor.nom || ""
+                  }`.trim()}
+                </p>
+                {appointmentData.doctor.specialite && (
                   <p className="text-sm text-gray-600">
-                    {appointmentData.doctor.adresse || "Non spécifiée"}
-                    {appointmentData.doctor.code_postal &&
-                      appointmentData.doctor.ville &&
-                      `, ${appointmentData.doctor.code_postal} ${appointmentData.doctor.ville}`}
+                    {appointmentData.doctor.specialite}
                   </p>
-                </div>
+                )}
               </div>
+            </div>
 
-              {/* Date */}
-              <div className="flex items-start">
-                <div className="flex-shrink-0 mt-1">
-                  <FaCalendarAlt className="text-primary w-5 h-5" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-900">Date</p>
-                  <p className="text-sm text-gray-600">
-                    {appointmentData.formattedDate ||
-                      formatDate(appointmentData.date)}
-                  </p>
-                </div>
+            {/* Lieu */}
+            <div className="flex items-start">
+              <div className="flex-shrink-0 mt-1">
+                <FaMapMarkerAlt className="text-primary" />
               </div>
-
-              {/* Heure */}
-              <div className="flex items-start">
-                <div className="flex-shrink-0 mt-1">
-                  <FaClock className="text-primary w-5 h-5" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-900">Heure</p>
-                  <p className="text-sm text-gray-600">
-                    {appointmentData.formattedTime || appointmentData.time}
-                  </p>
-                </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-gray-500">Lieu</h3>
+                <p className="text-base text-gray-900">
+                  {appointmentData.doctor.adresse || "Non spécifié"}
+                </p>
               </div>
+            </div>
 
-              {/* Motif */}
-              <div className="flex items-start pt-4 border-t border-gray-200">
-                <div className="flex-shrink-0 mt-1">
-                  <FaClipboardList className="text-primary w-5 h-5" />
-                </div>
-                <div className="ml-3 w-full">
-                  <p className="text-sm font-medium text-gray-900 mb-2">
-                    Motif de la consultation
-                  </p>
-                  <textarea
-                    value={motif}
-                    onChange={handleMotifChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                    rows="3"
-                    placeholder="Décrivez brièvement le motif de votre rendez-vous"
-                  ></textarea>
-                </div>
+            {/* Date */}
+            <div className="flex items-start">
+              <div className="flex-shrink-0 mt-1">
+                <FaCalendarAlt className="text-primary" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-gray-500">Date</h3>
+                <p className="text-base text-gray-900">
+                  {appointmentData.formattedDate ||
+                    formatDate(appointmentData.date)}
+                </p>
+              </div>
+            </div>
+
+            {/* Heure */}
+            <div className="flex items-start">
+              <div className="flex-shrink-0 mt-1">
+                <FaClock className="text-primary" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-gray-500">Heure</h3>
+                <p className="text-base text-gray-900">
+                  {appointmentData.formattedTime || appointmentData.time}
+                </p>
+              </div>
+            </div>
+
+            {/* Motif */}
+            <div className="flex items-start">
+              <div className="flex-shrink-0 mt-1">
+                <FaClipboardList className="text-primary" />
+              </div>
+              <div className="ml-3 w-full">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">
+                  Motif de la consultation
+                </h3>
+                <textarea
+                  value={motif}
+                  onChange={handleMotifChange}
+                  placeholder="Veuillez préciser le motif de votre consultation..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  rows={3}
+                  disabled={loading || success}
+                />
               </div>
             </div>
           </div>
@@ -252,20 +272,27 @@ const AppointmentConfirmation = () => {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button
             onClick={() => navigate("/book-appointment")}
-            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+            className={`px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors ${
+              loading || success ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            disabled={loading || success}
           >
             Annuler
           </button>
           <button
             onClick={handleConfirmAppointment}
-            disabled={loading || !motif.trim()}
+            disabled={loading || !motif.trim() || success}
             className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-              loading || !motif.trim()
+              loading || !motif.trim() || success
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                 : "bg-primary text-white hover:bg-primary/90"
             }`}
           >
-            {loading ? "Confirmation en cours..." : "Confirmer le rendez-vous"}
+            {loading
+              ? "Confirmation en cours..."
+              : success
+              ? "Rendez-vous confirmé !"
+              : "Confirmer le rendez-vous"}
           </button>
         </div>
       </div>

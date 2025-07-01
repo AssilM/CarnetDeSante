@@ -31,15 +31,7 @@ export const signup = async (req, res) => {
 
     console.log("Tentative d'inscription pour:", email);
 
-    // Vérifier si l'utilisateur existe déjà
-    const userCheck = await pool.query(
-      "SELECT * FROM utilisateur WHERE email = $1",
-      [email]
-    );
-    if (userCheck.rows.length > 0) {
-      console.log("Email déjà utilisé:", email);
-      return res.status(400).json({ message: "Cet email est déjà utilisé" });
-    }
+    // La vérification de l'email est maintenant gérée par le middleware checkEmailUnique
 
     // Validation de la date de naissance si elle est fournie
     if (date_naissance) {
@@ -168,6 +160,8 @@ export const signin = async (req, res) => {
 
     console.log("Tentative de connexion pour:", email);
 
+    // La validation des données est maintenant gérée par le middleware validateLoginData
+
     // Vérifier si l'utilisateur existe dans la table "utilisateur"
     const result = await pool.query(
       "SELECT * FROM utilisateur WHERE email = $1",
@@ -194,41 +188,37 @@ export const signin = async (req, res) => {
 
     // Générer un token JWT avec une expiration configurée
     const token = jwt.sign(
-      { id: user.id, role: user.role },
+      { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: `${TEMPS_EXPIRATION}s` }
     );
 
-    // Générer un refresh token (durée réduite pour les tests)
+    // Générer un refresh token
     const refreshToken = jwt.sign(
       { id: user.id },
       process.env.JWT_REFRESH_SECRET,
-      { expiresIn: "1d" }
+      { expiresIn: "7d" }
     );
 
-    console.log("Tokens générés avec succès");
+    // Calculer la date d'expiration (7 jours)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
 
-    // Stocker le refresh token en base de données
+    // Stocker le refresh token dans la base de données
     await pool.query(
       "INSERT INTO refresh_token (token, utilisateur_id, expires_at) VALUES ($1, $2, $3)",
-      [refreshToken, user.id, new Date(Date.now() + 24 * 60 * 60 * 1000)]
+      [refreshToken, user.id, expiresAt]
     );
 
     res.status(200).json({
-      message: "Connexion réussie",
       token,
       refreshToken,
       user: {
         id: user.id,
+        email: user.email,
         nom: user.nom,
         prenom: user.prenom,
-        email: user.email,
         role: user.role,
-        tel_indicatif: user.tel_indicatif,
-        tel_numero: user.tel_numero,
-        adresse: user.adresse,
-        code_postal: user.code_postal,
-        ville: user.ville,
       },
     });
   } catch (error) {
@@ -282,7 +272,7 @@ export const refreshToken = async (req, res) => {
 
     // Générer un nouveau token JWT
     const token = jwt.sign(
-      { id: user.id, role: user.role },
+      { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: `${TEMPS_EXPIRATION}s` }
     );

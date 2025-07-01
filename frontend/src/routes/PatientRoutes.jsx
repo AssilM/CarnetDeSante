@@ -301,6 +301,17 @@ const PatientRoutes = [
       </ProtectedRoute>
     }
   />,
+  <Route
+    key="appointment-details-id"
+    path="/appointment-details/:id"
+    element={
+      <ProtectedRoute>
+        <MainLayout>
+          <AppointmentDetails />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
 
   // Routes de prise de rendez-vous (séparées de /appointments)
   <Route

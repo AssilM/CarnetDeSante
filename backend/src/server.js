@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import pool from "./config/db.js";
 import initTables, { dropAllTables } from "./data/createTables.js";
 import seedDatabase from "./data/seedData.js";
+import cors from "cors";
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ const initDatabase = async () => {
 
 // Initialiser la base de données
 //initDatabase();
+app.use(cors());
 
 // Démarrer le serveur
 app.listen(port, () => {
