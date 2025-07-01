@@ -9,8 +9,14 @@ import {
   getMedicalInfo,
   getProfile,
   createOrUpdateProfile,
+  addDocument,
+  getPatientDocuments,
+  getDocument,
+  deleteDocument,
+  downloadDocument,
 } from "../controllers/patient.controller.js";
 import { authenticate, authorize } from "../middlewares/auth.middleware.js";
+import { uploadDocument } from "../middlewares/upload.middleware.js";
 
 const router = express.Router();
 
@@ -48,5 +54,30 @@ router.put("/:id", authorize(["admin", "patient"]), updatePatient);
 
 // DELETE /api/patients/:id - Supprimer un patient
 router.delete("/:id", authorize("admin"), deletePatient);
+
+// ==================== ROUTES POUR LES DOCUMENTS ====================
+
+// Middleware de log pour debug
+router.use('/documents', (req, res, next) => {
+  console.log(`📄 Route document: ${req.method} ${req.originalUrl}`);
+  console.log('📄 Body:', req.body);
+  console.log('📄 User:', { id: req.userId, role: req.userRole });
+  next();
+});
+
+// POST /api/patient/documents - Ajouter un document (patients et médecins)
+router.post("/documents", authorize(["patient", "medecin"]), uploadDocument, addDocument);
+
+// GET /api/patient/:patient_id/documents - Récupérer les documents d'un patient
+router.get("/:patient_id/documents", authorize(["patient", "medecin", "admin"]), getPatientDocuments);
+
+// GET /api/patient/documents/:document_id - Récupérer un document spécifique
+router.get("/documents/:document_id", authorize(["patient", "medecin", "admin"]), getDocument);
+
+// GET /api/patient/documents/:document_id/download - Télécharger un fichier de document
+router.get("/documents/:document_id/download", authorize(["patient", "medecin", "admin"]), downloadDocument);
+
+// DELETE /api/patient/documents/:document_id - Supprimer un document (médecin créateur ou admin)
+router.delete("/documents/:document_id", authorize(["medecin", "admin"]), deleteDocument);
 
 export default router;

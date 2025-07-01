@@ -436,3 +436,409 @@ export const searchPatients = async (req, res) => {
       .json({ message: "Erreur lors de la recherche de patients" });
   }
 };
+
+// ==================== GESTION DES DOCUMENTS MÉDICAUX ====================
+
+// Ajouter un document médical
+export const addDocument = async (req, res) => {
+  try {
+    console.log('📄 Début de l\'ajout de document');
+    console.log('📄 Utilisateur:', { id: req.userId, role: req.userRole });
+    console.log('📄 Fichier reçu:', req.file);
+    console.log('📄 Données du formulaire:', req.body);
+
+    const { titre, type_document, description, date_creation } = req.body;
+    const file = req.file;
+
+    // Validation des données requises
+    if (!titre || !type_document || !file) {
+      console.error('❌ Données manquantes:', { titre, type_document, file: !!file });
+      return res.status(400).json({
+        success: false,
+        message: 'Titre, type de document et fichier sont requis',
+        notification: {
+          type: 'error',
+          title: 'Données manquantes',
+          message: 'Veuillez remplir tous les champs obligatoires et sélectionner un fichier'
+        }
+      });
+    }
+
+    // Déterminer le patient_id selon le rôle
+    let patient_id;
+    let medecin_id = null;
+
+    if (req.userRole === 'patient') {
+      // Le patient ajoute un document pour lui-même
+      patient_id = req.userId;
+      console.log('👤 Patient ajoute un document pour lui-même, patient_id:', patient_id);
+    } else if (req.userRole === 'medecin') {
+      // Le médecin ajoute un document pour un patient
+      patient_id = req.body.patient_id;
+      medecin_id = req.userId;
+      
+      if (!patient_id) {
+        console.error('❌ patient_id manquant pour un médecin');
+        return res.status(400).json({
+          success: false,
+          message: 'patient_id requis pour un médecin',
+          notification: {
+            type: 'error',
+            title: 'Patient manquant',
+            message: 'Veuillez spécifier le patient pour lequel ajouter le document'
+          }
+        });
+      }
+      console.log('👨‍⚕️ Médecin ajoute un document, patient_id:', patient_id, 'medecin_id:', medecin_id);
+    }
+
+    // Vérifier que le patient existe
+    const patientCheck = await pool.query(
+      'SELECT utilisateur_id FROM patient WHERE utilisateur_id = $1',
+      [patient_id]
+    );
+
+    if (patientCheck.rows.length === 0) {
+      console.error('❌ Patient non trouvé:', patient_id);
+      return res.status(404).json({
+        success: false,
+        message: 'Patient non trouvé',
+        notification: {
+          type: 'error',
+          title: 'Patient introuvable',
+          message: 'Le patient spécifié n\'existe pas dans la base de données'
+        }
+      });
+    }
+
+    // Préparer les données du document
+    const documentData = {
+      patient_id: parseInt(patient_id),
+      medecin_id: medecin_id ? parseInt(medecin_id) : null,
+      titre: titre.trim(),
+      type_document: type_document.trim(),
+      nom_fichier: file.originalname,
+      chemin_fichier: file.path,
+      type_mime: file.mimetype,
+      taille_fichier: file.size,
+      date_creation: date_creation || new Date().toISOString().split('T')[0],
+      description: description ? description.trim() : null
+    };
+
+    console.log('💾 Données à insérer:', documentData);
+
+    // Insérer le document dans la base de données
+    const insertQuery = `
+      INSERT INTO document (
+        patient_id, medecin_id, titre, type_document, nom_fichier, 
+        chemin_fichier, type_mime, taille_fichier, date_creation, description
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *
+    `;
+
+    const values = [
+      documentData.patient_id,
+      documentData.medecin_id,
+      documentData.titre,
+      documentData.type_document,
+      documentData.nom_fichier,
+      documentData.chemin_fichier,
+      documentData.type_mime,
+      documentData.taille_fichier,
+      documentData.date_creation,
+      documentData.description
+    ];
+
+    const result = await pool.query(insertQuery, values);
+    const insertedDocument = result.rows[0];
+
+    console.log('✅ Document inséré avec succès:', insertedDocument);
+
+    res.status(201).json({
+      success: true,
+      message: 'Document ajouté avec succès',
+      document: insertedDocument,
+      notification: {
+        type: 'success',
+        title: 'Document ajouté',
+        message: `Le document "${titre}" a été ajouté avec succès`
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur lors de l\'ajout du document:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur interne du serveur',
+      notification: {
+        type: 'error',
+        title: 'Erreur système',
+        message: 'Une erreur est survenue lors de l\'ajout du document'
+      }
+    });
+  }
+};
+
+// Récupérer les documents d'un patient
+export const getPatientDocuments = async (req, res) => {
+  try {
+    const { patient_id } = req.params;
+    console.log('📄 Récupération des documents pour le patient:', patient_id);
+
+    // Vérification des autorisations
+    if (req.userRole === 'patient' && req.userId !== parseInt(patient_id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Accès non autorisé',
+        notification: {
+          type: 'error',
+          title: 'Accès refusé',
+          message: 'Vous ne pouvez consulter que vos propres documents'
+        }
+      });
+    }
+
+    const query = `
+      SELECT d.*, u.nom as medecin_nom, u.prenom as medecin_prenom
+      FROM document d
+      LEFT JOIN utilisateur u ON d.medecin_id = u.id
+      WHERE d.patient_id = $1
+      ORDER BY d.date_creation DESC, d.created_at DESC
+    `;
+
+    const result = await pool.query(query, [patient_id]);
+
+    console.log(`✅ ${result.rows.length} documents trouvés pour le patient ${patient_id}`);
+
+    res.status(200).json({
+      success: true,
+      documents: result.rows
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur lors de la récupération des documents:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des documents',
+      notification: {
+        type: 'error',
+        title: 'Erreur système',
+        message: 'Impossible de récupérer les documents'
+      }
+    });
+  }
+};
+
+// Récupérer un document spécifique
+export const getDocument = async (req, res) => {
+  try {
+    const { document_id } = req.params;
+    console.log('📄 Récupération du document:', document_id);
+
+    const query = `
+      SELECT d.*, u.nom as medecin_nom, u.prenom as medecin_prenom
+      FROM document d
+      LEFT JOIN utilisateur u ON d.medecin_id = u.id
+      WHERE d.id = $1
+    `;
+
+    const result = await pool.query(query, [document_id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document non trouvé',
+        notification: {
+          type: 'error',
+          title: 'Document introuvable',
+          message: 'Le document demandé n\'existe pas'
+        }
+      });
+    }
+
+    const document = result.rows[0];
+
+    // Vérification des autorisations
+    if (req.userRole === 'patient' && req.userId !== document.patient_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Accès non autorisé',
+        notification: {
+          type: 'error',
+          title: 'Accès refusé',
+          message: 'Vous ne pouvez consulter que vos propres documents'
+        }
+      });
+    }
+
+    console.log('✅ Document trouvé:', document.titre);
+
+    res.status(200).json({
+      success: true,
+      document: document
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur lors de la récupération du document:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération du document',
+      notification: {
+        type: 'error',
+        title: 'Erreur système',
+        message: 'Impossible de récupérer le document'
+      }
+    });
+  }
+};
+
+// Supprimer un document
+export const deleteDocument = async (req, res) => {
+  try {
+    const { document_id } = req.params;
+    console.log('🗑️ Suppression du document:', document_id);
+
+    // Récupérer les informations du document avant suppression
+    const getDocQuery = 'SELECT * FROM document WHERE id = $1';
+    const docResult = await pool.query(getDocQuery, [document_id]);
+
+    if (docResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document non trouvé',
+        notification: {
+          type: 'error',
+          title: 'Document introuvable',
+          message: 'Le document à supprimer n\'existe pas'
+        }
+      });
+    }
+
+    const document = docResult.rows[0];
+
+    // Vérification des autorisations (seul le médecin créateur ou un admin peut supprimer)
+    if (req.userRole === 'medecin' && req.userId !== document.medecin_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Accès non autorisé',
+        notification: {
+          type: 'error',
+          title: 'Accès refusé',
+          message: 'Seul le médecin qui a ajouté le document peut le supprimer'
+        }
+      });
+    }
+
+    // Supprimer le document de la base de données
+    const deleteQuery = 'DELETE FROM document WHERE id = $1';
+    await pool.query(deleteQuery, [document_id]);
+
+    // TODO: Supprimer aussi le fichier physique
+    // import fs from 'fs';
+    // if (fs.existsSync(document.chemin_fichier)) {
+    //   fs.unlinkSync(document.chemin_fichier);
+    // }
+
+    console.log('✅ Document supprimé:', document.titre);
+
+    res.status(200).json({
+      success: true,
+      message: 'Document supprimé avec succès',
+      notification: {
+        type: 'success',
+        title: 'Document supprimé',
+        message: `Le document "${document.titre}" a été supprimé avec succès`
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur lors de la suppression du document:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la suppression du document',
+      notification: {
+        type: 'error',
+        title: 'Erreur système',
+        message: 'Impossible de supprimer le document'
+      }
+    });
+  }
+};
+
+// Télécharger/servir un fichier de document
+export const downloadDocument = async (req, res) => {
+  try {
+    const { document_id } = req.params;
+    console.log('📥 Téléchargement du document:', document_id);
+
+    // Récupérer les informations du document
+    const query = 'SELECT * FROM document WHERE id = $1';
+    const result = await pool.query(query, [document_id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document non trouvé',
+        notification: {
+          type: 'error',
+          title: 'Document introuvable',
+          message: 'Le document demandé n\'existe pas'
+        }
+      });
+    }
+
+    const document = result.rows[0];
+
+    // Vérification des autorisations
+    if (req.userRole === 'patient' && req.userId !== document.patient_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Accès non autorisé',
+        notification: {
+          type: 'error',
+          title: 'Accès refusé',
+          message: 'Vous ne pouvez télécharger que vos propres documents'
+        }
+      });
+    }
+
+    // Vérifier que le fichier existe
+    const fs = await import('fs');
+    const path = await import('path');
+    
+    if (!fs.existsSync(document.chemin_fichier)) {
+      console.error('❌ Fichier physique non trouvé:', document.chemin_fichier);
+      return res.status(404).json({
+        success: false,
+        message: 'Fichier non trouvé sur le serveur',
+        notification: {
+          type: 'error',
+          title: 'Fichier manquant',
+          message: 'Le fichier n\'existe plus sur le serveur'
+        }
+      });
+    }
+
+    // Définir les en-têtes pour le téléchargement
+    res.setHeader('Content-Type', document.type_mime);
+    res.setHeader('Content-Disposition', `attachment; filename="${document.nom_fichier}"`);
+    res.setHeader('Content-Length', document.taille_fichier);
+
+    console.log('✅ Envoi du fichier:', document.nom_fichier);
+
+    // Envoyer le fichier
+    res.sendFile(path.resolve(document.chemin_fichier));
+
+  } catch (error) {
+    console.error('❌ Erreur lors du téléchargement du document:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors du téléchargement',
+      notification: {
+        type: 'error',
+        title: 'Erreur système',
+        message: 'Impossible de télécharger le document'
+      }
+    });
+  }
+};

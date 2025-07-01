@@ -21,6 +21,7 @@ const dropAllTables = async () => {
   try {
     // Ordre de suppression important pour respecter les contraintes de clés étrangères
     await dropTable("refresh_token");
+    await dropTable("document");
     await dropTable("rendez_vous");
     await dropTable("disponibilite_medecin");
     await dropTable("patient");
@@ -200,6 +201,34 @@ const createAdministrateurTable = async () => {
   }
 };
 
+const createDocumentTable = async () => {
+  const queryText = `
+    CREATE TABLE IF NOT EXISTS document (
+      id SERIAL PRIMARY KEY,
+      patient_id INTEGER NOT NULL REFERENCES patient(utilisateur_id) ON DELETE CASCADE,
+      medecin_id INTEGER REFERENCES medecin(utilisateur_id) ON DELETE SET NULL,
+      titre VARCHAR(255) NOT NULL,
+      type_document VARCHAR(50) NOT NULL CHECK (type_document IN ('ordonnance', 'analyse', 'radio', 'consultation', 'autre')),
+      nom_fichier VARCHAR(255) NOT NULL,
+      chemin_fichier VARCHAR(500) NOT NULL,
+      type_mime VARCHAR(100) NOT NULL CHECK (type_mime IN ('application/pdf', 'image/jpeg', 'image/png')),
+      taille_fichier INTEGER NOT NULL,
+      date_creation DATE NOT NULL DEFAULT CURRENT_DATE,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
+  try {
+    await pool.query(queryText);
+    console.log("Table document créée avec succès");
+  } catch (error) {
+    console.error("Erreur lors de la création de la table document:", error);
+    throw error;
+  }
+};
+
 const createIndexes = async () => {
   const queries = [
     `CREATE INDEX IF NOT EXISTS idx_utilisateur_email ON utilisateur(email)`,
@@ -208,6 +237,10 @@ const createIndexes = async () => {
     `CREATE INDEX IF NOT EXISTS idx_rendez_vous_patient ON rendez_vous(patient_id)`,
     `CREATE INDEX IF NOT EXISTS idx_rendez_vous_medecin ON rendez_vous(medecin_id)`,
     `CREATE INDEX IF NOT EXISTS idx_disponibilite_medecin ON disponibilite_medecin(medecin_id, jour)`,
+    `CREATE INDEX IF NOT EXISTS idx_document_patient ON document(patient_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_document_medecin ON document(medecin_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_document_type ON document(type_document)`,
+    `CREATE INDEX IF NOT EXISTS idx_document_date ON document(date_creation)`,
   ];
 
   try {
@@ -234,6 +267,7 @@ const initTables = async () => {
     await createDisponibiliteMedecinTable();
     await createRendezVousTable();
     await createAdministrateurTable();
+    await createDocumentTable();
     await createIndexes();
     console.log("Initialisation des tables terminée");
   } catch (error) {
@@ -249,6 +283,7 @@ export {
   createDisponibiliteMedecinTable,
   createRendezVousTable,
   createAdministrateurTable,
+  createDocumentTable,
   createIndexes,
   dropAllTables,
   initTables,

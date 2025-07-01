@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { FaFileAlt, FaArrowLeft } from "react-icons/fa";
 import { useDocumentContext } from "../../../context/DocumentContext";
+import { httpService } from "../../../services";
 import PageWrapper from "../../../components/PageWrapper";
 
 const DocumentDetails = () => {
@@ -17,6 +18,67 @@ const DocumentDetails = () => {
   const handleBack = () => {
     clearSelectedItem();
     navigate(-1);
+  };
+
+  const handleDownload = async () => {
+    try {
+      console.log('📥 Téléchargement du document:', selectedItem);
+      
+      // Faire l'appel avec les en-têtes d'authentification
+      const response = await httpService.get(`/patient/documents/${selectedItem.id}/download`, {
+        responseType: 'blob', // Important pour les fichiers
+      });
+
+      // Récupérer le type MIME depuis les en-têtes de réponse
+      const contentType = response.headers['content-type'] || 'application/octet-stream';
+      console.log('📄 Type MIME du fichier:', contentType);
+      console.log('📄 En-têtes de réponse:', response.headers);
+
+      // Récupérer le nom de fichier depuis les en-têtes Content-Disposition si disponible
+      let fileName = selectedItem.originalFileName;
+      
+      if (!fileName) {
+        const contentDisposition = response.headers['content-disposition'];
+        if (contentDisposition) {
+          const fileNameMatch = contentDisposition.match(/filename="([^"]+)"/);
+          if (fileNameMatch) {
+            fileName = fileNameMatch[1];
+          }
+        }
+      }
+      
+      // Si toujours pas de nom de fichier, utiliser un nom par défaut avec l'extension appropriée
+      if (!fileName) {
+        const extension = contentType.includes('pdf') ? '.pdf' 
+          : contentType.includes('image/jpeg') ? '.jpg'
+          : contentType.includes('image/png') ? '.png'
+          : contentType.includes('image') ? '.jpg'
+          : '.pdf';
+        fileName = `${selectedItem.name}${extension}`;
+      }
+
+      console.log('📁 Nom de fichier final pour téléchargement:', fileName);
+
+      // Créer un lien de téléchargement avec le bon type MIME
+      const blob = new Blob([response.data], { type: contentType });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      
+      // Déclencher le téléchargement
+      document.body.appendChild(link);
+      link.click();
+      
+      // Nettoyer
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      console.log('✅ Téléchargement initié');
+    } catch (error) {
+      console.error('❌ Erreur lors du téléchargement:', error);
+      alert('Erreur lors du téléchargement du document');
+    }
   };
 
   return (
@@ -78,7 +140,7 @@ const DocumentDetails = () => {
 
               <div className="mt-4">
                 <button
-                  onClick={() => window.open(selectedItem.url, "_blank")}
+                  onClick={handleDownload}
                   className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                 >
                   Télécharger le document

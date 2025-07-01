@@ -1,14 +1,11 @@
 import React, { useState } from "react";
 
 const documentTypes = [
-  "Ordonnance",
-  "Radiographie",
-  "IRM",
-  "Scanner",
-  "Analyse",
-  "Compte-rendu",
-  "Certificat",
-  "Autre",
+  { value: "ordonnance", label: "Ordonnance" },
+  { value: "analyse", label: "Analyse" },
+  { value: "radio", label: "Radiographie" },
+  { value: "consultation", label: "Consultation" },
+  { value: "autre", label: "Autre" },
 ];
 
 /**
@@ -18,11 +15,9 @@ const documentTypes = [
  */
 const AddDocumentForm = ({ onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
-    title: "",
-    type: "",
-    date: "",
-    doctor: "",
-    hospital: "",
+    titre: "",
+    type_document: "",
+    date_creation: new Date().toISOString().split('T')[0], // Date d'aujourd'hui par défaut
     description: "",
     file: null,
   });
@@ -45,6 +40,17 @@ const AddDocumentForm = ({ onSubmit, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    console.log('📋 [FORM] Soumission du formulaire avec:', {
+      titre: formData.titre,
+      type_document: formData.type_document,
+      date_creation: formData.date_creation,
+      description: formData.description,
+      file: formData.file ? {
+        name: formData.file.name,
+        size: formData.file.size,
+        type: formData.file.type
+      } : null
+    });
     onSubmit(formData);
   };
 
@@ -61,8 +67,8 @@ const AddDocumentForm = ({ onSubmit, onCancel }) => {
           </label>
           <input
             type="text"
-            name="title"
-            value={formData.title}
+            name="titre"
+            value={formData.titre}
             onChange={handleChange}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             placeholder="Ex: Radiographie du genou"
@@ -76,16 +82,16 @@ const AddDocumentForm = ({ onSubmit, onCancel }) => {
               Type de document
             </label>
             <select
-              name="type"
-              value={formData.type}
+              name="type_document"
+              value={formData.type_document}
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               required
             >
               <option value="">Sélectionnez un type</option>
               {documentTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
+                <option key={type.value} value={type.value}>
+                  {type.label}
                 </option>
               ))}
             </select>
@@ -97,41 +103,11 @@ const AddDocumentForm = ({ onSubmit, onCancel }) => {
             </label>
             <input
               type="date"
-              name="date"
-              value={formData.date}
+              name="date_creation"
+              value={formData.date_creation}
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               required
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Médecin
-            </label>
-            <input
-              type="text"
-              name="doctor"
-              value={formData.doctor}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Nom du médecin"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Établissement
-            </label>
-            <input
-              type="text"
-              name="hospital"
-              value={formData.hospital}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Nom de l'établissement"
             />
           </div>
         </div>
@@ -157,6 +133,7 @@ const AddDocumentForm = ({ onSubmit, onCancel }) => {
           <input
             type="file"
             onChange={handleFileChange}
+            accept=".pdf,.jpg,.jpeg,.png"
             className="mt-1 block w-full text-sm text-gray-500
               file:mr-4 file:py-2 file:px-4
               file:rounded-md file:border-0
