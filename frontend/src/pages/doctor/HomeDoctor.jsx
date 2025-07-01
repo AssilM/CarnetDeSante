@@ -10,14 +10,21 @@ import {
 import Calendar from "react-calendar";
 import PageWrapper from "../../components/PageWrapper";
 import { useDoctorAppointmentContext, useAuth } from "../../context";
+import { useAppContext } from "../../context/AppContext";
 import "react-calendar/dist/Calendar.css";
 
 const HomeDoctor = () => {
   const { currentUser } = useAuth();
-  const { appointments, loading, error } = useDoctorAppointmentContext();
+  const { appointments, loading, error, cancelAppointment } =
+    useDoctorAppointmentContext();
+  const { showNotification } = useAppContext();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [upcomingAppointments, setUpcomingAppointments] = useState([]);
   const [selectedDateAppointments, setSelectedDateAppointments] = useState([]);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [showDetail, setShowDetail] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
 
   // Format date sélectionnée en YYYY-MM-DD (local, pas UTC)
   const formatDateYMD = (date) => {
@@ -123,6 +130,38 @@ const HomeDoctor = () => {
     return `${day}/${month}/${year}${time ? " à " + time : ""}`;
   };
 
+  // Fonction pour ouvrir le détail
+  const handleShowDetail = (appointment) => {
+    setSelectedAppointment(appointment);
+    setShowDetail(true);
+    setCancelError(null);
+  };
+  // Fonction pour fermer le détail
+  const handleCloseDetail = () => {
+    setShowDetail(false);
+    setSelectedAppointment(null);
+    setCancelError(null);
+  };
+  // Fonction pour annuler le rendez-vous
+  const handleCancel = async () => {
+    if (!selectedAppointment) return;
+    if (!window.confirm("Confirmer l'annulation de ce rendez-vous ?")) return;
+    setCancelLoading(true);
+    setCancelError(null);
+    try {
+      await cancelAppointment(selectedAppointment.id);
+      setShowDetail(false);
+      showNotification({
+        type: "success",
+        message: "Rendez-vous annulé avec succès !",
+      });
+    } catch {
+      setCancelError("Erreur lors de l'annulation du rendez-vous");
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
   return (
     <PageWrapper className="bg-[#F8F9FA]">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 max-w-7xl mx-auto p-6">
@@ -213,9 +252,6 @@ const HomeDoctor = () => {
                               <h3 className="font-semibold text-base text-[#343A40]">
                                 {appointment.patient.name}
                               </h3>
-                              <div className="text-xs text-[#6C757D]">
-                                ID: {appointment.patient.id}
-                              </div>
                             </div>
                           </div>
 
@@ -240,11 +276,11 @@ const HomeDoctor = () => {
                             {appointment.time}
                           </div>
                           <div className="flex space-x-2">
-                            <button className="text-[#4A90E2] hover:text-[#2E5BBA] p-2 rounded-lg hover:bg-[#E8F4FD] transition-colors">
+                            <button
+                              className="text-[#4A90E2] hover:text-[#2E5BBA] p-2 rounded-lg hover:bg-[#E8F4FD] transition-colors"
+                              onClick={() => handleShowDetail(appointment)}
+                            >
                               <FaEye />
-                            </button>
-                            <button className="text-[#4A90E2] hover:text-[#2E5BBA] p-2 rounded-lg hover:bg-[#E8F4FD] transition-colors">
-                              <FaEdit />
                             </button>
                           </div>
                         </div>
@@ -481,6 +517,48 @@ const HomeDoctor = () => {
           </div>
         </div>
       </div>
+
+      {showDetail && selectedAppointment && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+              onClick={handleCloseDetail}
+            >
+              &times;
+            </button>
+            <h2 className="text-xl font-semibold mb-4">
+              Détail du rendez-vous
+            </h2>
+            <div className="mb-2">
+              <b>Patient :</b> {selectedAppointment.patient.name}
+            </div>
+            <div className="mb-2">
+              <b>Heure :</b> {selectedAppointment.time}
+            </div>
+            <div className="mb-2">
+              <b>Motif :</b> {selectedAppointment.title}
+            </div>
+            <div className="mb-2">
+              <b>Date :</b>{" "}
+              {formatDateTimeFr(
+                selectedAppointment.dateRaw,
+                selectedAppointment.time
+              )}
+            </div>
+            {cancelError && (
+              <div className="text-red-600 mb-2">{cancelError}</div>
+            )}
+            <button
+              onClick={handleCancel}
+              disabled={cancelLoading}
+              className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+            >
+              {cancelLoading ? "Annulation..." : "Annuler le rendez-vous"}
+            </button>
+          </div>
+        </div>
+      )}
     </PageWrapper>
   );
 };

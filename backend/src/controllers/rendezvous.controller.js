@@ -129,11 +129,8 @@ export const createRendezVous = async (req, res) => {
 
   try {
     // Vérification : empêcher la prise de rendez-vous le jour même ou dans le passé
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selectedDate = new Date(date);
-    selectedDate.setHours(0, 0, 0, 0);
-    if (selectedDate.getTime() <= today.getTime()) {
+    const today = new Date().toISOString().split("T")[0];
+    if (date <= today) {
       return res.status(400).json({
         message:
           "Impossible de prendre un rendez-vous pour aujourd'hui ou une date passée.",
