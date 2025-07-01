@@ -9,15 +9,17 @@ import {
   FaInfoCircle,
   FaCheckCircle,
 } from "react-icons/fa";
-import { useAppointmentContext } from "../../../context";
+import { useAppointmentContext } from "../../../context/AppointmentContext";
+import { useAppContext } from "../../../context/AppContext";
 import PageWrapper from "../../../components/PageWrapper";
 
 const AppointmentDetails = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
-  const { selectedAppointment, cancelAppointment, getAppointmentById } =
+  const { selectedAppointment, deleteAppointment, getAppointmentById } =
     useAppointmentContext();
+  const { showNotification } = useAppContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showConfirmationMessage, setShowConfirmationMessage] = useState(false);
@@ -97,26 +99,34 @@ const AppointmentDetails = () => {
     return null;
   }
 
-  const handleBack = () => {
-    navigate(-1);
-  };
-
   // Gérer l'annulation du rendez-vous
   const handleCancelAppointment = async () => {
-    if (window.confirm("Êtes-vous sûr de vouloir annuler ce rendez-vous ?")) {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce rendez-vous ?")) {
       setLoading(true);
       setError(null);
 
       try {
-        const success = await cancelAppointment(appointment.id);
+        const success = await deleteAppointment(appointment.id);
         if (success) {
+          showNotification({
+            type: "success",
+            message: "Rendez-vous annulé avec succès !",
+          });
           navigate("/appointments?tab=past");
         } else {
-          setError("Impossible d'annuler le rendez-vous");
+          setError("Impossible de supprimer le rendez-vous");
+          showNotification({
+            type: "error",
+            message: "Impossible de supprimer le rendez-vous",
+          });
         }
       } catch (err) {
-        console.error("Erreur lors de l'annulation du rendez-vous:", err);
-        setError("Une erreur est survenue lors de l'annulation");
+        console.error("Erreur lors de la suppression du rendez-vous:", err);
+        setError("Une erreur est survenue lors de la suppression");
+        showNotification({
+          type: "error",
+          message: "Une erreur est survenue lors de la suppression",
+        });
       } finally {
         setLoading(false);
       }
@@ -124,15 +134,11 @@ const AppointmentDetails = () => {
   };
 
   // Déterminer si le rendez-vous est passé ou à venir
-  const isPast =
-    appointment.timestamp <= new Date().getTime() ||
-    appointment.status === "annulé";
-
-  // Déterminer la classe et le texte du statut
+  const isPast = appointment.timestamp < new Date().getTime();
+  const isCancelled = appointment.status === "annulé";
   let statusClass = "bg-green-100 text-green-800";
-  let statusText = "Confirmé";
-
-  if (appointment.status === "annulé") {
+  let statusText = "À venir";
+  if (isCancelled) {
     statusClass = "bg-red-100 text-red-800";
     statusText = "Annulé";
   } else if (isPast) {
@@ -140,20 +146,26 @@ const AppointmentDetails = () => {
     statusText = "Terminé";
   }
 
+  // Fonction utilitaire pour formater la date et l'heure
+  const formatDateTimeFr = (dateStr, timeStr) => {
+    if (!dateStr) return "";
+    let d;
+    try {
+      d = new Date(dateStr);
+      if (isNaN(d.getTime())) return "";
+    } catch {
+      return "";
+    }
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    let time = timeStr ? timeStr.substring(0, 5) : "";
+    return `${day}/${month}/${year}${time ? " à " + time : ""}`;
+  };
+
   return (
     <PageWrapper className="bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* En-tête avec bouton retour */}
-        <div className="mb-6">
-          <button
-            onClick={handleBack}
-            className="flex items-center text-gray-600 hover:text-gray-900"
-          >
-            <FaArrowLeft className="mr-2" />
-            Retour
-          </button>
-        </div>
-
         {/* Message de confirmation après création du rendez-vous */}
         {showConfirmationMessage && (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 flex items-center animate-fadeIn">
@@ -187,7 +199,9 @@ const AppointmentDetails = () => {
                 <h1 className="text-2xl font-semibold text-gray-900">
                   {appointment.title}
                 </h1>
-                <p className="text-gray-500">{appointment.date}</p>
+                <p className="text-gray-500">
+                  {formatDateTimeFr(appointment.date, appointment.time)}
+                </p>
               </div>
               <div
                 className={`px-3 py-1 rounded-full text-sm font-medium ${statusClass}`}
@@ -258,14 +272,14 @@ const AppointmentDetails = () => {
               <div className="flex flex-wrap gap-3">
                 {!isPast && appointment.status !== "annulé" && (
                   <>
-                    <button
+                    {/* <button
                       onClick={() =>
                         navigate(`/book-appointment/edit/${appointment.id}`)
                       }
                       className="px-4 py-2 text-sm font-medium text-primary bg-white border border-primary rounded-md hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                     >
                       Modifier
-                    </button>
+                    </button> */}
                     <button
                       onClick={handleCancelAppointment}
                       disabled={loading}
@@ -290,6 +304,22 @@ const AppointmentDetails = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Boutons de navigation */}
+        <div className="flex flex-wrap gap-3 justify-center mt-8">
+          <button
+            onClick={() => navigate("/appointments")}
+            className="px-4 py-2 text-sm font-medium text-primary bg-white border border-primary rounded-md hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+          >
+            Retour à mes rendez-vous
+          </button>
+          <button
+            onClick={() => navigate("/patient/home")}
+            className="px-4 py-2 text-sm font-medium text-primary bg-white border border-primary rounded-md hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+          >
+            Retour à l'accueil
+          </button>
         </div>
       </div>
     </PageWrapper>

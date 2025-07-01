@@ -188,7 +188,34 @@ router.get("/:id", getRendezVousById);
 // GET /api/rendez-vous - Récupérer tous les rendez-vous
 router.get("/", authorize("admin"), getAllRendezVous);
 
+// Middleware d'autorisation pour suppression par admin ou patient concerné
+const authorizeDeleteRendezVous = async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const userRole = req.userRole;
+    const rendezVousId = req.params.id;
+
+    // Si admin, autorisé
+    if (userRole === "admin") return next();
+
+    // Vérifier si le rendez-vous appartient au patient connecté
+    const query = "SELECT patient_id FROM rendez_vous WHERE id = $1";
+    const result = await pool.query(query, [rendezVousId]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Rendez-vous non trouvé" });
+    }
+    const patientId = result.rows[0].patient_id;
+    if (userRole === "patient" && Number(userId) === Number(patientId)) {
+      return next();
+    }
+    return res.status(403).json({ message: "Accès non autorisé" });
+  } catch (error) {
+    console.error("Erreur d'autorisation suppression rendez-vous:", error);
+    return res.status(500).json({ message: "Erreur serveur d'autorisation" });
+  }
+};
+
 // DELETE /api/rendez-vous/:id - Supprimer un rendez-vous
-router.delete("/:id", authorize("admin"), deleteRendezVous);
+router.delete("/:id", authorizeDeleteRendezVous, deleteRendezVous);
 
 export default router;

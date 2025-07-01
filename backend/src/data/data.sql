@@ -84,3 +84,32 @@ CREATE INDEX IF NOT EXISTS idx_rendez_vous_date ON rendez_vous(date);
 CREATE INDEX IF NOT EXISTS idx_rendez_vous_patient ON rendez_vous(patient_id);
 CREATE INDEX IF NOT EXISTS idx_rendez_vous_medecin ON rendez_vous(medecin_id);
 CREATE INDEX IF NOT EXISTS idx_disponibilites_medecin ON disponibilites_medecin(medecin_id, jour);
+
+
+INSERT INTO rendez_vous (
+  patient_id,
+  medecin_id,
+  date,
+  heure,
+  duree,
+  statut,
+  motif,
+  adresse
+) VALUES (
+  -- ID du patient (ex: 1)
+  1,
+  -- ID du médecin (ex: 2)
+  3,
+  -- Date du rendez-vous (ex: '2025-07-03')
+  '2025-07-01',
+  -- Heure du rendez-vous (ex: '08:30')
+  '19:18',
+  -- Durée en minutes (ex: 30)
+  30,
+  -- Statut (ex: 'planifié', 'confirmé', 'annulé', 'terminé')
+  'planifié',
+  -- Motif (ex: 'Consultation médicale')
+  'Consultation médicale',
+  -- Adresse (ex: '12 rue de la Santé, Paris')
+  '12 rue de la Santé, Paris'
+);
