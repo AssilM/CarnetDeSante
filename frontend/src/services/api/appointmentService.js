@@ -208,6 +208,24 @@ const createAppointmentService = (api) => {
         throw error;
       }
     },
+
+    /**
+     * Supprime un rendez-vous
+     * @param {number|string} appointmentId - ID du rendez-vous à supprimer
+     * @returns {Promise<Object>} Confirmation de la suppression
+     */
+    deleteAppointment: async (appointmentId) => {
+      try {
+        const response = await api.delete(`/rendez-vous/${appointmentId}`);
+        return response.data;
+      } catch (error) {
+        console.error(
+          `[appointmentService] Erreur lors de la suppression du rendez-vous #${appointmentId}:`,
+          error
+        );
+        throw error;
+      }
+    },
   };
 };
 

@@ -128,6 +128,15 @@ export const createRendezVous = async (req, res) => {
   });
 
   try {
+    // Vérification : empêcher la prise de rendez-vous le jour même ou dans le passé
+    const today = new Date().toISOString().split("T")[0];
+    if (date <= today) {
+      return res.status(400).json({
+        message:
+          "Impossible de prendre un rendez-vous pour aujourd'hui ou une date passée.",
+      });
+    }
+
     // Toutes les validations sont maintenant gérées par les middlewares:
     // - validateAppointmentData: vérifie que les champs requis sont présents et valides
     // - convertAppointmentTypes: convertit les types de données
@@ -425,7 +434,7 @@ export const cancelRendezVous = async (req, res) => {
   }
 };
 
-// Supprimer un rendez-vous (réservé aux administrateurs)
+// Supprimer un rendez-vous (admin ou patient concerné)
 export const deleteRendezVous = async (req, res) => {
   const { id } = req.params;
 

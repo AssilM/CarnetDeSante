@@ -11,7 +11,7 @@ const RegisterPage = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    tel_indicatif: "+33",
+    tel_indicatif: "+228",
     tel_numero: "",
     dateNaissance: "",
     sexe: "",
@@ -418,7 +418,7 @@ const RegisterPage = () => {
                             ? "border-red-500"
                             : "border-gray-300"
                         } rounded-lg focus:ring-blue-500 focus:border-blue-500`}
-                        placeholder="+33"
+                        placeholder="+228"
                       />
                       {errors.tel_indicatif && (
                         <p className="mt-1 text-red-500 text-xs">

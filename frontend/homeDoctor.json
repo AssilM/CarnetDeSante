@@ -1,0 +1,313 @@
+{
+  "designSystem": {
+    "name": "Healthcare Dashboard Design System",
+    "version": "1.0.0",
+    "description": "Clean, professional healthcare management interface with card-based layout and minimal design aesthetic"
+  },
+  "colorPalette": {
+    "primary": {
+      "blue": "#4A90E2",
+      "darkBlue": "#2E5BBA",
+      "lightBlue": "#E8F4FD"
+    },
+    "neutral": {
+      "white": "#FFFFFF",
+      "lightGray": "#F8F9FA",
+      "mediumGray": "#E9ECEF",
+      "darkGray": "#6C757D",
+      "charcoal": "#343A40"
+    },
+    "status": {
+      "urgent": "#DC3545",
+      "warning": "#FFC107",
+      "success": "#28A745",
+      "info": "#17A2B8"
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "primary": "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    },
+    "fontSizes": {
+      "xs": "12px",
+      "sm": "14px",
+      "base": "16px",
+      "lg": "18px",
+      "xl": "20px",
+      "2xl": "24px",
+      "3xl": "32px"
+    },
+    "fontWeights": {
+      "normal": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    },
+    "hierarchy": {
+      "pageTitle": {
+        "fontSize": "24px",
+        "fontWeight": 600,
+        "color": "#343A40"
+      },
+      "sectionTitle": {
+        "fontSize": "18px",
+        "fontWeight": 600,
+        "color": "#343A40"
+      },
+      "cardTitle": {
+        "fontSize": "16px",
+        "fontWeight": 500,
+        "color": "#343A40"
+      },
+      "bodyText": {
+        "fontSize": "14px",
+        "fontWeight": 400,
+        "color": "#6C757D"
+      },
+      "caption": {
+        "fontSize": "12px",
+        "fontWeight": 400,
+        "color": "#6C757D"
+      }
+    }
+  },
+  "spacing": {
+    "xs": "4px",
+    "sm": "8px",
+    "md": "16px",
+    "lg": "24px",
+    "xl": "32px",
+    "2xl": "48px",
+    "3xl": "64px"
+  },
+  "layout": {
+    "structure": {
+      "type": "sidebar-main",
+      "sidebarWidth": "240px",
+      "mainContentPadding": "24px",
+      "maxWidth": "1200px"
+    },
+    "grid": {
+      "columns": 12,
+      "gutters": "16px",
+      "cardColumns": {
+        "mobile": 1,
+        "tablet": 2,
+        "desktop": 4
+      }
+    }
+  },
+  "components": {
+    "sidebar": {
+      "backgroundColor": "#4A90E2",
+      "width": "240px",
+      "padding": "24px 16px",
+      "textColor": "#FFFFFF",
+      "navigation": {
+        "itemPadding": "12px 16px",
+        "borderRadius": "8px",
+        "hoverBackground": "rgba(255, 255, 255, 0.1)",
+        "activeBackground": "rgba(255, 255, 255, 0.2)"
+      }
+    },
+    "header": {
+      "backgroundColor": "#FFFFFF",
+      "height": "64px",
+      "padding": "0 24px",
+      "borderBottom": "1px solid #E9ECEF",
+      "elements": {
+        "searchBar": {
+          "borderRadius": "6px",
+          "border": "1px solid #E9ECEF",
+          "padding": "8px 12px"
+        },
+        "userProfile": {
+          "avatarSize": "32px",
+          "borderRadius": "50%"
+        }
+      }
+    },
+    "card": {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": "8px",
+      "border": "1px solid #E9ECEF",
+      "padding": "16px",
+      "boxShadow": "0 1px 3px rgba(0, 0, 0, 0.1)",
+      "hover": {
+        "boxShadow": "0 4px 12px rgba(0, 0, 0, 0.15)",
+        "transform": "translateY(-2px)"
+      },
+      "variants": {
+        "appointment": {
+          "minHeight": "120px",
+          "headerColor": "#4A90E2"
+        },
+        "consultation": {
+          "minHeight": "100px"
+        }
+      }
+    },
+    "badge": {
+      "borderRadius": "12px",
+      "padding": "4px 8px",
+      "fontSize": "12px",
+      "fontWeight": 500,
+      "variants": {
+        "urgent": {
+          "backgroundColor": "#DC3545",
+          "color": "#FFFFFF"
+        },
+        "pending": {
+          "backgroundColor": "#FFC107",
+          "color": "#000000"
+        },
+        "confirmed": {
+          "backgroundColor": "#28A745",
+          "color": "#FFFFFF"
+        },
+        "consultation": {
+          "backgroundColor": "#17A2B8",
+          "color": "#FFFFFF"
+        }
+      }
+    },
+    "button": {
+      "borderRadius": "6px",
+      "padding": "8px 16px",
+      "fontSize": "14px",
+      "fontWeight": 500,
+      "transition": "all 0.2s ease",
+      "variants": {
+        "primary": {
+          "backgroundColor": "#4A90E2",
+          "color": "#FFFFFF",
+          "border": "none",
+          "hover": {
+            "backgroundColor": "#2E5BBA"
+          }
+        },
+        "secondary": {
+          "backgroundColor": "transparent",
+          "color": "#4A90E2",
+          "border": "1px solid #4A90E2",
+          "hover": {
+            "backgroundColor": "#E8F4FD"
+          }
+        }
+      }
+    },
+    "calendar": {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": "8px",
+      "border": "1px solid #E9ECEF",
+      "padding": "16px",
+      "dayCell": {
+        "size": "32px",
+        "borderRadius": "4px",
+        "hover": {
+          "backgroundColor": "#E8F4FD"
+        },
+        "selected": {
+          "backgroundColor": "#4A90E2",
+          "color": "#FFFFFF"
+        }
+      }
+    },
+    "filterTabs": {
+      "backgroundColor": "transparent",
+      "borderBottom": "1px solid #E9ECEF",
+      "tab": {
+        "padding": "12px 16px",
+        "fontSize": "14px",
+        "color": "#6C757D",
+        "borderBottom": "2px solid transparent",
+        "active": {
+          "color": "#4A90E2",
+          "borderBottomColor": "#4A90E2"
+        }
+      }
+    }
+  },
+  "designPatterns": {
+    "cardGrid": {
+      "description": "Primary layout pattern for displaying data items",
+      "spacing": "16px gap between cards",
+      "responsive": "1 column mobile, 2 tablet, 4 desktop"
+    },
+    "statusIndicators": {
+      "description": "Color-coded badges and indicators for status communication",
+      "placement": "Top-right corner of cards or inline with content"
+    },
+    "contentHierarchy": {
+      "description": "Clear visual hierarchy with titles, metadata, and actions",
+      "pattern": "Title > Subtitle > Metadata > Actions"
+    },
+    "interactionStates": {
+      "hover": "Subtle elevation and shadow increase",
+      "active": "Pressed state with slight opacity reduction",
+      "focus": "Blue outline matching primary color"
+    }
+  },
+  "accessibility": {
+    "colorContrast": {
+      "primary": "WCAG AA compliant (4.5:1 minimum)",
+      "secondary": "WCAG AAA preferred (7:1)"
+    },
+    "focusIndicators": {
+      "outline": "2px solid #4A90E2",
+      "offset": "2px"
+    },
+    "semanticColors": {
+      "error": "#DC3545",
+      "warning": "#FFC107",
+      "success": "#28A745",
+      "info": "#17A2B8"
+    }
+  },
+  "animations": {
+    "transitions": {
+      "default": "all 0.2s ease",
+      "slow": "all 0.3s ease",
+      "fast": "all 0.1s ease"
+    },
+    "effects": {
+      "cardHover": "transform: translateY(-2px); box-shadow elevation",
+      "buttonPress": "transform: scale(0.98)",
+      "fadeIn": "opacity transition over 0.2s"
+    }
+  },
+  "breakpoints": {
+    "mobile": "320px - 768px",
+    "tablet": "768px - 1024px",
+    "desktop": "1024px+",
+    "responsive": {
+      "sidebar": {
+        "mobile": "hidden, toggle overlay",
+        "tablet": "collapsed icons only",
+        "desktop": "full width"
+      },
+      "cards": {
+        "mobile": "1 column, full width",
+        "tablet": "2 columns",
+        "desktop": "4 columns"
+      }
+    }
+  },
+  "usageGuidelines": {
+    "cardContent": {
+      "maxLines": 3,
+      "truncation": "ellipsis after 2 lines for descriptions",
+      "imageAspectRatio": "16:9 or 1:1 for avatars"
+    },
+    "navigation": {
+      "maxDepth": 2,
+      "activeIndicator": "background color change",
+      "iconSize": "20px"
+    },
+    "dataDisplay": {
+      "dateFormat": "DD.MM.YYYY",
+      "timeFormat": "HH:MM",
+      "numbersAlignment": "right-aligned in tables"
+    }
+  }
+}

@@ -70,9 +70,14 @@ export const DoctorAppointmentProvider = ({ children }) => {
               heurePart = appointment.heure.substring(0, 5);
             }
             if (datePart && heurePart) {
-              timestamp = new Date(datePart + "T" + heurePart).getTime();
+              // Ajouter le fuseau horaire local pour éviter le décalage UTC
+              const localDate = new Date(datePart + "T" + heurePart);
+              const offset = localDate.getTimezoneOffset() * 60000;
+              timestamp = localDate.getTime() + offset;
             } else if (appointment.date) {
-              timestamp = new Date(appointment.date).getTime();
+              const localDate = new Date(appointment.date);
+              const offset = localDate.getTimezoneOffset() * 60000;
+              timestamp = localDate.getTime() + offset;
             } else {
               timestamp = Date.now();
             }
@@ -245,7 +250,11 @@ export const DoctorAppointmentProvider = ({ children }) => {
         status: response.statut,
         location: response.adresse || "Cabinet médical",
         description: response.motif || "Consultation médicale",
-        timestamp: new Date(response.date + "T" + response.heure).getTime(),
+        timestamp: (() => {
+          const localDate = new Date(response.date + "T" + response.heure);
+          const offset = localDate.getTimezoneOffset() * 60000;
+          return localDate.getTime() + offset;
+        })(),
         rawData: response,
       };
 

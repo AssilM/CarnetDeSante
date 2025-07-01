@@ -157,7 +157,9 @@ const ItemsList = ({
                   }
                   date={item.date}
                   subtitle={
-                    item[itemSubtitleField] || item.doctor || item.description
+                    typeof item[itemSubtitleField] === "object"
+                      ? item[itemSubtitleField]?.name || ""
+                      : item[itemSubtitleField] || item.description || ""
                   }
                   onViewDetails={() => onViewDetails(item)}
                   detailsText={detailsText}

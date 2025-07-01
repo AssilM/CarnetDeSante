@@ -16,7 +16,7 @@ const SlotSelection = () => {
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlot, setSelectedSlot] = useState("");
-  const [availableSlots, setAvailableSlots] = useState([]);
+  const [allSlots, setAllSlots] = useState([]);
   const [availableDays, setAvailableDays] = useState([]);
   const [doctor, setDoctor] = useState(null);
   const [jourDisponibilites, setJourDisponibilites] = useState(null);
@@ -37,6 +37,7 @@ const SlotSelection = () => {
     const generateAvailableDates = async () => {
       const days = [];
       const today = new Date();
+      const todayStr = formatDateForAPI(today);
 
       // Générer les dates pour les 30 prochains jours
       for (let i = 0; i < 30; i++) {
@@ -47,13 +48,16 @@ const SlotSelection = () => {
         const formattedDate = formatDateForAPI(date);
         const dayOfWeek = getDayOfWeek(date);
 
-        days.push({
-          date: formattedDate,
-          dayName: dayOfWeek,
-          formattedDisplay: formatDateForDisplay(date),
-          dayNumber: date.getDate(),
-          month: getMonthName(date),
-        });
+        // N'ajoute la date que si elle est strictement supérieure à aujourd'hui
+        if (formattedDate > todayStr) {
+          days.push({
+            date: formattedDate,
+            dayName: dayOfWeek,
+            formattedDisplay: formatDateForDisplay(date),
+            dayNumber: date.getDate(),
+            month: getMonthName(date),
+          });
+        }
       }
 
       setAvailableDays(days);
@@ -73,12 +77,22 @@ const SlotSelection = () => {
           doctor.id,
           selectedDate
         );
-        setAvailableSlots(response.creneaux || []);
+
+        // Récupérer les créneaux disponibles depuis la réponse
+        const availableSlots = response.creneaux || [];
+
+        // Marquer tous les créneaux comme disponibles (puisqu'ils sont déjà filtrés par le backend)
+        const slotsWithStatus = availableSlots.map((slot) => ({
+          ...slot,
+          disponible: true,
+        }));
+
+        setAllSlots(slotsWithStatus);
         setJourDisponibilites(response.jour || null);
       } catch (error) {
         console.error("Erreur lors de la récupération des créneaux:", error);
         showError("Impossible de récupérer les créneaux disponibles");
-        setAvailableSlots([]);
+        setAllSlots([]);
       } finally {
         setLoading(false);
       }
@@ -144,7 +158,9 @@ const SlotSelection = () => {
 
   // Gérer la sélection d'un créneau
   const handleSlotSelection = (slot) => {
-    setSelectedSlot(slot.heure);
+    if (slot.disponible) {
+      setSelectedSlot(slot.heure);
+    }
   };
 
   // Gérer la soumission du formulaire
@@ -172,7 +188,7 @@ const SlotSelection = () => {
     const afternoon = [];
     const evening = [];
 
-    availableSlots.forEach((slot) => {
+    allSlots.forEach((slot) => {
       const hour = parseInt(slot.heure.split(":")[0], 10);
 
       if (hour < 12) {
@@ -269,7 +285,7 @@ const SlotSelection = () => {
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
                 <p className="mt-4 text-gray-600">Chargement des créneaux...</p>
               </div>
-            ) : availableSlots.length === 0 ? (
+            ) : allSlots.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <p>Aucun créneau disponible pour cette date.</p>
                 <p className="mt-2">Veuillez sélectionner une autre date.</p>
@@ -286,11 +302,15 @@ const SlotSelection = () => {
                         <button
                           key={slot.heure}
                           onClick={() => handleSlotSelection(slot)}
+                          disabled={!slot.disponible}
                           className={`p-2 rounded text-center transition-colors ${
-                            selectedSlot === slot.heure
+                            !slot.disponible
+                              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              : selectedSlot === slot.heure
                               ? "bg-blue-600 text-white"
                               : "bg-blue-50 hover:bg-blue-100 text-blue-800"
                           }`}
+                          title={!slot.disponible ? "Créneau déjà réservé" : ""}
                         >
                           {formatTimeForDisplay(slot.heure)}
                         </button>
@@ -309,11 +329,15 @@ const SlotSelection = () => {
                         <button
                           key={slot.heure}
                           onClick={() => handleSlotSelection(slot)}
+                          disabled={!slot.disponible}
                           className={`p-2 rounded text-center transition-colors ${
-                            selectedSlot === slot.heure
+                            !slot.disponible
+                              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              : selectedSlot === slot.heure
                               ? "bg-blue-600 text-white"
                               : "bg-blue-50 hover:bg-blue-100 text-blue-800"
                           }`}
+                          title={!slot.disponible ? "Créneau déjà réservé" : ""}
                         >
                           {formatTimeForDisplay(slot.heure)}
                         </button>
@@ -332,11 +356,15 @@ const SlotSelection = () => {
                         <button
                           key={slot.heure}
                           onClick={() => handleSlotSelection(slot)}
+                          disabled={!slot.disponible}
                           className={`p-2 rounded text-center transition-colors ${
-                            selectedSlot === slot.heure
+                            !slot.disponible
+                              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                              : selectedSlot === slot.heure
                               ? "bg-blue-600 text-white"
                               : "bg-blue-50 hover:bg-blue-100 text-blue-800"
                           }`}
+                          title={!slot.disponible ? "Créneau déjà réservé" : ""}
                         >
                           {formatTimeForDisplay(slot.heure)}
                         </button>
