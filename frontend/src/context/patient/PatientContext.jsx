@@ -30,7 +30,7 @@ export const PatientProvider = ({ children }) => {
   const [medicalInfo, setMedicalInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { currentUser, accessToken, refreshToken } = useAuth();
+  const { currentUser, accessToken } = useAuth();
 
   // Afficher tous les détails sur l'utilisateur connecté et décoder le token
   useEffect(() => {
@@ -70,7 +70,6 @@ export const PatientProvider = ({ children }) => {
   // Créer une instance authentifiée d'API pour les appels patients
   const authConnector = createAuthConnector({
     accessToken,
-    refreshToken,
     onTokenRefreshed: (newToken) => {
       console.log(
         "[PatientContext] Token rafraîchi:",

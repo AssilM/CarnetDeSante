@@ -19,7 +19,7 @@ const AppointmentRoutes = () => {
       <Route
         path="/appointments"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="patient">
             <MainLayout>
               <Appointments />
             </MainLayout>
@@ -29,7 +29,7 @@ const AppointmentRoutes = () => {
       <Route
         path="/appointments/details"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="patient">
             <MainLayout>
               <AppointmentDetails />
             </MainLayout>

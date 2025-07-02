@@ -37,6 +37,27 @@ export const requestLogger = (req, res, next) => {
     console.log(
       `[RESPONSE] ${logInfo.method} ${logInfo.url} ${res.statusCode} - ${duration}ms`
     );
+
+    // Log sécurité pour les accès interdits (403)
+    if (res.statusCode === 403) {
+      const securityLog = {
+        timestamp: new Date().toISOString(),
+        event: "FORBIDDEN_ACCESS",
+        status: 403,
+        method: req.method,
+        url: req.originalUrl,
+        ip: req.ip,
+        userId: req.userId || null,
+        userRole: req.userRole || null,
+      };
+      console.warn(
+        `[SECURITY] 403 Forbidden | user=${
+          securityLog.userId ?? "anonymous"
+        } role=${securityLog.userRole ?? "unknown"} | ${securityLog.method} ${
+          securityLog.url
+        } - ${securityLog.ip}`
+      );
+    }
   });
 
   next();

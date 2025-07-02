@@ -29,6 +29,9 @@ export const getAllRendezVous = async (req, res) => {
 export const getRendezVousById = async (req, res) => {
   const { id } = req.params;
 
+  const requesterId = req.userId;
+  const requesterRole = req.userRole;
+
   try {
     const query = `
       SELECT rv.id, rv.patient_id, rv.medecin_id, rv.date, rv.heure, rv.duree, rv.statut, rv.motif, rv.adresse,
@@ -47,7 +50,27 @@ export const getRendezVousById = async (req, res) => {
       return res.status(404).json({ message: "Rendez-vous non trouvé" });
     }
 
-    res.status(200).json(result.rows[0]);
+    const rdv = result.rows[0];
+
+    // Autorisation :
+    //  - admin : OK
+    //  - patient : doit être propriétaire
+    //  - medecin : doit être concerné
+    if (
+      requesterRole === "patient" &&
+      Number(requesterId) !== Number(rdv.patient_id)
+    ) {
+      return res.status(403).json({ message: "Accès non autorisé" });
+    }
+
+    if (
+      requesterRole === "medecin" &&
+      Number(requesterId) !== Number(rdv.medecin_id)
+    ) {
+      return res.status(403).json({ message: "Accès non autorisé" });
+    }
+
+    res.status(200).json(rdv);
   } catch (error) {
     console.error("Erreur lors de la récupération du rendez-vous:", error);
     res

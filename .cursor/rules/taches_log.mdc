@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- **Après chaque édition de code**, ajouter une ligne dans `taches.txt` :
+  - Format : `[DD/MM/YYYY HH:MM]  Résumé détaillé des modifications en français.`
+  - Le fichier est ignoré par Git (`.gitignore` contient `taches.txt`).
+  - Conserver l’ordre chronologique (ajouter en fin de fichier).
+

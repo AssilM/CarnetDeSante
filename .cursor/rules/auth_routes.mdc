@@ -1,0 +1,25 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- **Importer systématiquement les middlewares `authenticate` et `authorize`**
+  - Exemple : `import { authenticate, authorize } from "../middlewares/auth.middleware.js";`
+
+- **Monter `authenticate` avant toute déclaration de route protégée**
+  - Utiliser `router.use(authenticate);` en début de fichier ou avant le bloc concerné.
+
+- **Ajouter `authorize(role|roles)` sur chaque endpoint qui nécessite un rôle spécifique**
+  - Autoriser un tableau pour plusieurs rôles : `authorize(["medecin", "admin"])`
+
+- **Toujours utiliser `async/await` + `try/catch` dans les contrôleurs** (référence à la règle globale backend)
+
+```javascript
+// ✅ DO
+router.use(authenticate);
+router.get("/", authorize("admin"), getAllUsers);
+
+// ❌ DON'T
+router.get("/", getAllUsers); // pas d'authentification
+```
+

@@ -5,20 +5,19 @@ import httpService from "./httpService";
  * Crée une instance API authentifiée avec gestion automatique des tokens
  * @param {Object} options - Options de configuration
  * @param {string} options.accessToken - Token d'accès JWT
- * @param {string} options.refreshToken - Token de rafraîchissement
  * @param {Function} options.onTokenRefreshed - Callback appelé quand un token est rafraîchi
  * @param {Function} options.onSessionExpired - Callback appelé quand la session expire
  * @returns {Object} Instance axios configurée
  */
 export const createAuthConnector = ({
   accessToken,
-  refreshToken,
   onTokenRefreshed,
   onSessionExpired,
 }) => {
   // Créer une instance axios avec l'URL de base
   const apiConnector = axios.create({
     baseURL: httpService.defaults.baseURL,
+    withCredentials: true,
   });
 
   // Intercepteur pour ajouter le token à chaque requête
@@ -45,24 +44,18 @@ export const createAuthConnector = ({
         status: error.response?.status,
         url: originalRequest?.url,
         retry: !!originalRequest?._retry,
-        hasRefreshToken: !!refreshToken,
+        hasToken: !!accessToken,
         message: error.response?.data?.message || error.message,
       });
 
       // Si l'erreur est 401 et qu'on n'a pas déjà essayé de rafraîchir le token
-      if (
-        error.response?.status === 401 &&
-        !originalRequest._retry &&
-        refreshToken
-      ) {
+      if (error.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
         console.log("[Auth Connector] Tentative de rafraîchissement du token");
 
         try {
           // Demander un nouveau token avec le refresh token
-          const response = await httpService.post("/auth/refresh-token", {
-            refreshToken,
-          });
+          const response = await httpService.post("/auth/refresh-token");
 
           // Récupérer le nouveau token
           const newAccessToken = response.data.token;

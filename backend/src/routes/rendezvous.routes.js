@@ -20,6 +20,11 @@ import {
   checkDoctorExists,
 } from "../middlewares/validation/entity.middleware.js";
 import { checkDoctorAvailability } from "../middlewares/validation/availability.middleware.js";
+import {
+  restrictPatientToSelf,
+  restrictDoctorToSelf,
+  checkRendezVousOwnership,
+} from "../middlewares/ownership.middleware.js";
 import pool from "../config/db.js";
 
 const router = express.Router();
@@ -120,10 +125,18 @@ router.post("/", async (req, res) => {
 
 // Routes spécifiques avec préfixes pour éviter les conflits
 // GET /api/rendez-vous/patient/:patientId - Récupérer les rendez-vous d'un patient
-router.get("/patient/:patientId", getRendezVousByPatientId);
+router.get(
+  "/patient/:patientId",
+  restrictPatientToSelf("patientId"),
+  getRendezVousByPatientId
+);
 
 // GET /api/rendez-vous/medecin/:medecinId - Récupérer les rendez-vous d'un médecin
-router.get("/medecin/:medecinId", getRendezVousByMedecinId);
+router.get(
+  "/medecin/:medecinId",
+  restrictDoctorToSelf("medecinId"),
+  getRendezVousByMedecinId
+);
 
 // PUT /api/rendez-vous/:id/confirm - Confirmer un rendez-vous
 router.put("/:id/confirm", async (req, res) => {
@@ -168,11 +181,12 @@ router.put("/:id/confirm", async (req, res) => {
 });
 
 // PUT /api/rendez-vous/:id/annuler - Annuler un rendez-vous
-router.put("/:id/annuler", cancelRendezVous);
+router.put("/:id/annuler", checkRendezVousOwnership, cancelRendezVous);
 
 // PUT /api/rendez-vous/:id - Mettre à jour un rendez-vous
 router.put(
   "/:id",
+  checkRendezVousOwnership,
   convertAppointmentTypes,
   checkPatientExists,
   checkDoctorExists,
@@ -182,7 +196,7 @@ router.put(
 );
 
 // GET /api/rendez-vous/:id - Récupérer un rendez-vous par son ID
-router.get("/:id", getRendezVousById);
+router.get("/:id", checkRendezVousOwnership, getRendezVousById);
 
 // Routes pour les administrateurs
 // GET /api/rendez-vous - Récupérer tous les rendez-vous

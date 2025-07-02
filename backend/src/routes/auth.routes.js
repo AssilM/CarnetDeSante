@@ -20,6 +20,7 @@ const router = express.Router();
 router.post("/signup", validateRegistrationData, checkEmailUnique, signup);
 router.post("/signin", validateLoginData, signin);
 router.post("/refresh-token", refreshToken);
+router.post("/refresh", refreshToken);
 
 // Routes protégées
 router.use(authenticate);

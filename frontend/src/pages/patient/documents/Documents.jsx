@@ -10,8 +10,7 @@ import { httpService } from "../../../services";
 const Documents = () => {
   const navigate = useNavigate();
   const { currentUser, loading: authLoading } = useAuth();
-  const { selectItem, setItems, items, addItem, togglePinned } =
-    useDocumentContext();
+  const { selectItem, setItems, items, togglePinned } = useDocumentContext();
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
 
@@ -25,46 +24,50 @@ const Documents = () => {
   const submitDocument = async (formData) => {
     try {
       setLoading(true);
-      console.log('📤 Soumission du formulaire:', formData);
-      console.log('👤 Utilisateur connecté:', currentUser);
+      console.log("📤 Soumission du formulaire:", formData);
+      console.log("👤 Utilisateur connecté:", currentUser);
 
       // Créer un FormData pour l'upload de fichier
       const data = new FormData();
-      data.append('titre', formData.titre);
-      data.append('type_document', formData.type_document);
-      data.append('date_creation', formData.date_creation);
-      data.append('description', formData.description || '');
-      data.append('document', formData.file); // Le fichier
-      
+      data.append("titre", formData.titre);
+      data.append("type_document", formData.type_document);
+      data.append("date_creation", formData.date_creation);
+      data.append("description", formData.description || "");
+      data.append("document", formData.file); // Le fichier
+
       // Ajouter le patient_id (utilisateur connecté)
       // Essayons différentes propriétés de currentUser
-      const patientId = currentUser?.id || currentUser?.userId || currentUser?.user_id;
-      console.log('🔍 Patient ID trouvé:', patientId);
-      
+      const patientId =
+        currentUser?.id || currentUser?.userId || currentUser?.user_id;
+      console.log("🔍 Patient ID trouvé:", patientId);
+
       if (patientId) {
-        data.append('patient_id', patientId.toString());
+        data.append("patient_id", patientId.toString());
       } else {
-        console.error('❌ Aucun patient_id trouvé dans currentUser:', currentUser);
-        throw new Error('Utilisateur non identifié');
+        console.error(
+          "❌ Aucun patient_id trouvé dans currentUser:",
+          currentUser
+        );
+        throw new Error("Utilisateur non identifié");
       }
 
-      console.log('📤 Données à envoyer:', {
+      console.log("📤 Données à envoyer:", {
         titre: formData.titre,
         type_document: formData.type_document,
         date_creation: formData.date_creation,
         description: formData.description,
         patient_id: patientId,
-        file: formData.file?.name
+        file: formData.file?.name,
       });
 
       // Appel API
-      const response = await httpService.post('/patient/documents', data, {
+      const response = await httpService.post("/patient/documents", data, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
 
-      console.log('✅ Réponse API:', response.data);
+      console.log("✅ Réponse API:", response.data);
 
       // Afficher la notification de succès
       if (response.data.notification) {
@@ -74,17 +77,16 @@ const Documents = () => {
       // Recharger la liste des documents
       await loadDocuments();
       closeForm();
-
     } catch (error) {
-      console.error('❌ Erreur lors de l\'ajout du document:', error);
-      
+      console.error("❌ Erreur lors de l'ajout du document:", error);
+
       // Afficher la notification d'erreur
       const errorNotification = error.response?.data?.notification || {
-        type: 'error',
-        title: 'Erreur',
-        message: 'Une erreur est survenue lors de l\'ajout du document'
+        type: "error",
+        title: "Erreur",
+        message: "Une erreur est survenue lors de l'ajout du document",
       };
-      
+
       showNotification(errorNotification);
     } finally {
       setLoading(false);
@@ -103,39 +105,43 @@ const Documents = () => {
   const loadDocuments = async () => {
     try {
       if (!currentUser?.id) {
-        console.log('👤 Utilisateur non chargé, attente...');
+        console.log("👤 Utilisateur non chargé, attente...");
         return;
       }
 
-      console.log('📥 Chargement des documents depuis l\'API...');
-      const response = await httpService.get(`/patient/${currentUser.id}/documents`);
-      
-      console.log('📄 Réponse brute de l\'API:', response.data);
-      
+      console.log("📥 Chargement des documents depuis l'API...");
+      const response = await httpService.get(
+        `/patient/${currentUser.id}/documents`
+      );
+
+      console.log("📄 Réponse brute de l'API:", response.data);
+
       if (response.data.success) {
         // Convertir les documents de l'API au format attendu par le contexte
-        const documentsFormatted = response.data.documents.map(doc => ({
+        const documentsFormatted = response.data.documents.map((doc) => ({
           id: doc.id,
           name: doc.titre,
-          date: new Date(doc.date_creation).toLocaleDateString('fr-FR'),
+          date: new Date(doc.date_creation).toLocaleDateString("fr-FR"),
           type: doc.type_document,
           description: doc.description,
-          issuedBy: doc.medecin_nom ? `Dr. ${doc.medecin_nom} ${doc.medecin_prenom}` : 'Auto-ajouté',
+          issuedBy: doc.medecin_nom
+            ? `Dr. ${doc.medecin_nom} ${doc.medecin_prenom}`
+            : "Auto-ajouté",
           subtitle: doc.type_document,
           url: `/api/patient/documents/${doc.id}/download`, // URL de téléchargement
           originalFileName: doc.nom_fichier, // Nom de fichier original avec extension
           pinned: false, // TODO: implémenter la fonctionnalité d'épinglage
         }));
 
-        console.log('✅ Documents chargés:', documentsFormatted);
+        console.log("✅ Documents chargés:", documentsFormatted);
         setItems(documentsFormatted);
       }
     } catch (error) {
-      console.error('❌ Erreur lors du chargement des documents:', error);
+      console.error("❌ Erreur lors du chargement des documents:", error);
       showNotification({
-        type: 'error',
-        title: 'Erreur de chargement',
-        message: 'Impossible de charger vos documents'
+        type: "error",
+        title: "Erreur de chargement",
+        message: "Impossible de charger vos documents",
       });
     }
   };
@@ -149,7 +155,7 @@ const Documents = () => {
 
   const handleViewDetails = (document) => {
     selectItem(document);
-    navigate("/documents/details");
+    navigate(`/documents/${document.id}`);
   };
 
   const handleTogglePin = (id) => {
@@ -195,8 +201,8 @@ const Documents = () => {
       {!authLoading && !currentUser && (
         <div className="text-center py-8">
           <p className="text-red-600">Erreur : utilisateur non connecté</p>
-          <button 
-            onClick={() => navigate('/auth/login')}
+          <button
+            onClick={() => navigate("/auth/login")}
             className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
             Se connecter
@@ -209,39 +215,65 @@ const Documents = () => {
         <>
           {/* Notification */}
           {notification && (
-            <div className={`fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg ${
-              notification.type === 'success' 
-                ? 'bg-green-50 border border-green-200' 
-                : 'bg-red-50 border border-red-200'
-            }`}>
+            <div
+              className={`fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg ${
+                notification.type === "success"
+                  ? "bg-green-50 border border-green-200"
+                  : "bg-red-50 border border-red-200"
+              }`}
+            >
               <div className="flex">
                 <div className="flex-shrink-0">
-                  {notification.type === 'success' ? (
-                    <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  {notification.type === "success" ? (
+                    <svg
+                      className="h-5 w-5 text-green-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   ) : (
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    <svg
+                      className="h-5 w-5 text-red-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   )}
                 </div>
                 <div className="ml-3">
-                  <p className={`text-sm font-medium ${
-                    notification.type === 'success' ? 'text-green-800' : 'text-red-800'
-                  }`}>
+                  <p
+                    className={`text-sm font-medium ${
+                      notification.type === "success"
+                        ? "text-green-800"
+                        : "text-red-800"
+                    }`}
+                  >
                     {notification.title}
                   </p>
-                  <p className={`text-sm ${
-                    notification.type === 'success' ? 'text-green-600' : 'text-red-600'
-                  }`}>
+                  <p
+                    className={`text-sm ${
+                      notification.type === "success"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
                     {notification.message}
                   </p>
                 </div>
               </div>
             </div>
           )}
-          
+
           {/* Loading overlay */}
           {loading && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">
@@ -253,7 +285,7 @@ const Documents = () => {
               </div>
             </div>
           )}
-          
+
           {content()}
         </>
       )}

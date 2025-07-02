@@ -7,6 +7,7 @@ import RoleSelectPage from "../pages/auth/RoleSelectPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import SessionExpired from "../pages/SessionExpired";
+import Forbidden from "../pages/Forbidden";
 
 /**
  * Routes pour l'authentification
@@ -26,6 +27,7 @@ const AuthRoutes = [
     path="/session-expired"
     element={<SessionExpired />}
   />,
+  <Route key="forbidden" path="/403" element={<Forbidden />} />,
 ];
 
 export default AuthRoutes;

@@ -22,24 +22,8 @@ export const ProtectedRoute = ({ children, requiredRole }) => {
 
   // Si un rôle spécifique est requis et que l'utilisateur n'a pas ce rôle
   if (requiredRole && currentUser.role !== requiredRole) {
-    // Rediriger vers la page d'accueil appropriée en fonction du rôle de l'utilisateur
-    let redirectPath;
-
-    switch (currentUser.role) {
-      case "patient":
-        redirectPath = "/patient/home";
-        break;
-      case "medecin":
-        redirectPath = "/doctor/home";
-        break;
-      case "admin":
-        redirectPath = "/admin/home";
-        break;
-      default:
-        redirectPath = "/home";
-    }
-
-    return <Navigate to={redirectPath} replace />;
+    // Rediriger vers une page 403 dédiée
+    return <Navigate to="/403" replace />;
   }
 
   return children;

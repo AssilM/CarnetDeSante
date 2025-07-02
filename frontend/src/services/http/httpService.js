@@ -6,6 +6,7 @@ const BASE_URL = "http://localhost:5001/api";
 // Client HTTP de base sans authentification
 export const httpService = axios.create({
   baseURL: BASE_URL,
+  withCredentials: true,
 });
 
 // Ajouter un intercepteur pour ajouter automatiquement le token d'accès s'il existe
@@ -34,6 +35,12 @@ httpService.interceptors.response.use(
       message: error.response?.data?.message || error.message,
     });
 
+    if (error.response?.status === 403) {
+      // Redirige vers la page interdite
+      if (typeof window !== "undefined") {
+        window.location = "/403";
+      }
+    }
     return Promise.reject(error);
   }
 );

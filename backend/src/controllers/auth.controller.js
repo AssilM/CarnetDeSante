@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // Récupérer la durée d'expiration du token depuis les variables d'environnement (en secondes)
-const TEMPS_EXPIRATION = 6000; //Durée max d'une session en seconde
+const TEMPS_EXPIRATION = Number(process.env.ACCESS_TOKEN_EXPIRES || 900); // Durée d'expiration du token (secondes)
 console.log(`Durée d'expiration configurée: ${TEMPS_EXPIRATION} secondes`);
 
 // Créer un utilisateur (inscription)
@@ -136,6 +136,31 @@ export const signup = async (req, res) => {
       expiresIn: `${TEMPS_EXPIRATION}s`,
     });
 
+    // Générer un refresh token
+    const refreshToken = jwt.sign(
+      { id: userId },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // Définir le refresh token dans un cookie HTTP-Only sécurisé
+    res.cookie("jid", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // en production HTTPS uniquement
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
+    });
+
+    // Calculer la date d'expiration (7 jours)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    // Stocker le refresh token dans la base de données
+    await pool.query(
+      "INSERT INTO refresh_token (token, utilisateur_id, expires_at) VALUES ($1, $2, $3)",
+      [refreshToken, userId, expiresAt]
+    );
+
     res.status(201).json({
       message: "Utilisateur créé avec succès",
       token,
@@ -200,6 +225,14 @@ export const signin = async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    // Définir le refresh token dans un cookie HTTP-Only sécurisé
+    res.cookie("jid", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // en production HTTPS uniquement
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
+    });
+
     // Calculer la date d'expiration (7 jours)
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
@@ -212,7 +245,6 @@ export const signin = async (req, res) => {
 
     res.status(200).json({
       token,
-      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -230,13 +262,13 @@ export const signin = async (req, res) => {
 // Rafraîchir un token
 export const refreshToken = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
-
-    console.log("Tentative de rafraîchissement de token");
+    // Récupérer le refresh token uniquement depuis le cookie HTTP-Only
+    const refreshToken = req.cookies?.jid;
 
     if (!refreshToken) {
-      console.log("Refresh token manquant");
-      return res.status(401).json({ message: "Refresh token manquant" });
+      return res.status(401).json({
+        message: "Refresh token manquant (cookie)",
+      });
     }
 
     // Vérifier si le refresh token existe en base de données
@@ -294,7 +326,8 @@ export const refreshToken = async (req, res) => {
 // Déconnexion
 export const signout = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    // Récupérer le refresh token uniquement depuis le cookie
+    const refreshToken = req.cookies?.jid;
 
     if (refreshToken) {
       // Supprimer le refresh token
@@ -302,6 +335,13 @@ export const signout = async (req, res) => {
         refreshToken,
       ]);
     }
+
+    // Supprimer le cookie côté client
+    res.clearCookie("jid", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
 
     res.status(200).json({ message: "Déconnexion réussie" });
   } catch (error) {

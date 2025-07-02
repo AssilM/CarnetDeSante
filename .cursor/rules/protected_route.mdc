@@ -1,0 +1,35 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- **Utiliser impérativement le composant `ProtectedRoute` avec le paramètre `requiredRole`**
+  - Empêche l'accès aux pages selon le rôle stocké dans le `AuthContext`.
+  - Évite qu'une page destinée à un rôle (patient, medecin, admin) soit chargée par un autre.
+  - Exemple correct :
+    ```jsx
+    element={
+      <ProtectedRoute requiredRole="patient">
+        <MainLayout>
+          <HomePatient />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+    ```
+  - **Mauvais exemple (❌)** : `requiredRole` manquant ou incorrect.
+
+- **Règles de mise en œuvre**
+  1. Dans tous les fichiers de `frontend/src/routes/`, chaque objet `<Route>` doit encapsuler son `element` dans `ProtectedRoute`.
+  2. Le paramètre `requiredRole` doit correspondre au rôle métier cible de la page : `patient`, `medecin`, `admin`.
+  3. Les pages accessibles à plusieurs rôles peuvent omettre `requiredRole` **uniquement** si elles sont réellement communes (ex. tableau de bord générique). Dans ce cas, ajouter un commentaire `// route multi-rôle`.
+
+- **Tests recommandés**
+  - Un patient loggé tente d'accéder à `/doctor/home` → redirection vers `403` ou `landing`.
+  - Un médecin loggé accède à `/patient/home` → redirection.
+  - Un administrateur accède à tout → OK.
+
+- **Bonnes pratiques**
+  - Centraliser les layouts (`MainLayout`, `AuthLayout`, etc.) dans `element` pour éviter la duplication.
+  - Documenter par commentaire les cas où `requiredRole` est omis intentionnellement.
+  - Maintenir la cohérence : la route `/admin/*` doit toujours exiger `requiredRole="admin"`, etc.
+
