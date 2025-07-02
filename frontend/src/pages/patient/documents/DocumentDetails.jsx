@@ -7,15 +7,12 @@ import PageWrapper from "../../../components/PageWrapper";
 
 const DocumentDetails = () => {
   const navigate = useNavigate();
-const { document_id } = useParams();
-const { selectedItem, clearSelectedItem, selectItem } = useDocumentContext();
-const [documentUrl, setDocumentUrl] = useState(null);
-const [loading, setLoading] = useState(true);
-const [error, setError] = useState(null);
-const [documentType, setDocumentType] = useState(null);
-
-
-  const [loading, setLoading] = useState(false);
+  const { document_id } = useParams();
+  const { selectedItem, clearSelectedItem, selectItem } = useDocumentContext();
+  const [documentUrl, setDocumentUrl] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [documentType, setDocumentType] = useState(null);
 
   // Chargement si selectedItem absent ou non correspondant
   useEffect(() => {
@@ -80,26 +77,32 @@ const [documentType, setDocumentType] = useState(null);
     try {
       setLoading(true);
       setError(null);
-      console.log('📄 Chargement du document pour visualisation:', selectedItem.id);
-      
+      console.log(
+        "📄 Chargement du document pour visualisation:",
+        selectedItem.id
+      );
+
       // Récupérer le document avec les en-têtes d'authentification
-      const response = await httpService.get(`/patient/documents/${selectedItem.id}/view`, {
-        responseType: 'blob',
-      });
+      const response = await httpService.get(
+        `/patient/documents/${selectedItem.id}/view`,
+        {
+          responseType: "blob",
+        }
+      );
 
       // Récupérer le type MIME
-      const contentType = response.headers['content-type'] || 'application/octet-stream';
+      const contentType =
+        response.headers["content-type"] || "application/octet-stream";
       setDocumentType(contentType);
-      console.log('📄 Type MIME du document:', contentType);
+      console.log("📄 Type MIME du document:", contentType);
 
       // Créer un URL blob pour l'affichage
       const blob = new Blob([response.data], { type: contentType });
       const blobUrl = window.URL.createObjectURL(blob);
       setDocumentUrl(blobUrl);
-      
     } catch (error) {
-      console.error('❌ Erreur lors du chargement du document:', error);
-      setError('Impossible de charger le document pour la visualisation');
+      console.error("❌ Erreur lors du chargement du document:", error);
+      setError("Impossible de charger le document pour la visualisation");
     } finally {
       setLoading(false);
     }
@@ -124,18 +127,18 @@ const [documentType, setDocumentType] = useState(null);
       console.log("📥 Téléchargement du document:", selectedItem);
 
       // Faire l'appel avec les en-têtes d'authentification
-const response = await httpService.get(
-  `/patient/documents/${selectedItem.id}/download`,
-  {
-    responseType: "blob", // Important pour les fichiers
-  }
-);
+      const response = await httpService.get(
+        `/patient/documents/${selectedItem.id}/download`,
+        {
+          responseType: "blob", // Important pour les fichiers
+        }
+      );
 
-// Récupérer le type MIME depuis les en-têtes de réponse
-const contentType =
-  response.headers["content-type"] || "application/octet-stream";
-console.log("📄 Type MIME du fichier:", contentType);
-console.log("📄 En-têtes de réponse:", response.headers);
+      // Récupérer le type MIME depuis les en-têtes de réponse
+      const contentType =
+        response.headers["content-type"] || "application/octet-stream";
+      console.log("📄 Type MIME du fichier:", contentType);
+      console.log("📄 En-têtes de réponse:", response.headers);
       // Récupérer le nom de fichier depuis les en-têtes Content-Disposition si disponible
       let fileName = selectedItem.originalFileName;
 
@@ -148,24 +151,24 @@ console.log("📄 En-têtes de réponse:", response.headers);
           }
         }
       }
-// Si toujours pas de nom de fichier, utiliser un nom par défaut avec l'extension appropriée
-if (!fileName) {
-  const extension = contentType.includes("pdf")
-    ? ".pdf"
-    : contentType.includes("image/jpeg")
-    ? ".jpg"
-    : contentType.includes("image/png")
-    ? ".png"
-    : contentType.includes("image")
-    ? ".jpg"
-    : ".pdf";
-  fileName = `${selectedItem.name}${extension}`;
-}
+      // Si toujours pas de nom de fichier, utiliser un nom par défaut avec l'extension appropriée
+      if (!fileName) {
+        const extension = contentType.includes("pdf")
+          ? ".pdf"
+          : contentType.includes("image/jpeg")
+          ? ".jpg"
+          : contentType.includes("image/png")
+          ? ".png"
+          : contentType.includes("image")
+          ? ".jpg"
+          : ".pdf";
+        fileName = `${selectedItem.name}${extension}`;
+      }
 
-console.log("📁 Nom de fichier final pour téléchargement:", fileName);
+      console.log("📁 Nom de fichier final pour téléchargement:", fileName);
 
-// Créer un lien de téléchargement avec le bon type MIME
-const blob = new Blob([response.data], { type: contentType });
+      // Créer un lien de téléchargement avec le bon type MIME
+      const blob = new Blob([response.data], { type: contentType });
 
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -208,7 +211,7 @@ const blob = new Blob([response.data], { type: contentType });
               <FaFileAlt className="text-6xl mx-auto mb-2" />
             </div>
             <p className="text-red-600 font-medium">{error}</p>
-            <button 
+            <button
               onClick={loadDocument}
               className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
@@ -231,7 +234,7 @@ const blob = new Blob([response.data], { type: contentType });
     }
 
     // Rendu selon le type de document
-    if (documentType.includes('pdf')) {
+    if (documentType.includes("pdf")) {
       return (
         <div className="w-full h-screen max-h-[80vh]">
           <iframe
@@ -240,8 +243,11 @@ const blob = new Blob([response.data], { type: contentType });
             title={`Document: ${selectedItem.name}`}
           >
             <p>
-              Votre navigateur ne supporte pas l'affichage des PDF. 
-              <button onClick={handleDownload} className="text-blue-600 underline ml-2">
+              Votre navigateur ne supporte pas l'affichage des PDF.
+              <button
+                onClick={handleDownload}
+                className="text-blue-600 underline ml-2"
+              >
                 Télécharger le document
               </button>
             </p>
@@ -250,14 +256,14 @@ const blob = new Blob([response.data], { type: contentType });
       );
     }
 
-    if (documentType.includes('image/')) {
+    if (documentType.includes("image/")) {
       return (
         <div className="flex justify-center">
           <img
             src={documentUrl}
             alt={selectedItem.name}
             className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-sm"
-            onError={() => setError('Impossible de charger l\'image')}
+            onError={() => setError("Impossible de charger l'image")}
           />
         </div>
       );
@@ -271,7 +277,7 @@ const blob = new Blob([response.data], { type: contentType });
           <p className="text-gray-600 mb-4">
             Aperçu non disponible pour ce type de fichier
           </p>
-          <button 
+          <button
             onClick={handleDownload}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center mx-auto"
           >
@@ -295,7 +301,7 @@ const blob = new Blob([response.data], { type: contentType });
             <FaArrowLeft className="mr-2" />
             Retour
           </button>
-          
+
           <button
             onClick={handleDownload}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
@@ -340,9 +346,7 @@ const blob = new Blob([response.data], { type: contentType });
               </div>
 
               <div>
-                <h2 className="text-sm font-medium text-gray-500 mb-1">
-                  Date
-                </h2>
+                <h2 className="text-sm font-medium text-gray-500 mb-1">Date</h2>
                 <p className="text-gray-900">{selectedItem.date}</p>
               </div>
 
@@ -359,7 +363,9 @@ const blob = new Blob([response.data], { type: contentType });
 
           {/* Aperçu du document */}
           <div className="p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Aperçu du document</h2>
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              Aperçu du document
+            </h2>
             {renderDocumentContent()}
           </div>
         </div>
