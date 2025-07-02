@@ -46,3 +46,4 @@ alwaysApply: true
   - Médecin A récupère sa disponibilité → `200`.
   - Admin accède à toute ressource → `200`.
 
+

@@ -155,4 +155,10 @@ tasks/
 # Roadmap
 roadmap.txt
 
-taches.txt 
+taches.txt
+
+# Cursor (rules, metadata)
+.cursor/
+
+# Taskmaster files
+.taskmaster/ 
