@@ -7,6 +7,11 @@ import {
   getCreneauxDisponibles,
 } from "../controllers/disponibilite.controller.js";
 import { authenticate, authorize } from "../middlewares/auth.middleware.js";
+import {
+  checkDoctorBodyOwnership,
+  restrictDoctorToSelf,
+  checkDisponibiliteOwnership,
+} from "../middlewares/ownership.middleware.js";
 
 const router = express.Router();
 
@@ -21,12 +26,27 @@ router.get("/medecin/:medecinId/creneaux", getCreneauxDisponibles);
 router.use(authenticate);
 
 // POST /api/disponibilites - Créer une nouvelle disponibilité
-router.post("/", authorize(["medecin", "admin"]), createDisponibilite);
+router.post(
+  "/",
+  authorize(["medecin", "admin"]),
+  checkDoctorBodyOwnership(),
+  createDisponibilite
+);
 
 // PUT /api/disponibilites/:id - Mettre à jour une disponibilité
-router.put("/:id", authorize(["medecin", "admin"]), updateDisponibilite);
+router.put(
+  "/:id",
+  authorize(["medecin", "admin"]),
+  checkDisponibiliteOwnership,
+  updateDisponibilite
+);
 
 // DELETE /api/disponibilites/:id - Supprimer une disponibilité
-router.delete("/:id", authorize(["medecin", "admin"]), deleteDisponibilite);
+router.delete(
+  "/:id",
+  authorize(["medecin", "admin"]),
+  checkDisponibiliteOwnership,
+  deleteDisponibilite
+);
 
 export default router;

@@ -1,0 +1,22 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- **Pour chaque lecture ou modification d'une ressource dépendant d'un `id` utilisateur**
+  - Récupérer `req.userId` et `req.userRole` injectés par `authenticate`.
+  - Si rôle `admin` → OK.
+  - Sinon vérifier que l'id dans la ressource = `req.userId` (ou autre logique équivalente : médecin propriétaire, etc.).
+  - Retourner `403` si la condition échoue.
+
+```javascript
+// ✅ DO
+if (req.userRole !== "admin" && Number(req.userId) !== Number(resource.user_id)) {
+  return res.status(403).json({ message: "Accès non autorisé" });
+}
+
+// ❌ DON'T
+// retourner directement la ressource sans aucun contrôle de propriété
+return res.json(resource);
+```
+

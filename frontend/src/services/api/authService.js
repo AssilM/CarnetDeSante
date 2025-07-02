@@ -21,10 +21,10 @@ const authService = {
       });
       console.log("[Auth Service] Connexion réussie", {
         hasToken: !!response.data.token,
-        hasRefreshToken: !!response.data.refreshToken,
         hasUser: !!response.data.user,
       });
-      return response.data;
+      const { token, user } = response.data;
+      return { token, user };
     } catch (error) {
       console.error("[Auth Service] Erreur lors de la connexion:", error);
       throw error;
@@ -51,18 +51,13 @@ const authService = {
 
   /**
    * Déconnecte l'utilisateur courant
-   * @param {string} refreshToken - Token de rafraîchissement à invalider
    * @returns {Promise<void>}
    */
-  logout: async (refreshToken) => {
-    console.log("[Auth Service] Tentative de déconnexion", {
-      hasRefreshToken: !!refreshToken,
-    });
-
-    if (!refreshToken) return;
+  logout: async () => {
+    console.log("[Auth Service] Tentative de déconnexion");
 
     try {
-      await httpService.post("/auth/signout", { refreshToken });
+      await httpService.post("/auth/signout");
       console.log("[Auth Service] Déconnexion réussie");
     } catch (error) {
       console.error("[Auth Service] Erreur lors de la déconnexion:", error);
@@ -72,16 +67,13 @@ const authService = {
 
   /**
    * Rafraîchit le token d'accès
-   * @param {string} refreshToken - Token de rafraîchissement
    * @returns {Promise<Object>} Nouveau token d'accès
    */
-  refreshToken: async (refreshToken) => {
+  refreshToken: async () => {
     console.log("[Auth Service] Tentative de rafraîchissement du token");
 
     try {
-      const response = await httpService.post("/auth/refresh-token", {
-        refreshToken,
-      });
+      const response = await httpService.post("/auth/refresh-token");
       console.log("[Auth Service] Token rafraîchi avec succès");
       return response.data;
     } catch (error) {

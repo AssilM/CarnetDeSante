@@ -1,0 +1,27 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Règles pour le Frontend (React & Tailwind CSS)
+
+## 1. Structure des Composants
+- Chaque composant doit être dans son propre dossier (ex: `components/Navbar/`).
+- Le dossier doit contenir au minimum `index.jsx` pour la logique et peut contenir un fichier de style (`style.css` ou `.scss`).
+- Privilégier les composants fonctionnels avec des Hooks.
+
+## 2. Gestion de l'État
+- Utiliser l'API React Context pour l'état global partagé (utilisateur authentifié, rôle, etc.).
+- Pour l'état local d'un composant, utiliser `useState` et `useEffect`.
+- Ne pas mettre de logique métier complexe dans les composants. La déporter dans les services.
+
+## 3. Communication avec l'API
+- Tous les appels à l'API backend doivent passer par les fonctions définies dans `frontend/src/services/`.
+- Utiliser un intercepteur (avec Axios par exemple) pour joindre automatiquement le token JWT à chaque requête.
+- Gérer les erreurs (ex: token expiré) de manière centralisée pour rediriger vers la page de connexion si besoin.
+
+## 4. Style avec Tailwind CSS
+- Utiliser les classes utilitaires de Tailwind directement dans le JSX.
+- Éviter d'écrire du CSS personnalisé. Si un style complexe est nécessaire, le regrouper dans des composants ou l'extraire dans un fichier CSS dédié si absolument nécessaire.
+- Suivre les conventions de nommage et de design system de Tailwind (espacements `p-4`, `m-2`, couleurs `bg-blue-500`, etc.).
+

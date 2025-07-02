@@ -18,7 +18,7 @@ const SettingsRoutes = () => {
       <Route
         path="/settings"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="patient">
             <MainLayout>
               <Settings />
             </MainLayout>
@@ -28,7 +28,7 @@ const SettingsRoutes = () => {
       <Route
         path="/settings/edit-email"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="patient">
             <MainLayout>
               <EditEmail />
             </MainLayout>
@@ -38,7 +38,7 @@ const SettingsRoutes = () => {
       <Route
         path="/settings/edit-phone"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="patient">
             <MainLayout>
               <EditPhone />
             </MainLayout>
@@ -48,7 +48,7 @@ const SettingsRoutes = () => {
       <Route
         path="/settings/edit-password"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="patient">
             <MainLayout>
               <EditPassword />
             </MainLayout>
@@ -58,7 +58,7 @@ const SettingsRoutes = () => {
       <Route
         path="/settings/edit-address"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="patient">
             <MainLayout>
               <EditAddress />
             </MainLayout>

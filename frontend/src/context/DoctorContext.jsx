@@ -18,7 +18,7 @@ export const DoctorProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [doctorProfile, setDoctorProfile] = useState(null);
-  const { currentUser, accessToken, refreshToken, testExpireToken } = useAuth();
+  const { currentUser, accessToken, testExpireToken } = useAuth();
 
   // Créer une instance du service docteur
   const [doctorService, setDoctorService] = useState(null);
@@ -29,14 +29,13 @@ export const DoctorProvider = ({ children }) => {
       console.log("[DoctorContext] Création d'une API authentifiée");
       const authenticatedApi = createAuthConnector({
         accessToken,
-        refreshToken,
         onSessionExpired: testExpireToken,
       });
       setDoctorService(createDoctorService(authenticatedApi));
     } else {
       setDoctorService(null);
     }
-  }, [accessToken, refreshToken, testExpireToken]);
+  }, [accessToken, testExpireToken]);
 
   // État pour stocker les spécialités disponibles
   const [specialties, setSpecialties] = useState([]);

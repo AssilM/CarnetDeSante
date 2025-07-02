@@ -18,11 +18,9 @@ let SESSION_EXPIRED = false;
 // Modifiez cette valeur pour changer le temps d'expiration
 // Cette valeur doit correspondre à celle du backend (TEMPS_EXPIRATION)
 // =====================================================
-const TEMPS_EXPIRATION = 6000;
-// =====================================================
 
 // Durée d'inactivité avant déconnexion (en secondes)
-const INACTIVITY_TIMEOUT = TEMPS_EXPIRATION;
+const INACTIVITY_TIMEOUT = Number(import.meta.env.VITE_ACCESS_EXP || 900);
 
 const AuthContext = createContext();
 
@@ -30,9 +28,6 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [accessToken, setAccessToken] = useState(
     localStorage.getItem("accessToken") || null
-  );
-  const [refreshToken, setRefreshToken] = useState(
-    localStorage.getItem("refreshToken") || null
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -50,7 +45,6 @@ export const AuthProvider = ({ children }) => {
 
     // Nettoyer les données de session
     localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
 
     // Marquer la session comme expirée
     SESSION_EXPIRED = true;
@@ -98,17 +92,13 @@ export const AuthProvider = ({ children }) => {
         }
 
         // Appeler l'API de déconnexion si possible
-        if (refreshToken) {
-          await authService.logout(refreshToken).catch(() => {
-            console.log("[AuthContext] Erreur lors de la déconnexion API");
-          });
-        }
+        await authService.logout().catch(() => {
+          console.log("[AuthContext] Erreur lors de la déconnexion API");
+        });
       } finally {
         // Nettoyer les données de session
         localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
         setAccessToken(null);
-        setRefreshToken(null);
         setCurrentUser(null);
 
         // Si la session a expiré, rediriger vers la page de session expirée
@@ -119,7 +109,7 @@ export const AuthProvider = ({ children }) => {
         }
       }
     },
-    [refreshToken, navigate, testExpireToken]
+    [navigate, testExpireToken]
   );
 
   // Vérifier si l'utilisateur est déjà connecté au chargement
@@ -127,7 +117,6 @@ export const AuthProvider = ({ children }) => {
     const verifyToken = async () => {
       console.log("[AuthContext] Vérification des tokens au chargement", {
         hasAccessToken: !!accessToken,
-        hasRefreshToken: !!refreshToken,
         isSessionExpired: SESSION_EXPIRED,
       });
 
@@ -137,7 +126,7 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      if (!accessToken || !refreshToken) {
+      if (!accessToken) {
         setLoading(false);
         return;
       }
@@ -163,12 +152,7 @@ export const AuthProvider = ({ children }) => {
         // Si le token est invalide, essayer de le rafraîchir
         try {
           console.log("[AuthContext] Tentative de rafraîchissement du token");
-          const refreshResponse = await httpService.post(
-            "/auth/refresh-token",
-            {
-              refreshToken,
-            }
-          );
+          const refreshResponse = await httpService.post("/auth/refresh-token");
 
           console.log("[AuthContext] Token rafraîchi avec succès");
           setAccessToken(refreshResponse.data.token);
@@ -200,7 +184,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     verifyToken();
-  }, [accessToken, refreshToken, autoLogout, testExpireToken]);
+  }, [accessToken, autoLogout, testExpireToken]);
 
   // Ajouter des écouteurs d'événements pour détecter l'activité de l'utilisateur
   useEffect(() => {
@@ -257,17 +241,14 @@ export const AuthProvider = ({ children }) => {
       const authData = await authService.login(email, password);
       console.log("[AuthContext] Connexion réussie", {
         hasToken: !!authData.token,
-        hasRefreshToken: !!authData.refreshToken,
         user: authData.user,
       });
 
-      const { token, refreshToken: newRefreshToken, user } = authData;
+      const { token, user } = authData;
 
       // Stocker les tokens et les informations utilisateur
       localStorage.setItem("accessToken", token);
-      localStorage.setItem("refreshToken", newRefreshToken);
       setAccessToken(token);
-      setRefreshToken(newRefreshToken);
       setCurrentUser(user);
 
       // Initialiser le timer d'inactivité
@@ -330,7 +311,6 @@ export const AuthProvider = ({ children }) => {
   const value = {
     currentUser,
     accessToken,
-    refreshToken,
     loading,
     error,
     login,

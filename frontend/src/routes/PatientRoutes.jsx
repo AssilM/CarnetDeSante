@@ -97,7 +97,7 @@ const PatientRoutes = [
   />,
   <Route
     key="documents-details"
-    path="/documents/details"
+    path="/documents/:document_id"
     element={
       <ProtectedRoute>
         <MainLayout>

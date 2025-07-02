@@ -1,0 +1,49 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- **Toujours empêcher l'accès à des ressources appartenant à un autre utilisateur**
+  - **Middlewares disponibles :**
+    - `restrictPatientToSelf(...paramNames)` : vérifie que l'ID patient présent dans l'URL correspond à `req.userId` (sauf rôles `admin` ou `medecin`).
+    - `restrictDoctorToSelf(...paramNames)` : même logique pour les médecins (sauf rôle `admin`).
+    - `checkDocumentOwnership` : s'assure qu'un document appartient au patient dans l'URL.
+    - `checkRendezVousOwnership` : vérifie qu'un rendez-vous appartient au patient OU au médecin connecté.
+    - `checkDisponibiliteOwnership` : vérifie qu'une disponibilité appartient au médecin connecté.
+    - `checkDoctorBodyOwnership(field?)` : pour les requêtes POST/PUT où l'id médecin est dans le body.
+  - **Ordre d'application recommandé :** `authenticate` → `authorize` → **middleware(s) de propriété** → contrôleur.
+  - **Paramètres courants :**
+    - `id`, `patientId`, `patient_id` → ressources patient.
+    - `medecinId`, `medecin_id` → ressources médecin.
+    - `document_id`, `rendezvous_id`, `id` (rendez-vous), `id` (disponibilité).
+
+- **Examples (Good)**
+  ```javascript
+  // Patient ne peut voir que ses propres rendez-vous
+  router.get(
+    "/patient/:patientId",
+    authorize(["medecin", "admin", "patient"]),
+    restrictPatientToSelf("patientId"),
+    getRendezVousByPatientId
+  );
+
+  // Médecin ne peut modifier que ses disponibilités
+  router.put(
+    "/:id",
+    authorize(["medecin", "admin"]),
+    checkDisponibiliteOwnership,
+    updateDisponibilite
+  );
+  ```
+
+- **Fail-closed**
+  - Si le rôle n'est pas reconnu ou que la propriété ne correspond pas → `403`.
+  - Les administrateurs (`admin`) ne sont jamais bloqués.
+
+- **Tests recommandés**
+  - Patient A essaye de récupérer/mettre à jour la ressource du patient B → `403`.
+  - Médecin A essaye de supprimer la disponibilité du médecin B → `403`.
+  - Médecin A récupère sa disponibilité → `200`.
+  - Admin accède à toute ressource → `200`.
+
+
