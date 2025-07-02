@@ -14,6 +14,7 @@ import {
   getDocument,
   deleteDocument,
   downloadDocument,
+  viewDocument,
 } from "../controllers/patient.controller.js";
 import { authenticate, authorize } from "../middlewares/auth.middleware.js";
 import { uploadDocument } from "../middlewares/upload.middleware.js";
@@ -102,6 +103,9 @@ router.get(
   checkDocumentOwnership,
   getDocument
 );
+
+// GET /api/patient/documents/:document_id/view - Visualiser un fichier de document dans le navigateur
+router.get("/documents/:document_id/view", authorize(["patient", "medecin", "admin"]), viewDocument);
 
 // GET /api/patient/documents/:document_id/download - Télécharger un fichier de document
 router.get(

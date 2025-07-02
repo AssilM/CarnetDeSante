@@ -608,8 +608,7 @@ const RegisterPage = () => {
                     >
                       Spécialité *
                     </label>
-                    <input
-                      type="text"
+                    <select
                       id="specialite"
                       name="specialite"
                       value={formData.specialite}
@@ -617,8 +616,38 @@ const RegisterPage = () => {
                       className={`w-full px-4 py-2 border ${
                         errors.specialite ? "border-red-500" : "border-gray-300"
                       } rounded-lg focus:ring-blue-500 focus:border-blue-500`}
-                      placeholder="Votre spécialité médicale"
-                    />
+                    >
+                      <option value="">Sélectionnez votre spécialité</option>
+                      <option value="Médecine générale">Médecine générale</option>
+                      <option value="Cardiologie">Cardiologie</option>
+                      <option value="Dermatologie">Dermatologie</option>
+                      <option value="Endocrinologie">Endocrinologie</option>
+                      <option value="Gastro-entérologie">Gastro-entérologie</option>
+                      <option value="Gynécologie">Gynécologie</option>
+                      <option value="Neurologie">Neurologie</option>
+                      <option value="Oncologie">Oncologie</option>
+                      <option value="Ophtalmologie">Ophtalmologie</option>
+                      <option value="ORL">ORL (Oto-rhino-laryngologie)</option>
+                      <option value="Orthopédie">Orthopédie</option>
+                      <option value="Pédiatrie">Pédiatrie</option>
+                      <option value="Pneumologie">Pneumologie</option>
+                      <option value="Psychiatrie">Psychiatrie</option>
+                      <option value="Radiologie">Radiologie</option>
+                      <option value="Rhumatologie">Rhumatologie</option>
+                      <option value="Urologie">Urologie</option>
+                      <option value="Anesthésie-Réanimation">Anesthésie-Réanimation</option>
+                      <option value="Chirurgie générale">Chirurgie générale</option>
+                      <option value="Chirurgie cardiaque">Chirurgie cardiaque</option>
+                      <option value="Chirurgie orthopédique">Chirurgie orthopédique</option>
+                      <option value="Chirurgie plastique">Chirurgie plastique</option>
+                      <option value="Médecine d'urgence">Médecine d'urgence</option>
+                      <option value="Médecine du travail">Médecine du travail</option>
+                      <option value="Médecine du sport">Médecine du sport</option>
+                      <option value="Gériatrie">Gériatrie</option>
+                      <option value="Infectiologie">Infectiologie</option>
+                      <option value="Néphrologie">Néphrologie</option>
+                      <option value="Autre">Autre spécialité</option>
+                    </select>
                     {errors.specialite && (
                       <p className="mt-1 text-red-500 text-sm">
                         {errors.specialite}
