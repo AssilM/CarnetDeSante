@@ -842,3 +842,85 @@ export const downloadDocument = async (req, res) => {
     });
   }
 };
+
+// Visualiser/servir un fichier de document dans le navigateur
+export const viewDocument = async (req, res) => {
+  try {
+    const { document_id } = req.params;
+    console.log('👁️ Visualisation du document:', document_id);
+
+    // Récupérer les informations du document
+    const query = 'SELECT * FROM document WHERE id = $1';
+    const result = await pool.query(query, [document_id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document non trouvé',
+        notification: {
+          type: 'error',
+          title: 'Document introuvable',
+          message: 'Le document demandé n\'existe pas'
+        }
+      });
+    }
+
+    const document = result.rows[0];
+
+    // Vérification des autorisations
+    if (req.userRole === 'patient' && req.userId !== document.patient_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Accès non autorisé',
+        notification: {
+          type: 'error',
+          title: 'Accès refusé',
+          message: 'Vous ne pouvez visualiser que vos propres documents'
+        }
+      });
+    }
+
+    // Vérifier que le fichier existe
+    const fs = await import('fs');
+    const path = await import('path');
+    
+    if (!fs.existsSync(document.chemin_fichier)) {
+      console.error('❌ Fichier physique non trouvé:', document.chemin_fichier);
+      return res.status(404).json({
+        success: false,
+        message: 'Fichier non trouvé sur le serveur',
+        notification: {
+          type: 'error',
+          title: 'Fichier manquant',
+          message: 'Le fichier n\'existe plus sur le serveur'
+        }
+      });
+    }
+
+    // Définir les en-têtes pour la visualisation inline
+    res.setHeader('Content-Type', document.type_mime);
+    res.setHeader('Content-Disposition', `inline; filename="${document.nom_fichier}"`);
+    res.setHeader('Content-Length', document.taille_fichier);
+    
+    // Headers supplémentaires pour la sécurité et la mise en cache
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, max-age=3600'); // Cache 1 heure
+
+    console.log('✅ Visualisation du fichier:', document.nom_fichier);
+
+    // Envoyer le fichier pour visualisation
+    res.sendFile(path.resolve(document.chemin_fichier));
+
+  } catch (error) {
+    console.error('❌ Erreur lors de la visualisation du document:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la visualisation',
+      notification: {
+        type: 'error',
+        title: 'Erreur système',
+        message: 'Impossible de visualiser le document'
+      }
+    });
+  }
+};
