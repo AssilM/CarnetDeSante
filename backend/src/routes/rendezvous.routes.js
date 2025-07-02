@@ -32,96 +32,42 @@ const router = express.Router();
 // Routes protégées
 router.use(authenticate);
 
-// Route simplifiée pour la création de rendez-vous (pour déboguer)
-router.post("/", async (req, res) => {
-  try {
-    console.log("[DEBUG] Requête de création de rendez-vous reçue:", req.body);
+// -----------------------------------------------------------------------------
+// GET /api/rendez-vous/check-availability
+// Vérifie si un créneau est disponible sans créer de rendez-vous.
+// Requiert : medecin_id, date (YYYY-MM-DD), heure (HH:MM ou HH:MM:SS)
+// Retour : { disponible: true } ou erreur 400 avec message explicite
+// -----------------------------------------------------------------------------
 
-    const {
-      patient_id,
-      medecin_id,
-      date,
-      heure,
-      duree = 30,
-      motif,
-      adresse,
-    } = req.body;
-
-    // Vérification manuelle des champs obligatoires
-    if (!patient_id || !medecin_id || !date || !heure) {
-      console.log("[DEBUG] Champs obligatoires manquants");
-      return res.status(400).json({
-        message: "Les champs patient_id, medecin_id, date et heure sont requis",
-      });
-    }
-
-    // Conversion des types
-    const patientId = Number(patient_id);
-    const medecinId = Number(medecin_id);
-    const dureeValue = Number(duree);
-
-    console.log("[DEBUG] Données après conversion:", {
-      patientId,
-      medecinId,
-      date,
-      heure,
-      dureeValue,
-      motif,
-      adresse,
-    });
-
-    // Insérer directement dans la base de données
-    const insertQuery = `
-      INSERT INTO rendez_vous (patient_id, medecin_id, date, heure, duree, motif, adresse)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, patient_id, medecin_id, date, heure, duree, statut, motif, adresse
-    `;
-
-    console.log("[DEBUG] Exécution de la requête d'insertion");
-
-    const insertResult = await pool.query(insertQuery, [
-      patientId,
-      medecinId,
-      date,
-      heure,
-      dureeValue,
-      motif || null,
-      adresse || null,
-    ]);
-
-    console.log("[DEBUG] Rendez-vous créé avec succès:", insertResult.rows[0]);
-    res.status(201).json(insertResult.rows[0]);
-  } catch (error) {
-    console.error("[DEBUG] Erreur lors de la création du rendez-vous:", error);
-    console.error("[DEBUG] Message d'erreur:", error.message);
-    console.error("[DEBUG] Stack trace:", error.stack);
-
-    // Gestion spécifique des erreurs PostgreSQL
-    if (error.code) {
-      console.error("[DEBUG] Code d'erreur PostgreSQL:", error.code);
-
-      if (error.code === "23503") {
-        return res.status(400).json({
-          message:
-            "Erreur de référence: un des identifiants (patient ou médecin) n'existe pas",
-          detail: error.detail,
-        });
-      }
-
-      if (error.code === "23505") {
-        return res.status(400).json({
-          message: "Ce rendez-vous existe déjà",
-          detail: error.detail,
-        });
-      }
-    }
-
-    res.status(500).json({
-      message: "Erreur lors de la création du rendez-vous",
-      error: error.message,
-    });
+router.get(
+  "/check-availability",
+  // Adapter les query params pour réutiliser les middlewares existants
+  (req, _res, next) => {
+    // Copie les paramètres de requête (GET) dans req.body pour compatibilité
+    req.body = { ...req.body, ...req.query };
+    return next();
+  },
+  convertAppointmentTypes,
+  checkDoctorExists,
+  checkDoctorAvailability,
+  checkAppointmentConflict,
+  (req, res) => {
+    // Si tous les middlewares passent sans erreur, le créneau est libre
+    return res.json({ disponible: true });
   }
-});
+);
+
+// Route de création officielle avec validations complètes
+router.post(
+  "/",
+  validateAppointmentData,
+  convertAppointmentTypes,
+  checkPatientExists,
+  checkDoctorExists,
+  checkDoctorAvailability,
+  checkAppointmentConflict,
+  createRendezVous
+);
 
 // Routes spécifiques avec préfixes pour éviter les conflits
 // GET /api/rendez-vous/patient/:patientId - Récupérer les rendez-vous d'un patient

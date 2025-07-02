@@ -1,95 +1,161 @@
-# CarnetDeSante
+# 🏥 CarnetDeSante
 
-Application de gestion de carnet de santé numérique permettant aux patients de gérer leurs rendez-vous médicaux et leur historique de santé.
+Une application web moderne de carnet de santé numérique permettant aux patients de gérer leur dossier médical et aux professionnels de santé de suivre leurs patients.
 
-## Structure de la base de données
+## ✨ Fonctionnalités
 
-La base de données utilise une approche simplifiée où l'ID utilisateur est utilisé comme clé primaire dans les tables spécialisées (patient, medecin, administrateur).
+### 👤 Pour les Patients
 
-### Tables principales
+- **Profil médical complet** : Informations personnelles, allergies, antécédents médicaux
+- **Gestion des rendez-vous** : Prise de rendez-vous en ligne avec les médecins
+- **Documents médicaux** : Upload et stockage sécurisé de documents
+- **Carnet de vaccination** : Suivi des vaccinations
+- **Paramètres de compte** : Modification des informations personnelles
 
-- **utilisateur**: Table centrale contenant les informations générales de tous les utilisateurs
+### 👨‍⚕️ Pour les Médecins
 
-  - **id**: Clé primaire, identifiant unique de l'utilisateur
-  - **role**: Type d'utilisateur ('patient', 'medecin', 'admin')
-  - Autres informations communes (nom, prénom, email, etc.)
+- **Tableau de bord professionnel** : Vue d'ensemble des patients et rendez-vous
+- **Gestion des disponibilités** : Configuration des créneaux de consultation
+- **Suivi des patients** : Accès aux dossiers médicaux des patients
 
-- **patient**: Table des données spécifiques aux patients
+### 👨‍💼 Pour les Administrateurs
 
-  - **utilisateur_id**: Clé primaire et clé étrangère vers utilisateur(id)
-  - Informations médicales de base (groupe sanguin, taille, poids)
+- **Gestion globale** : Supervision de la plateforme
+- **Administration des utilisateurs** : Gestion des comptes patients et médecins
 
-- **medecin**: Table des données spécifiques aux médecins
+## 🛠️ Technologies
 
-  - **utilisateur_id**: Clé primaire et clé étrangère vers utilisateur(id)
-  - Informations professionnelles (spécialité, description)
+### Backend
 
-- **administrateur**: Table des données spécifiques aux administrateurs
-  - **utilisateur_id**: Clé primaire et clé étrangère vers utilisateur(id)
-  - Paramètres d'administration (niveau d'accès)
+- **Node.js** + **Express** - API REST
+- **PostgreSQL** - Base de données
+- **JWT** - Authentification sécurisée
+- **bcrypt** - Chiffrement des mots de passe
+- **Multer** - Gestion des uploads de fichiers
 
-### Tables associées
+### Frontend
 
-- **rendez_vous**: Rendez-vous médicaux
+- **React 19** - Interface utilisateur moderne
+- **Vite** - Bundler rapide
+- **Tailwind CSS** - Design system responsive
+- **React Router** - Navigation
+- **Axios** - Client HTTP
 
-  - Références directes vers patient(utilisateur_id) et medecin(utilisateur_id)
-
-- **disponibilite_medecin**: Créneaux de disponibilité des médecins
-  - Référence directe vers medecin(utilisateur_id)
-
-## Architecture de l'application
-
-### Backend (Node.js + Express)
-
-- **Contrôleurs**: Gestion des requêtes HTTP et logique métier
-- **Routes**: Définition des points d'entrée de l'API
-- **Middlewares**: Authentification et autorisations
-- **Services**: Logique métier réutilisable
-
-### Frontend (React)
-
-- **Contexts**: État global et gestion de l'authentification
-- **Components**: Interface utilisateur réutilisable
-- **Pages**: Écrans principaux de l'application
-- **Services**: Communication avec l'API backend
-
-## Installation
+## 🚀 Installation
 
 ### Prérequis
 
-- Node.js (v14+)
-- PostgreSQL (v12+)
+- Node.js (v18 ou plus récent)
+- PostgreSQL
+- npm ou yarn
 
-### Configuration
-
-1. Cloner ce dépôt
-2. Installer les dépendances backend et frontend:
+### 1. Cloner le projet
 
 ```bash
-# Installation des dépendances backend
+git clone https://github.com/votre-username/CarnetDeSante.git
+cd CarnetDeSante
+```
+
+### 2. Installation des dépendances
+
+```bash
+# Dépendances racine
+npm install
+
+# Backend
 cd backend
 npm install
 
-# Installation des dépendances frontend
+# Frontend
 cd ../frontend
 npm install
 ```
 
-3. Configurer la base de données:
+### 3. Configuration de la base de données
 
 ```bash
-# Depuis le répertoire backend
-npm run db:init
+# Dans le dossier backend
+cd backend
+
+# Initialiser la base de données
+npm run init-db
 ```
 
-### Démarrage
+### 4. Variables d'environnement
+
+Créez un fichier `.env` dans le dossier `backend` :
+
+```env
+# Base de données
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=carnet_sante
+DB_USER=votre_user
+DB_PASSWORD=votre_password
+
+# JWT
+JWT_SECRET=votre_jwt_secret
+JWT_REFRESH_SECRET=votre_refresh_secret
+ACCESS_TOKEN_EXPIRES=15m
+
+# Application
+PORT=3001
+CLIENT_URL=http://localhost:5173
+NODE_ENV=development
+```
+
+### 5. Lancement de l'application
+
+**Démarrage du backend :**
 
 ```bash
-# Démarrer le backend
 cd backend
-npm start
-
-# Démarrer le frontend
-cd ../frontend
 npm run dev
 ```
+
+**Démarrage du frontend :**
+
+```bash
+cd frontend
+npm run dev
+```
+
+L'application sera accessible sur :
+
+- Frontend : http://localhost:5173
+- Backend API : http://localhost:3001
+
+## 📁 Structure du projet
+
+```
+CarnetDeSante/
+├── backend/                 # API Node.js/Express
+│   ├── src/
+│   │   ├── controllers/     # Logique métier
+│   │   ├── routes/         # Routes API
+│   │   ├── middlewares/    # Middlewares (auth, validation)
+│   │   ├── data/          # Scripts BDD et seeders
+│   │   └── config/        # Configuration
+│   └── uploads/           # Fichiers uploadés
+├── frontend/              # Application React
+│   ├── src/
+│   │   ├── components/    # Composants réutilisables
+│   │   ├── pages/        # Pages de l'application
+│   │   ├── context/      # Contextes React
+│   │   ├── services/     # Services API
+│   │   └── routes/       # Configuration des routes
+│   └── public/
+└── README.md
+```
+
+## 🔒 Sécurité
+
+- **Authentification JWT** avec tokens d'accès et de rafraîchissement
+- **Hachage des mots de passe** avec bcrypt
+- **Validation des entrées** côté client et serveur
+- **Protection des routes** basée sur les rôles utilisateur
+- **Cookies sécurisés** pour les tokens de rafraîchissement
+
+## 📝 Licence
+
+Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.

@@ -19,7 +19,7 @@ export const checkDoctorAvailability = async (req, res, next) => {
 
   try {
     // Extraire le jour de la semaine
-    const jourQuery = "SELECT EXTRACT(DOW FROM DATE $1) as jour_num";
+    const jourQuery = "SELECT EXTRACT(DOW FROM $1::date) as jour_num";
     console.log(
       "[checkDoctorAvailability] Exécution de la requête jour:",
       jourQuery,
