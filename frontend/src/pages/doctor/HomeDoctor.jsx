@@ -6,6 +6,9 @@ import {
   FaChevronDown,
   FaUser,
   FaClock,
+  FaTimes,
+  FaChevronLeft,
+  FaChevronRight,
 } from "react-icons/fa";
 import Calendar from "react-calendar";
 import PageWrapper from "../../components/PageWrapper";
@@ -25,6 +28,10 @@ const HomeDoctor = () => {
   const [showDetail, setShowDetail] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelError, setCancelError] = useState(null);
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
+  // Pagination pour rendez-vous de la date sélectionnée
+  const pageSize = 3;
+  const [selectedPage, setSelectedPage] = useState(0);
 
   // Format date sélectionnée en YYYY-MM-DD (local, pas UTC)
   const formatDateYMD = (date) => {
@@ -67,7 +74,7 @@ const HomeDoctor = () => {
           return app.timestamp > now.getTime();
         })
         .sort((a, b) => a.timestamp - b.timestamp)
-        .slice(0, 10);
+        .slice(0, 5);
       setUpcomingAppointments(upcoming);
       // Filtrage fiable par date brute + tri par heure croissante
       const dateAppts = appointments
@@ -84,6 +91,16 @@ const HomeDoctor = () => {
       setSelectedDateAppointments([]);
     }
   }, [appointments, selectedDate]);
+
+  // Réinitialise la page quand la liste change
+  useEffect(() => {
+    setSelectedPage(0);
+  }, [selectedDateAppointments]);
+
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentDateTime(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Format date for header display
   const formatHeaderDate = (date) => {
@@ -166,20 +183,103 @@ const HomeDoctor = () => {
     <PageWrapper className="bg-[#F8F9FA]">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 max-w-7xl mx-auto p-6">
         <div className="lg:col-span-3 space-y-6">
-          {/* En-tête avec nom du médecin - Welcome Card */}
-          <div className="bg-white rounded-lg shadow-sm border border-[#E9ECEF] p-6 transition-all duration-200 hover:shadow-md">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold text-[#343A40] mb-2">
-                  Bonjour, Dr. {currentUser?.nom} {currentUser?.prenom}
-                </h1>
-                <p className="text-[#6C757D] text-base">
-                  {currentUser?.specialite}
-                </p>
+          {/* Section supérieure : WelcomeCard + Rendez-vous imminent */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Welcome Card */}
+            <div className="bg-gradient-to-r from-[#E8F4FD] to-white rounded-lg relative overflow-hidden p-6 shadow-sm border border-[#E9ECEF] transition-all duration-200 hover:shadow-md">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-semibold text-[#343A40] mb-1">
+                    Bonjour, Dr. {currentUser?.nom} {currentUser?.prenom}
+                  </h1>
+                  <p className="text-[#6C757D] text-base mb-3">
+                    {currentUser?.specialite}
+                  </p>
+                  {/* Date & heure courantes */}
+                  <div className="flex items-center text-sm text-[#6C757D] space-x-4">
+                    <div className="flex items-center">
+                      <FaCalendarAlt className="mr-1 text-[#4A90E2]" />
+                      <span>
+                        {currentDateTime.toLocaleDateString("fr-FR", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <FaClock className="mr-1 text-[#4A90E2]" />
+                      <span>
+                        {currentDateTime.toLocaleTimeString("fr-FR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-[#E8F4FD] rounded-full p-4 flex-shrink-0 relative z-10">
+                  <FaUser className="text-[#4A90E2] text-2xl" />
+                </div>
               </div>
-              <div className="bg-[#E8F4FD] rounded-full p-4">
-                <FaUser className="text-[#4A90E2] text-2xl" />
+            </div>
+
+            {/* Carte rendez-vous imminent */}
+            <div className="bg-white rounded-lg shadow-sm border border-[#E9ECEF] p-6 transition-all duration-200 hover:shadow-md">
+              <div className="border-b border-[#E9ECEF] pb-4 mb-4">
+                <h2 className="text-xl font-semibold text-[#343A40] flex items-center">
+                  <FaClock className="mr-3 text-[#4A90E2]" /> Rendez-vous
+                  imminent
+                </h2>
               </div>
+
+              {(() => {
+                const imminentAppointment =
+                  upcomingAppointments && upcomingAppointments.length > 0
+                    ? upcomingAppointments[0]
+                    : null;
+
+                if (!imminentAppointment) {
+                  return (
+                    <div className="text-center py-8 text-[#6C757D]">
+                      <FaCalendarAlt className="mx-auto text-3xl text-[#E9ECEF] mb-3" />
+                      <p className="text-sm">Aucun rendez-vous imminent</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                    <div className="flex items-center">
+                      <div className="bg-[#4A90E2] text-white rounded-full h-12 w-12 flex items-center justify-center mr-4 text-lg font-semibold">
+                        {imminentAppointment.time}
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-medium text-[#343A40]">
+                          {imminentAppointment.patient.name}
+                        </h3>
+                        <p className="text-sm text-[#6C757D]">
+                          {imminentAppointment.title}
+                        </p>
+                        <p className="text-sm text-[#6C757D]">
+                          {formatDateTimeFr(
+                            imminentAppointment.dateRaw,
+                            imminentAppointment.time
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleShowDetail(imminentAppointment)}
+                      className="self-start sm:self-auto px-4 py-2 bg-[#4A90E2] text-white rounded-lg text-sm font-medium hover:bg-[#2E5BBA] transition-colors"
+                    >
+                      Voir les détails
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -492,26 +592,57 @@ const HomeDoctor = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {selectedDateAppointments.map((appointment) => (
-                  <div
-                    key={appointment.id}
-                    className="border border-[#E9ECEF] rounded-lg p-4 hover:shadow-sm transition-shadow"
-                  >
-                    <div className="flex items-start">
-                      <div className="flex items-center justify-center bg-[#4A90E2] text-white rounded-lg px-3 py-2 mr-4 font-medium text-sm min-w-[60px] min-h-[36px]">
-                        {appointment.time}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-[#343A40] mb-1">
-                          {appointment.patient.name}
+                {selectedDateAppointments
+                  .slice(selectedPage * pageSize, (selectedPage + 1) * pageSize)
+                  .map((appointment) => (
+                    <div
+                      key={appointment.id}
+                      className="border border-[#E9ECEF] rounded-lg p-4 hover:shadow-sm transition-shadow"
+                    >
+                      <div className="flex items-start">
+                        <div className="flex items-center justify-center bg-[#4A90E2] text-white rounded-lg px-3 py-2 mr-4 font-medium text-sm min-w-[60px] min-h-[36px]">
+                          {appointment.time}
                         </div>
-                        <div className="text-sm text-[#6C757D]">
-                          {appointment.title}
+                        <div className="flex-1">
+                          <div className="font-medium text-[#343A40] mb-1">
+                            {appointment.patient.name}
+                          </div>
+                          <div className="text-sm text-[#6C757D]">
+                            {appointment.title}
+                          </div>
                         </div>
                       </div>
                     </div>
+                  ))}
+
+                {/* Pagination */}
+                {selectedDateAppointments.length > pageSize && (
+                  <div className="flex justify-center items-center space-x-6 pt-2">
+                    <button
+                      onClick={() => setSelectedPage((p) => Math.max(0, p - 1))}
+                      disabled={selectedPage === 0}
+                      className="p-2 rounded-full border border-[#E9ECEF] text-[#4A90E2] disabled:opacity-40 hover:bg-[#E8F4FD] transition"
+                    >
+                      <FaChevronLeft />
+                    </button>
+                    <button
+                      onClick={() =>
+                        setSelectedPage((p) =>
+                          (p + 1) * pageSize < selectedDateAppointments.length
+                            ? p + 1
+                            : p
+                        )
+                      }
+                      disabled={
+                        (selectedPage + 1) * pageSize >=
+                        selectedDateAppointments.length
+                      }
+                      className="p-2 rounded-full border border-[#E9ECEF] text-[#4A90E2] disabled:opacity-40 hover:bg-[#E8F4FD] transition"
+                    >
+                      <FaChevronRight />
+                    </button>
                   </div>
-                ))}
+                )}
               </div>
             )}
           </div>
@@ -519,40 +650,55 @@ const HomeDoctor = () => {
       </div>
 
       {showDetail && selectedAppointment && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative">
+        <div
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={handleCloseDetail}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md relative border border-[#E9ECEF]"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
-              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+              className="absolute top-3 right-3 text-[#6C757D] hover:text-[#343A40]"
               onClick={handleCloseDetail}
             >
-              &times;
+              <FaTimes size={18} />
             </button>
-            <h2 className="text-xl font-semibold mb-4">
+            <h2 className="text-2xl font-semibold text-[#343A40] mb-4">
               Détail du rendez-vous
             </h2>
-            <div className="mb-2">
-              <b>Patient :</b> {selectedAppointment.patient.name}
+            <div className="space-y-2 text-[#343A40]">
+              <div>
+                <span className="font-semibold">Patient :</span>{" "}
+                {selectedAppointment.patient.name}
+              </div>
+              <div>
+                <span className="font-semibold">Heure :</span>{" "}
+                {selectedAppointment.time}
+              </div>
+              <div>
+                <span className="font-semibold">Motif :</span>{" "}
+                {selectedAppointment.title}
+              </div>
+              <div>
+                <span className="font-semibold">Date :</span>{" "}
+                {formatDateTimeFr(
+                  selectedAppointment.dateRaw,
+                  selectedAppointment.time
+                )}
+              </div>
             </div>
-            <div className="mb-2">
-              <b>Heure :</b> {selectedAppointment.time}
-            </div>
-            <div className="mb-2">
-              <b>Motif :</b> {selectedAppointment.title}
-            </div>
-            <div className="mb-2">
-              <b>Date :</b>{" "}
-              {formatDateTimeFr(
-                selectedAppointment.dateRaw,
-                selectedAppointment.time
-              )}
-            </div>
+
             {cancelError && (
-              <div className="text-red-600 mb-2">{cancelError}</div>
+              <div className="text-red-600 mb-2 mt-2 text-sm">
+                {cancelError}
+              </div>
             )}
+
             <button
               onClick={handleCancel}
               disabled={cancelLoading}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+              className="mt-6 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#2E5BBA] disabled:opacity-50 w-full sm:w-auto"
             >
               {cancelLoading ? "Annulation..." : "Annuler le rendez-vous"}
             </button>

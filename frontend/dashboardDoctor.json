@@ -1,0 +1,488 @@
+{
+  "designSystem": {
+    "name": "Medical Dashboard Design System",
+    "version": "1.0.0",
+    "description": "Modern medical dashboard with rounded corners, pastel gradients, and clean typography optimized for healthcare professionals"
+  },
+  "colorPalette": {
+    "primary": {
+      "red": "#E53E3E",
+      "darkRed": "#C53030",
+      "lightRed": "#FED7D7"
+    },
+    "gradients": {
+      "pinkToBlue": "linear-gradient(135deg, #FFE5F1 0%, #E5F4FF 100%)",
+      "lightPink": "linear-gradient(135deg, #FFF5F7 0%, #FFE5EC 100%)",
+      "lightBlue": "linear-gradient(135deg, #F0F8FF 0%, #E5F4FF 100%)",
+      "warmGray": "linear-gradient(135deg, #F7FAFC 0%, #EDF2F7 100%)"
+    },
+    "neutral": {
+      "white": "#FFFFFF",
+      "lightGray": "#F7FAFC",
+      "mediumGray": "#E2E8F0",
+      "darkGray": "#718096",
+      "charcoal": "#2D3748",
+      "black": "#1A202C"
+    },
+    "status": {
+      "success": "#48BB78",
+      "warning": "#ED8936",
+      "error": "#E53E3E",
+      "info": "#4299E1",
+      "inProgress": "#38B2AC",
+      "cancelled": "#CBD5E0",
+      "rescheduled": "#9F7AEA"
+    },
+    "avatar": {
+      "backgrounds": [
+        "#FFB3BA",
+        "#BAFFC9",
+        "#BAE1FF",
+        "#FFFFBA",
+        "#FFDFBA",
+        "#E0BBE4",
+        "#C7CEEA"
+      ]
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "primary": "Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    },
+    "fontSizes": {
+      "xs": "11px",
+      "sm": "13px",
+      "base": "14px",
+      "md": "16px",
+      "lg": "18px",
+      "xl": "20px",
+      "2xl": "24px",
+      "3xl": "28px",
+      "4xl": "32px"
+    },
+    "fontWeights": {
+      "normal": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700,
+      "extrabold": 800
+    },
+    "hierarchy": {
+      "heroTitle": {
+        "fontSize": "28px",
+        "fontWeight": 700,
+        "color": "#1A202C",
+        "lineHeight": "1.2"
+      },
+      "welcomeSubtitle": {
+        "fontSize": "16px",
+        "fontWeight": 400,
+        "color": "#718096",
+        "lineHeight": "1.4"
+      },
+      "metricNumber": {
+        "fontSize": "32px",
+        "fontWeight": 800,
+        "color": "#1A202C",
+        "lineHeight": "1"
+      },
+      "metricLabel": {
+        "fontSize": "13px",
+        "fontWeight": 500,
+        "color": "#718096",
+        "lineHeight": "1.3"
+      },
+      "cardTitle": {
+        "fontSize": "16px",
+        "fontWeight": 600,
+        "color": "#1A202C"
+      },
+      "patientName": {
+        "fontSize": "14px",
+        "fontWeight": 600,
+        "color": "#1A202C"
+      },
+      "patientCondition": {
+        "fontSize": "12px",
+        "fontWeight": 400,
+        "color": "#718096"
+      }
+    }
+  },
+  "spacing": {
+    "xs": "4px",
+    "sm": "8px",
+    "md": "12px",
+    "lg": "16px",
+    "xl": "20px",
+    "2xl": "24px",
+    "3xl": "32px",
+    "4xl": "40px",
+    "5xl": "48px"
+  },
+  "borderRadius": {
+    "sm": "6px",
+    "md": "12px",
+    "lg": "16px",
+    "xl": "20px",
+    "2xl": "24px",
+    "full": "9999px"
+  },
+  "layout": {
+    "container": {
+      "maxWidth": "1400px",
+      "padding": "24px",
+      "margin": "0 auto"
+    },
+    "grid": {
+      "columns": 12,
+      "gap": "20px",
+      "sections": {
+        "header": "full width",
+        "metrics": "6 columns each on desktop",
+        "calendar": "8 columns",
+        "sidebar": "4 columns"
+      }
+    }
+  },
+  "components": {
+    "heroCard": {
+      "background": "linear-gradient(135deg, #FFE5F1 0%, #E5F4FF 100%)",
+      "borderRadius": "20px",
+      "padding": "32px",
+      "minHeight": "140px",
+      "position": "relative",
+      "overflow": "hidden",
+      "elements": {
+        "avatar": {
+          "size": "80px",
+          "borderRadius": "50%",
+          "border": "3px solid #FFFFFF",
+          "position": "absolute",
+          "left": "32px"
+        },
+        "clockIcon": {
+          "size": "60px",
+          "position": "absolute",
+          "right": "32px",
+          "top": "50%",
+          "transform": "translateY(-50%)",
+          "color": "#E53E3E"
+        }
+      }
+    },
+    "upcomingCard": {
+      "background": "#FFFFFF",
+      "borderRadius": "16px",
+      "border": "1px solid #E2E8F0",
+      "padding": "20px",
+      "boxShadow": "0 1px 3px rgba(0, 0, 0, 0.1)"
+    },
+    "metricCard": {
+      "background": "#FFFFFF",
+      "borderRadius": "12px",
+      "border": "1px solid #E2E8F0",
+      "padding": "20px",
+      "textAlign": "center",
+      "boxShadow": "0 1px 3px rgba(0, 0, 0, 0.1)",
+      "hover": {
+        "transform": "translateY(-2px)",
+        "boxShadow": "0 4px 12px rgba(0, 0, 0, 0.15)"
+      }
+    },
+    "calendar": {
+      "background": "#FFFFFF",
+      "borderRadius": "16px",
+      "border": "1px solid #E2E8F0",
+      "padding": "24px",
+      "boxShadow": "0 1px 3px rgba(0, 0, 0, 0.1)",
+      "header": {
+        "fontSize": "18px",
+        "fontWeight": 600,
+        "marginBottom": "20px"
+      },
+      "dayHeaders": {
+        "fontSize": "12px",
+        "fontWeight": 500,
+        "color": "#718096",
+        "textAlign": "center",
+        "padding": "8px 0"
+      },
+      "dayCell": {
+        "width": "40px",
+        "height": "40px",
+        "borderRadius": "8px",
+        "display": "flex",
+        "alignItems": "center",
+        "justifyContent": "center",
+        "fontSize": "14px",
+        "fontWeight": 500,
+        "cursor": "pointer",
+        "states": {
+          "default": {
+            "color": "#1A202C",
+            "background": "transparent"
+          },
+          "today": {
+            "background": "#E53E3E",
+            "color": "#FFFFFF"
+          },
+          "hasAppointment": {
+            "background": "#FED7D7",
+            "color": "#E53E3E"
+          },
+          "hover": {
+            "background": "#F7FAFC"
+          }
+        }
+      }
+    },
+    "appointmentList": {
+      "background": "#FFFFFF",
+      "borderRadius": "16px",
+      "border": "1px solid #E2E8F0",
+      "padding": "20px",
+      "boxShadow": "0 1px 3px rgba(0, 0, 0, 0.1)"
+    },
+    "appointmentItem": {
+      "padding": "12px 0",
+      "borderBottom": "1px solid #F7FAFC",
+      "display": "flex",
+      "alignItems": "center",
+      "gap": "12px",
+      "elements": {
+        "avatar": {
+          "size": "40px",
+          "borderRadius": "50%",
+          "fontSize": "16px",
+          "fontWeight": 600,
+          "color": "#FFFFFF",
+          "display": "flex",
+          "alignItems": "center",
+          "justifyContent": "center"
+        },
+        "statusBadge": {
+          "borderRadius": "12px",
+          "padding": "4px 8px",
+          "fontSize": "11px",
+          "fontWeight": 600,
+          "textTransform": "uppercase",
+          "letterSpacing": "0.5px"
+        },
+        "timeIndicator": {
+          "fontSize": "12px",
+          "color": "#718096",
+          "marginLeft": "auto"
+        }
+      }
+    },
+    "badge": {
+      "borderRadius": "12px",
+      "padding": "4px 8px",
+      "fontSize": "11px",
+      "fontWeight": 600,
+      "textTransform": "uppercase",
+      "letterSpacing": "0.5px",
+      "variants": {
+        "start": {
+          "background": "#E53E3E",
+          "color": "#FFFFFF"
+        },
+        "inProgress": {
+          "background": "#38B2AC",
+          "color": "#FFFFFF"
+        },
+        "end": {
+          "background": "#E53E3E",
+          "color": "#FFFFFF"
+        },
+        "cancelled": {
+          "background": "#CBD5E0",
+          "color": "#4A5568"
+        },
+        "rescheduled": {
+          "background": "#9F7AEA",
+          "color": "#FFFFFF"
+        }
+      }
+    },
+    "button": {
+      "borderRadius": "8px",
+      "padding": "8px 16px",
+      "fontSize": "14px",
+      "fontWeight": 500,
+      "transition": "all 0.2s ease",
+      "variants": {
+        "primary": {
+          "background": "#E53E3E",
+          "color": "#FFFFFF",
+          "border": "none",
+          "hover": {
+            "background": "#C53030"
+          }
+        },
+        "secondary": {
+          "background": "#F7FAFC",
+          "color": "#4A5568",
+          "border": "1px solid #E2E8F0",
+          "hover": {
+            "background": "#EDF2F7"
+          }
+        },
+        "ghost": {
+          "background": "transparent",
+          "color": "#718096",
+          "border": "none",
+          "hover": {
+            "background": "#F7FAFC"
+          }
+        }
+      }
+    },
+    "iconButton": {
+      "width": "32px",
+      "height": "32px",
+      "borderRadius": "8px",
+      "display": "flex",
+      "alignItems": "center",
+      "justifyContent": "center",
+      "background": "transparent",
+      "border": "none",
+      "color": "#718096",
+      "cursor": "pointer",
+      "hover": {
+        "background": "#F7FAFC",
+        "color": "#4A5568"
+      }
+    }
+  },
+  "designPatterns": {
+    "cardLayout": {
+      "description": "Rounded cards with subtle shadows and clean backgrounds",
+      "spacing": "20px gap between cards",
+      "elevation": "Subtle shadow with hover effects"
+    },
+    "gradientBackgrounds": {
+      "description": "Soft pastel gradients for hero sections and highlights",
+      "usage": "Main header cards and feature sections"
+    },
+    "avatarSystem": {
+      "description": "Circular avatars with colored backgrounds and initials",
+      "colorAssignment": "Consistent color per user based on name hash"
+    },
+    "statusIndicators": {
+      "description": "Color-coded badges and indicators for appointment status",
+      "placement": "Inline with content or floating position"
+    },
+    "metricDisplay": {
+      "description": "Large numbers with descriptive labels and trend indicators",
+      "layout": "Centered alignment with growth percentages"
+    }
+  },
+  "iconography": {
+    "style": "Outline icons with 2px stroke weight",
+    "size": {
+      "sm": "16px",
+      "md": "20px",
+      "lg": "24px",
+      "xl": "32px"
+    },
+    "commonIcons": {
+      "calendar": "Calendar outline",
+      "clock": "Clock outline",
+      "video": "Video camera outline",
+      "chat": "Message circle outline",
+      "phone": "Phone outline",
+      "more": "More horizontal dots",
+      "close": "X mark",
+      "arrow": "Arrow right/left"
+    }
+  },
+  "animations": {
+    "transitions": {
+      "default": "all 0.2s ease",
+      "slow": "all 0.3s ease",
+      "fast": "all 0.15s ease"
+    },
+    "effects": {
+      "cardHover": "translateY(-2px) with shadow increase",
+      "buttonPress": "scale(0.98)",
+      "fadeIn": "opacity 0 to 1 over 0.3s",
+      "slideIn": "transform translateX(-20px) to 0 over 0.3s"
+    }
+  },
+  "breakpoints": {
+    "mobile": "320px - 768px",
+    "tablet": "768px - 1024px",
+    "desktop": "1024px - 1400px",
+    "wide": "1400px+",
+    "responsive": {
+      "heroCard": {
+        "mobile": "Stack vertically, reduce padding",
+        "desktop": "Side-by-side layout with full padding"
+      },
+      "metrics": {
+        "mobile": "2x2 grid",
+        "tablet": "3x2 grid",
+        "desktop": "6x1 grid"
+      },
+      "mainLayout": {
+        "mobile": "Single column stack",
+        "tablet": "2 column with sidebar below",
+        "desktop": "3 column with sidebar right"
+      }
+    }
+  },
+  "accessibility": {
+    "colorContrast": {
+      "text": "4.5:1 minimum ratio",
+      "largeTex": "3:1 minimum ratio"
+    },
+    "focusIndicators": {
+      "outline": "2px solid #4299E1",
+      "offset": "2px"
+    },
+    "semanticColors": {
+      "error": "#E53E3E",
+      "warning": "#ED8936",
+      "success": "#48BB78",
+      "info": "#4299E1"
+    }
+  },
+  "dataVisualization": {
+    "trendIndicators": {
+      "positive": {
+        "color": "#48BB78",
+        "icon": "↗",
+        "background": "#F0FFF4"
+      },
+      "negative": {
+        "color": "#E53E3E",
+        "icon": "↘",
+        "background": "#FED7D7"
+      },
+      "neutral": {
+        "color": "#718096",
+        "icon": "→",
+        "background": "#F7FAFC"
+      }
+    }
+  },
+  "usageGuidelines": {
+    "cardContent": {
+      "maxLines": "3 lines for descriptions",
+      "truncation": "Use ellipsis for overflow",
+      "imageAspectRatio": "1:1 for avatars, 16:9 for banners"
+    },
+    "spacing": {
+      "cardPadding": "20-32px depending on card size",
+      "elementSpacing": "12-16px between related elements",
+      "sectionSpacing": "24-32px between sections"
+    },
+    "typography": {
+      "maxLineLength": "65 characters for readability",
+      "lineHeight": "1.4-1.6 for body text",
+      "letterSpacing": "0.02em for small text"
+    }
+  }
+}
