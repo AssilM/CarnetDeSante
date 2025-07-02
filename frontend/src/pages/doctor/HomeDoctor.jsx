@@ -97,8 +97,9 @@ const HomeDoctor = () => {
     setSelectedPage(0);
   }, [selectedDateAppointments]);
 
+  // Rafraîchit l'heure toutes les 5 s pour une mise à jour plus réactive
   useEffect(() => {
-    const interval = setInterval(() => setCurrentDateTime(new Date()), 60000);
+    const interval = setInterval(() => setCurrentDateTime(new Date()), 5000);
     return () => clearInterval(interval);
   }, []);
 

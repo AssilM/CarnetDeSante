@@ -24,6 +24,10 @@ const RegisterPage = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [registerError, setRegisterError] = useState("");
+  const [passwordStrength, setPasswordStrength] = useState({
+    level: "",
+    score: 0,
+  });
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -118,12 +122,27 @@ const RegisterPage = () => {
     }
   };
 
+  const evaluatePasswordStrength = (password) => {
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[ @$!%*?&]/.test(password)) score++;
+    if (score >= 4) return { level: "robuste", score: 3 };
+    if (score >= 2) return { level: "moyen", score: 2 };
+    if (password.length > 0) return { level: "faible", score: 1 };
+    return { level: "", score: 0 };
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     // Réinitialiser les erreurs lors de la saisie
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+    if (name === "password") {
+      setPasswordStrength(evaluatePasswordStrength(value));
     }
   };
 
@@ -148,12 +167,14 @@ const RegisterPage = () => {
       newErrors.email = "Format d'email invalide";
     }
 
-    // Validation du mot de passe
+    // Validation du mot de passe renforcée
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!formData.password) {
       newErrors.password = "Le mot de passe est requis";
-    } else if (formData.password.length < 8) {
+    } else if (!passwordRegex.test(formData.password)) {
       newErrors.password =
-        "Le mot de passe doit contenir au moins 8 caractères";
+        "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial";
     }
 
     // Validation de la confirmation du mot de passe
@@ -513,6 +534,39 @@ const RegisterPage = () => {
                       )}
                     </button>
                   </div>
+                  {formData.password && (
+                    <div className="mt-2">
+                      <div className="w-full h-2 bg-gray-200 rounded">
+                        <div
+                          className={`h-full rounded ${
+                            passwordStrength.level === "faible"
+                              ? "bg-red-500"
+                              : passwordStrength.level === "moyen"
+                              ? "bg-yellow-400"
+                              : passwordStrength.level === "robuste"
+                              ? "bg-green-500"
+                              : ""
+                          }`}
+                          style={{
+                            width: `${(passwordStrength.score / 3) * 100}%`,
+                          }}
+                        ></div>
+                      </div>
+                      {passwordStrength.level && (
+                        <p
+                          className={`text-xs mt-1 ${
+                            passwordStrength.level === "faible"
+                              ? "text-red-500"
+                              : passwordStrength.level === "moyen"
+                              ? "text-yellow-600"
+                              : "text-green-600"
+                          }`}
+                        >
+                          Force : {passwordStrength.level}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   {errors.password && (
                     <p className="mt-1 text-red-500 text-sm">
                       {errors.password}
@@ -618,11 +672,15 @@ const RegisterPage = () => {
                       } rounded-lg focus:ring-blue-500 focus:border-blue-500`}
                     >
                       <option value="">Sélectionnez votre spécialité</option>
-                      <option value="Médecine générale">Médecine générale</option>
+                      <option value="Médecine générale">
+                        Médecine générale
+                      </option>
                       <option value="Cardiologie">Cardiologie</option>
                       <option value="Dermatologie">Dermatologie</option>
                       <option value="Endocrinologie">Endocrinologie</option>
-                      <option value="Gastro-entérologie">Gastro-entérologie</option>
+                      <option value="Gastro-entérologie">
+                        Gastro-entérologie
+                      </option>
                       <option value="Gynécologie">Gynécologie</option>
                       <option value="Neurologie">Neurologie</option>
                       <option value="Oncologie">Oncologie</option>
@@ -635,14 +693,30 @@ const RegisterPage = () => {
                       <option value="Radiologie">Radiologie</option>
                       <option value="Rhumatologie">Rhumatologie</option>
                       <option value="Urologie">Urologie</option>
-                      <option value="Anesthésie-Réanimation">Anesthésie-Réanimation</option>
-                      <option value="Chirurgie générale">Chirurgie générale</option>
-                      <option value="Chirurgie cardiaque">Chirurgie cardiaque</option>
-                      <option value="Chirurgie orthopédique">Chirurgie orthopédique</option>
-                      <option value="Chirurgie plastique">Chirurgie plastique</option>
-                      <option value="Médecine d'urgence">Médecine d'urgence</option>
-                      <option value="Médecine du travail">Médecine du travail</option>
-                      <option value="Médecine du sport">Médecine du sport</option>
+                      <option value="Anesthésie-Réanimation">
+                        Anesthésie-Réanimation
+                      </option>
+                      <option value="Chirurgie générale">
+                        Chirurgie générale
+                      </option>
+                      <option value="Chirurgie cardiaque">
+                        Chirurgie cardiaque
+                      </option>
+                      <option value="Chirurgie orthopédique">
+                        Chirurgie orthopédique
+                      </option>
+                      <option value="Chirurgie plastique">
+                        Chirurgie plastique
+                      </option>
+                      <option value="Médecine d'urgence">
+                        Médecine d'urgence
+                      </option>
+                      <option value="Médecine du travail">
+                        Médecine du travail
+                      </option>
+                      <option value="Médecine du sport">
+                        Médecine du sport
+                      </option>
                       <option value="Gériatrie">Gériatrie</option>
                       <option value="Infectiologie">Infectiologie</option>
                       <option value="Néphrologie">Néphrologie</option>
