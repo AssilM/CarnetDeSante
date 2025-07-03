@@ -1,6 +1,7 @@
-import pkg from "pg";
-import dotenv from "dotenv";
-const { Pool } = pkg;
+import pkg from "pg"; //permet la connexion à la base de données postgres
+import dotenv from "dotenv"; //Pour charger les variables d'environnement
+const { Pool } = pkg; //Pool est un gestionnaire de connexions à la base de données
+
 dotenv.config();
 
 // Vérifier que les variables d'environnement nécessaires sont définies
@@ -11,16 +12,27 @@ const requiredEnvVars = [
   "DB_NAME",
   "DB_PORT",
 ];
+
 const missingEnvVars = requiredEnvVars.filter(
   (varName) => !process.env[varName]
-);
+); //Fonction pour vérifier si les variables d'environnement sont définies
+// ! Négation, envoie l'inverse d'un boolean
 
+//Si les variables d'environnement sont définies, on affiche un message de succès
+
+if (missingEnvVars.length === 0) {
+  console.log("Variables d'environnement chargées avec succès");
+}
+
+//Si les variables d'environnement sont manquantes, on affiche un message d'erreur
 if (missingEnvVars.length > 0) {
   console.error(
     `Variables d'environnement manquantes: ${missingEnvVars.join(", ")}`
   );
   console.error("Veuillez vérifier votre fichier .env");
 }
+//join transforme un tableau en une chaîne de caractères avec le séparateur
+//fournit en parametre
 
 // Configuration de la connexion à la base de données
 const pool = new Pool({
@@ -39,6 +51,8 @@ const pool = new Pool({
 pool.on("connect", () => {
   console.log("Connexion à la base de données établie");
 });
+//pool.on se déclenche quand ce qu'il y a en parametre se produit
+//Ici c'est "connect" dond quand une connexion physique est établie
 
 pool.on("error", (err) => {
   console.error("Erreur inattendue du pool de connexions:", err);
