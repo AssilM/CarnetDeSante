@@ -16,6 +16,7 @@ import DocumentDetails from "../pages/patient/documents/DocumentDetails";
 // Pages - Vaccination
 import Vaccination from "../pages/patient/vaccination/Vaccination";
 import VaccineDetails from "../pages/patient/vaccination/VaccineDetails";
+import VaccinationSummary from "../pages/patient/vaccination/VaccinationSummary";
 
 // Pages - Medical
 import EditMedicalInfo from "../pages/patient/medical/EditMedicalInfo";
@@ -126,6 +127,17 @@ const PatientRoutes = [
       <ProtectedRoute requiredRole="patient">
         <MainLayout>
           <VaccineDetails />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+  <Route
+    key="vaccination-summary"
+    path="/vaccination/summary"
+    element={
+      <ProtectedRoute requiredRole="patient">
+        <MainLayout>
+          <VaccinationSummary />
         </MainLayout>
       </ProtectedRoute>
     }

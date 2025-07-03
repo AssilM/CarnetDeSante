@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 export const getAllUsers = async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville FROM utilisateur ORDER BY id"
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, latitude, longitude, description_localisation FROM utilisateur ORDER BY id"
     );
 
     res.status(200).json({
@@ -25,7 +25,7 @@ export const getUserById = async (req, res) => {
     const userId = req.params.id;
 
     const result = await pool.query(
-      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville FROM utilisateur WHERE id = $1",
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, latitude, longitude, description_localisation FROM utilisateur WHERE id = $1",
       [userId]
     );
 
@@ -50,7 +50,7 @@ export const getMe = async (req, res) => {
     const userId = req.userId;
 
     const result = await pool.query(
-      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville FROM utilisateur WHERE id = $1",
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, latitude, longitude, description_localisation FROM utilisateur WHERE id = $1",
       [userId]
     );
 
@@ -74,6 +74,9 @@ export const getMe = async (req, res) => {
         adresse: user.adresse,
         code_postal: user.code_postal,
         ville: user.ville,
+        latitude: user.latitude,
+        longitude: user.longitude,
+        description_localisation: user.description_localisation,
       },
     });
   } catch (error) {
@@ -99,6 +102,9 @@ export const updateUser = async (req, res) => {
       adresse,
       code_postal,
       ville,
+      latitude,
+      longitude,
+      description_localisation,
     } = req.body;
 
     // Vérifier si l'email est déjà utilisé par un autre utilisateur
@@ -158,6 +164,18 @@ export const updateUser = async (req, res) => {
       updateFields.push(`ville = $${paramIndex++}`);
       values.push(ville);
     }
+    if (latitude !== undefined) {
+      updateFields.push(`latitude = $${paramIndex++}`);
+      values.push(latitude);
+    }
+    if (longitude !== undefined) {
+      updateFields.push(`longitude = $${paramIndex++}`);
+      values.push(longitude);
+    }
+    if (description_localisation !== undefined) {
+      updateFields.push(`description_localisation = $${paramIndex++}`);
+      values.push(description_localisation);
+    }
 
     // Si aucun champ à mettre à jour
     if (updateFields.length === 0) {
@@ -167,7 +185,7 @@ export const updateUser = async (req, res) => {
     }
 
     query += updateFields.join(", ");
-    query += ` WHERE id = $${paramIndex} RETURNING id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville`;
+    query += ` WHERE id = $${paramIndex} RETURNING id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, latitude, longitude, description_localisation`;
     values.push(userId);
 
     const result = await pool.query(query, values);
@@ -276,7 +294,7 @@ export const getUsersByRole = async (req, res) => {
     const { role } = req.params;
 
     const result = await pool.query(
-      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville FROM utilisateur WHERE role = $1 ORDER BY nom, prenom",
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, latitude, longitude, description_localisation FROM utilisateur WHERE role = $1 ORDER BY nom, prenom",
       [role]
     );
 

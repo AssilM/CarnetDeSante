@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiDownload } from "react-icons/hi";
 import { FaThumbtack } from "react-icons/fa";
 import { useDocumentContext } from "../../../context";
+import { useAuth } from "../../../context/AuthContext";
+import { createDocumentService } from "../../../services/api";
+import { httpService } from "../../../services/http";
 
 const DocumentItem = ({
   id,
@@ -12,11 +15,13 @@ const DocumentItem = ({
   pinned,
   onDocumentClick,
   onTogglePin,
+  onDownload,
 }) => {
   const handleDownload = (e) => {
     e.stopPropagation(); // Empêche le déclenchement du onClick du parent
-    // La logique de téléchargement sera implémentée plus tard
-    console.log("Téléchargement du document:", id);
+    if (onDownload) {
+      onDownload(id);
+    }
   };
 
   const handleTogglePin = (e) => {
@@ -67,7 +72,10 @@ const DocumentItem = ({
 
 const DocumentsList = () => {
   const [activeTab, setActiveTab] = useState("recent");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const {
     items,
     togglePinned,
@@ -77,79 +85,80 @@ const DocumentsList = () => {
     setItems,
   } = useDocumentContext();
 
-  // Initialisation des données de test
-  useEffect(() => {
-    if (items.length === 0) {
-      setItems([
-        {
-          id: "1",
-          name: "Ordonnance pour allergie",
-          date: "15/01/2024",
-          type: "Ordonnance",
-          issuedBy: "Dr. Martin",
-          subtitle: "Traitement antihistaminique",
-          description:
-            "Ordonnance pour le traitement des allergies saisonnières",
-          url: "#",
-          pinned: true,
-        },
-        {
-          id: "2",
-          name: "Résultats analyse sang",
-          date: "01/12/2023",
-          type: "Analyse",
-          issuedBy: "Laboratoire Central",
-          subtitle: "Bilan sanguin complet",
-          description: "Résultats du bilan sanguin annuel",
-          url: "#",
-          pinned: false,
-        },
-        {
-          id: "3",
-          name: "Compte rendu radiologie",
-          date: "20/11/2023",
-          type: "Imagerie",
-          issuedBy: "Centre d'Imagerie Médicale",
-          subtitle: "Radio thorax",
-          description: "Compte rendu de la radiographie thoracique",
-          url: "#",
-          pinned: false,
-        },
-        {
-          id: "4",
-          name: "Test rendu radiologie",
-          date: "20/11/2023",
-          type: "Imagerie",
-          issuedBy: "Centre d'Imagerie Médicale",
-          subtitle: "Radio thorax",
-          description: "Compte rendu de la radiographie thoracique",
-          url: "#",
-          pinned: true,
-        },
-        {
-          id: "5",
-          name: "Autre document médical",
-          date: "10/10/2023",
-          type: "Rapport",
-          issuedBy: "Hôpital Régional",
-          subtitle: "Consultation spécialiste",
-          description: "Rapport de consultation chez le spécialiste",
-          url: "#",
-          pinned: false,
-        },
-      ]);
-    }
-  }, [setItems, items.length]);
+  // Créer le service de documents avec useMemo pour éviter les re-créations
+  const documentService = useMemo(() => createDocumentService(httpService), []);
 
-  // Obtenir les 5 documents les plus récents
-  const recentDocuments = getRecentItems(3);
-  const pinnedDocuments = getPinnedItems();
+  // Récupérer les documents depuis l'API
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      if (!currentUser?.id) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log('📄 Récupération des documents pour l\'utilisateur:', currentUser.id);
+        const response = await documentService.getPatientDocuments(currentUser.id);
+        
+        if (response.success && response.documents) {
+          // Transformer les données de l'API pour correspondre au format attendu par le contexte
+          const transformedDocuments = response.documents.map(doc => ({
+            id: doc.id.toString(),
+            name: doc.nom || doc.titre || 'Document sans nom',
+            title: doc.nom || doc.titre || 'Document sans nom',
+            date: doc.date_creation ? new Date(doc.date_creation).toLocaleDateString('fr-FR') : 'Date inconnue',
+            type: doc.type || 'Document',
+            issuedBy: doc.medecin_nom && doc.medecin_prenom 
+              ? `Dr. ${doc.medecin_prenom} ${doc.medecin_nom}`
+              : 'Médecin inconnu',
+            subtitle: doc.description || doc.type || 'Document médical',
+            description: doc.description || 'Document médical',
+            url: doc.chemin_fichier || '#',
+            pinned: doc.epingle || false,
+            originalData: doc // Conserver les données originales
+          }));
+          
+          setItems(transformedDocuments);
+          console.log('✅ Documents chargés:', transformedDocuments.length);
+        } else {
+          console.warn('⚠️ Aucun document trouvé ou réponse invalide');
+          setItems([]);
+        }
+      } catch (err) {
+        console.error('❌ Erreur lors du chargement des documents:', err);
+        setError('Impossible de charger les documents');
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDocuments();
+  }, [currentUser?.id, setItems, documentService]);
+
+  // Fonction pour télécharger un document
+  const handleDownload = async (documentId) => {
+    try {
+      const blob = await documentService.downloadDocument(documentId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `document_${documentId}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Erreur lors du téléchargement:', error);
+      // Vous pouvez ajouter une notification d'erreur ici
+    }
+  };
 
   const handleDocumentClick = (documentId) => {
     const document = items.find((doc) => doc.id === documentId);
     if (document) {
       selectItem(document);
-      navigate("/documents/details");
+      navigate("/patient/documents/details");
     }
   };
 
@@ -157,8 +166,47 @@ const DocumentsList = () => {
     togglePinned(id);
   };
 
+  // Obtenir les documents récents et épinglés
+  const recentDocuments = getRecentItems(3);
+  const pinnedDocuments = getPinnedItems();
+
   const currentDocuments =
     activeTab === "recent" ? recentDocuments : pinnedDocuments;
+
+  // Afficher un indicateur de chargement
+  if (loading) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Mes documents</h2>
+        </div>
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-500">Chargement des documents...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Afficher l'erreur si elle existe
+  if (error) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Mes documents</h2>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-red-500">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 text-blue-600 hover:text-blue-800"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm">
@@ -207,13 +255,14 @@ const DocumentsList = () => {
               pinned={doc.pinned}
               onDocumentClick={handleDocumentClick}
               onTogglePin={handleTogglePin}
+              onDownload={handleDownload}
             />
           ))
         )}
       </div>
 
       <button
-        onClick={() => navigate("/documents")}
+        onClick={() => navigate("/patient/documents")}
         className="w-full mt-4 text-center text-sm text-gray-600 hover:text-gray-800"
       >
         Cliquez ici pour retrouver tous vos documents

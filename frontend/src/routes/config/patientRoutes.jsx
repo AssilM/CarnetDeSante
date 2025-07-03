@@ -7,6 +7,7 @@ import Documents from "../../pages/patient/documents/Documents";
 import DocumentDetails from "../../pages/patient/documents/DocumentDetails";
 import Vaccination from "../../pages/patient/vaccination/Vaccination";
 import VaccineDetails from "../../pages/patient/vaccination/VaccineDetails";
+import VaccinationSummary from "../../pages/patient/vaccination/VaccinationSummary";
 
 // Pages du profil médical
 import EditMedicalInfo from "../../pages/patient/medical/EditMedicalInfo";
@@ -79,6 +80,13 @@ const patientRoutes = [
   {
     path: "/vaccination/details",
     element: <VaccineDetails />,
+    layout: "main",
+    protected: true,
+    role: "patient",
+  },
+  {
+    path: "/vaccination/summary",
+    element: <VaccinationSummary />,
     layout: "main",
     protected: true,
     role: "patient",

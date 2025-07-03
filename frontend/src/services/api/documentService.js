@@ -12,7 +12,7 @@ const createDocumentService = (api) => {
      */
     getPatientDocuments: async (patientId) => {
       try {
-        const response = await api.get(`/documents/patient/${patientId}`);
+        const response = await api.get(`/patient/${patientId}/documents`);
         return response.data;
       } catch (error) {
         console.error(
@@ -30,7 +30,7 @@ const createDocumentService = (api) => {
      */
     getDocumentById: async (documentId) => {
       try {
-        const response = await api.get(`/documents/${documentId}`);
+        const response = await api.get(`/patient/documents/${documentId}`);
         return response.data;
       } catch (error) {
         console.error(
@@ -48,7 +48,7 @@ const createDocumentService = (api) => {
      */
     downloadDocument: async (documentId) => {
       try {
-        const response = await api.get(`/documents/${documentId}/download`, {
+        const response = await api.get(`/patient/documents/${documentId}/download`, {
           responseType: "blob",
         });
         return response.data;
@@ -68,7 +68,7 @@ const createDocumentService = (api) => {
      */
     createDocument: async (documentData) => {
       try {
-        const response = await api.post("/documents", documentData, {
+        const response = await api.post("/patient/documents", documentData, {
           headers: {
             "Content-Type": "multipart/form-data",
           },
@@ -89,7 +89,7 @@ const createDocumentService = (api) => {
     updateDocumentMetadata: async (documentId, metadata) => {
       try {
         const response = await api.put(
-          `/documents/${documentId}/metadata`,
+          `/patient/documents/${documentId}/metadata`,
           metadata
         );
         return response.data;
@@ -109,7 +109,7 @@ const createDocumentService = (api) => {
      */
     deleteDocument: async (documentId) => {
       try {
-        const response = await api.delete(`/documents/${documentId}`);
+        const response = await api.delete(`/patient/documents/${documentId}`);
         return response.data;
       } catch (error) {
         console.error(
@@ -128,7 +128,7 @@ const createDocumentService = (api) => {
      */
     shareDocumentWithDoctor: async (documentId, doctorId) => {
       try {
-        const response = await api.post(`/documents/${documentId}/share`, {
+        const response = await api.post(`/patient/documents/${documentId}/share`, {
           medecin_id: doctorId,
         });
         return response.data;
@@ -148,7 +148,7 @@ const createDocumentService = (api) => {
      */
     getDocumentsSharedWithDoctor: async (doctorId) => {
       try {
-        const response = await api.get(`/documents/shared/medecin/${doctorId}`);
+        const response = await api.get(`/patient/documents/shared/medecin/${doctorId}`);
         return response.data;
       } catch (error) {
         console.error(

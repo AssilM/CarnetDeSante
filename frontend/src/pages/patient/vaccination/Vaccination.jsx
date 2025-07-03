@@ -134,7 +134,7 @@ const Vaccination = () => {
   };
 
   const handleGenerateReport = () => {
-    console.log("Générer le récapitulatif des vaccinations");
+    navigate("/vaccination/summary");
   };
 
   const handleTogglePin = (id) => {

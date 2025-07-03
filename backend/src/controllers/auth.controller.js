@@ -25,14 +25,15 @@ export const signup = async (req, res) => {
       adresse,
       code_postal,
       ville,
+      latitude,
+      longitude,
+      description_localisation,
       patient_data,
       medecin_data,
     } = req.body;
 
     console.log("Tentative d'inscription pour:", email);
-
     // La vérification de l'email est maintenant gérée par le middleware checkEmailUnique
-
     // Validation de la date de naissance si elle est fournie
     if (date_naissance) {
       const today = new Date();
@@ -65,7 +66,7 @@ export const signup = async (req, res) => {
 
     // Insérer l'utilisateur
     const newUser = await pool.query(
-      "INSERT INTO utilisateur (email, password, nom, prenom, role, date_naissance, tel_indicatif, tel_numero, sexe, adresse, code_postal, ville) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *",
+      "INSERT INTO utilisateur (email, password, nom, prenom, role, date_naissance, tel_indicatif, tel_numero, sexe, adresse, code_postal, ville, latitude, longitude, description_localisation) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *",
       [
         email,
         hashedPassword,
@@ -79,6 +80,9 @@ export const signup = async (req, res) => {
         adresse,
         code_postal,
         ville,
+        latitude,
+        longitude,
+        description_localisation,
       ]
     );
 
@@ -355,7 +359,7 @@ export const getMe = async (req, res) => {
     const userId = req.userId;
 
     const result = await pool.query(
-      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville FROM utilisateur WHERE id = $1",
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, latitude, longitude, description_localisation FROM utilisateur WHERE id = $1",
       [userId]
     );
 
@@ -379,6 +383,9 @@ export const getMe = async (req, res) => {
         adresse: user.adresse,
         code_postal: user.code_postal,
         ville: user.ville,
+        latitude: user.latitude,
+        longitude: user.longitude,
+        description_localisation: user.description_localisation,
       },
     });
   } catch (error) {

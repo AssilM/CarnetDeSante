@@ -29,7 +29,32 @@ const AddVaccineForm = ({ onSubmit, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validation de la date de vaccination
+    const today = new Date();
+    const vaccinationDate = new Date(formData.date_vaccination);
+    
+    if (vaccinationDate > today) {
+      alert("La date de vaccination ne peut pas être supérieure à aujourd'hui.");
+      return;
+    }
+    
+    // Validation de la prochaine dose si spécifiée
+    if (formData.prochaine_dose) {
+      const nextDoseDate = new Date(formData.prochaine_dose);
+      if (nextDoseDate <= vaccinationDate) {
+        alert("La date de la prochaine dose doit être postérieure à la date de vaccination.");
+        return;
+      }
+    }
+    
     onSubmit(formData);
+  };
+
+  // Calculer la date maximale (aujourd'hui)
+  const getMaxDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
   };
 
   return (
@@ -133,9 +158,13 @@ const AddVaccineForm = ({ onSubmit, onCancel }) => {
               name="date_vaccination"
               value={formData.date_vaccination}
               onChange={handleChange}
+              max={getMaxDate()}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               required
             />
+            <p className="mt-1 text-xs text-gray-500">
+              La date ne peut pas être supérieure à aujourd'hui
+            </p>
           </div>
 
           <div>
@@ -178,8 +207,12 @@ const AddVaccineForm = ({ onSubmit, onCancel }) => {
               name="prochaine_dose"
               value={formData.prochaine_dose}
               onChange={handleChange}
+              min={formData.date_vaccination || getMaxDate()}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             />
+            <p className="mt-1 text-xs text-gray-500">
+              Doit être postérieure à la date de vaccination
+            </p>
           </div>
         </div>
 
