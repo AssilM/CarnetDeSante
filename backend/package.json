@@ -10,7 +10,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "init-db": "node src/data/initDB.js"
+    "init-db": "node src/data/initDB.js",
+    "drop-db": "node src/data/dropDB.js",
+    "drop-all-db": "node src/data/dropAllDB.js",
+    "create-patient": "node src/data/createPatientRecord.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

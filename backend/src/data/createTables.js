@@ -20,13 +20,22 @@ const dropTable = async (tableName) => {
 const dropAllTables = async () => {
   try {
     // Ordre de suppression important pour respecter les contraintes de clés étrangères
+    // Supprimer d'abord les tables de jonction et les dépendances
+    await dropTable("refresh_tokens");
     await dropTable("refresh_token");
+    await dropTable("documents");
     await dropTable("document");
     await dropTable("rendez_vous");
+    await dropTable("disponibilites");
     await dropTable("disponibilite_medecin");
+    await dropTable("vaccins");
+    await dropTable("vaccin");
+    await dropTable("patients");
     await dropTable("patient");
+    await dropTable("medecins");
     await dropTable("medecin");
     await dropTable("administrateur");
+    await dropTable("utilisateurs");
     await dropTable("utilisateur");
 
     console.log("Toutes les tables ont été supprimées avec succès");
@@ -229,6 +238,35 @@ const createDocumentTable = async () => {
   }
 };
 
+const createVaccinTable = async () => {
+  const queryText = `
+    CREATE TABLE IF NOT EXISTS vaccin (
+      id SERIAL PRIMARY KEY,
+      patient_id INTEGER NOT NULL REFERENCES patient(utilisateur_id) ON DELETE CASCADE,
+      nom_vaccin VARCHAR(100) NOT NULL,
+      nom_medecin VARCHAR(100) NOT NULL,
+      lieu_vaccination VARCHAR(255) NOT NULL,
+      type_vaccin VARCHAR(100) NOT NULL,
+      fabricant VARCHAR(100) NOT NULL,
+      date_vaccination DATE NOT NULL,
+      lot_vaccin VARCHAR(50) NOT NULL,
+      statut VARCHAR(20) NOT NULL DEFAULT 'administré' CHECK (statut IN ('administré', 'planifié', 'annulé', 'rappel_nécessaire')),
+      prochaine_dose DATE,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
+  try {
+    await pool.query(queryText);
+    console.log("Table vaccin créée avec succès");
+  } catch (error) {
+    console.error("Erreur lors de la création de la table vaccin:", error);
+    throw error;
+  }
+};
+
 const createIndexes = async () => {
   const queries = [
     `CREATE INDEX IF NOT EXISTS idx_utilisateur_email ON utilisateur(email)`,
@@ -241,6 +279,10 @@ const createIndexes = async () => {
     `CREATE INDEX IF NOT EXISTS idx_document_medecin ON document(medecin_id)`,
     `CREATE INDEX IF NOT EXISTS idx_document_type ON document(type_document)`,
     `CREATE INDEX IF NOT EXISTS idx_document_date ON document(date_creation)`,
+    `CREATE INDEX IF NOT EXISTS idx_vaccin_patient ON vaccin(patient_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_vaccin_date ON vaccin(date_vaccination)`,
+    `CREATE INDEX IF NOT EXISTS idx_vaccin_type ON vaccin(type_vaccin)`,
+    `CREATE INDEX IF NOT EXISTS idx_vaccin_statut ON vaccin(statut)`,
   ];
 
   try {
@@ -268,6 +310,7 @@ const initTables = async () => {
     await createRendezVousTable();
     await createAdministrateurTable();
     await createDocumentTable();
+    await createVaccinTable();
     await createIndexes();
     console.log("Initialisation des tables terminée");
   } catch (error) {
@@ -284,6 +327,7 @@ export {
   createRendezVousTable,
   createAdministrateurTable,
   createDocumentTable,
+  createVaccinTable,
   createIndexes,
   dropAllTables,
   initTables,

@@ -1,15 +1,20 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useVaccinationContext } from "../../../context";
+import { useAuth } from "../../../context/AuthContext";
 import PageWrapper from "../../../components/PageWrapper";
 import { ItemsList, ActionButton } from "../../../components/patient/common";
 import AddVaccineForm from "../../../components/patient/vaccination/AddVaccineForm";
 import { useFormModal } from "../../../hooks";
+import { vaccinService } from "../../../services/api/vaccinService";
 
 const Vaccination = () => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const { selectItem, setItems, items, addItem, togglePinned } =
     useVaccinationContext();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Utilisation du hook personnalisé pour gérer le formulaire d'ajout
   const {
@@ -17,62 +22,111 @@ const Vaccination = () => {
     openForm,
     closeForm,
     handleSubmit,
-  } = useFormModal((data) => {
-    // Génération d'un ID unique pour le nouveau vaccin
-    const newVaccine = {
-      ...data,
-      id: `vac-${Date.now()}`,
-      date: new Date().toLocaleDateString("fr-FR"),
-      pinned: false,
-    };
+  } = useFormModal(async (data) => {
+    try {
+      console.log("Données du vaccin à envoyer:", data);
+      console.log("Utilisateur connecté:", currentUser);
+      
+      // Vérifier que l'utilisateur est connecté
+      if (!currentUser || !currentUser.id) {
+        setError("Utilisateur non connecté");
+        return;
+      }
+      
+      // Préparer les données pour l'API
+      const vaccinData = {
+        patient_id: currentUser.id, // L'ID de l'utilisateur qui correspond à utilisateur_id dans patient
+        nom_vaccin: data.nom_vaccin,
+        nom_medecin: data.nom_medecin,
+        lieu_vaccination: data.lieu_vaccination,
+        type_vaccin: data.type_vaccin,
+        fabricant: data.fabricant,
+        date_vaccination: data.date_vaccination,
+        lot_vaccin: data.lot_vaccin,
+        statut: data.statut || 'administré',
+        prochaine_dose: data.prochaine_dose || null,
+        notes: data.notes || null,
+      };
 
-    // Ajout du vaccin via le contexte
-    addItem(newVaccine);
-    console.log("Nouveau vaccin:", newVaccine);
+      console.log("Données formatées pour l'API:", vaccinData);
+
+      // Envoyer à l'API
+      const response = await vaccinService.createVaccin(vaccinData);
+      console.log("Réponse de l'API:", response);
+
+      if (response && response.success) {
+        console.log("Vaccin créé avec succès, rechargement de la liste...");
+        // Recharger la liste des vaccins depuis la base de données
+        await loadVaccins();
+      } else {
+        console.error("Erreur dans la réponse:", response);
+        setError(response.message || "Erreur lors de l'ajout du vaccin");
+      }
+    } catch (error) {
+      console.error("Erreur lors de l'ajout du vaccin:", error);
+      setError(`Erreur lors de l'ajout du vaccin: ${error.message}`);
+    }
   });
 
-  // Initialisation des données de test
-  useEffect(() => {
-    if (items.length === 0) {
-      setItems([
-        {
-          id: "1",
-          name: "Vaccin COVID-19",
-          date: "15/01/2024",
-          doctor: "Dr. Martin",
-          subtitle: "Lot: ABC123",
-          location: "Centre de vaccination",
-          nextDose: "15/07/2024",
-          type: "ARNm",
-          manufacturer: "Pfizer",
-          pinned: true,
-        },
-        {
-          id: "2",
-          name: "Vaccin Grippe",
-          date: "01/11/2023",
-          doctor: "Dr. Dupont",
-          subtitle: "Lot: XYZ789",
-          location: "Cabinet médical",
-          type: "Inactivé",
-          manufacturer: "Sanofi",
-          pinned: false,
-        },
-        {
-          id: "3",
-          name: "Rappel DTP",
-          date: "10/06/2023",
-          doctor: "Dr. Bernard",
-          subtitle: "Lot: DEF456",
-          location: "Hôpital Central",
-          nextDose: "10/06/2033",
-          type: "Combiné",
-          manufacturer: "GSK",
-          pinned: false,
-        },
-      ]);
+  // Charger les vaccins depuis la base de données
+  const loadVaccins = async () => {
+    console.log("loadVaccins appelé avec currentUser:", currentUser);
+    
+    if (!currentUser?.id) {
+      console.log("Pas d'utilisateur connecté ou pas d'ID utilisateur");
+      setLoading(false);
+      setItems([]);
+      return;
     }
-  }, [setItems, items.length]);
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log("Chargement des vaccins pour patient_id:", currentUser.id);
+      const response = await vaccinService.getVaccins(currentUser.id);
+      console.log("Vaccins récupérés:", response);
+      
+      if (response && response.success) {
+        // Formater les données pour la compatibilité avec l'interface
+        const formattedVaccins = response.data.map(vaccin => ({
+          ...vaccin,
+          // Compatibilité avec l'ancien format
+          id: vaccin.id.toString(),
+          name: vaccin.nom_vaccin,
+          date: new Date(vaccin.date_vaccination).toLocaleDateString("fr-FR"),
+          doctor: vaccin.nom_medecin,
+          location: vaccin.lieu_vaccination,
+          type: vaccin.type_vaccin,
+          manufacturer: vaccin.fabricant,
+          subtitle: `Lot: ${vaccin.lot_vaccin}`,
+          nextDose: vaccin.prochaine_dose ? 
+            new Date(vaccin.prochaine_dose).toLocaleDateString("fr-FR") : null,
+          pinned: false, // À gérer plus tard si nécessaire
+        }));
+        
+        console.log("Vaccins formatés:", formattedVaccins);
+        setItems(formattedVaccins);
+      } else {
+        // Si pas de données ou échec, initialiser avec un tableau vide
+        setItems([]);
+        console.log("Aucun vaccin trouvé ou erreur de récupération");
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des vaccins:", error);
+      // En cas d'erreur, initialiser avec un tableau vide au lieu d'afficher une erreur
+      setItems([]);
+      // Optionnel : afficher l'erreur seulement si c'est critique
+      // setError("Erreur lors du chargement des vaccins");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Charger les vaccins au montage du composant
+  useEffect(() => {
+    loadVaccins();
+  }, [currentUser?.id]);
 
   const handleViewDetails = (vaccine) => {
     selectItem(vaccine);
@@ -88,6 +142,22 @@ const Vaccination = () => {
   };
 
   const content = () => {
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg">Chargement des vaccins...</div>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="flex justify-center items-center h-64">
+          <div className="text-red-600">{error}</div>
+        </div>
+      );
+    }
+
     if (showAddForm) {
       return (
         <div className="mt-10">
