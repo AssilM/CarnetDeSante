@@ -107,6 +107,18 @@ const PatientRoutes = [
       </ProtectedRoute>
     }
   />,
+  <Route
+    key="patient-documents-details"
+    path="/patient/documents/:document_id"
+    element={
+      <ProtectedRoute>
+        <MainLayout>
+          <DocumentDetails />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+
 
   // Routes de vaccination
   <Route

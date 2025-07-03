@@ -250,8 +250,7 @@ const createVaccinTable = async () => {
       fabricant VARCHAR(100) NOT NULL,
       date_vaccination DATE NOT NULL,
       lot_vaccin VARCHAR(50) NOT NULL,
-      statut VARCHAR(20) NOT NULL DEFAULT 'administré' CHECK (statut IN ('administré', 'planifié', 'annulé', 'rappel_nécessaire')),
-      prochaine_dose DATE,
+      statut VARCHAR(20) NOT NULL DEFAULT 'administré' CHECK (statut IN ('administré', 'planifié')),
       notes TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

@@ -54,6 +54,18 @@ const StaffRoutes = [
     }
   />,
 
+  <Route
+    key="doctor-settings"
+    path="/doctor/settings"
+    element={
+      <ProtectedRoute requiredRole="medecin">
+        <MainLayout>
+          <DoctorProfile />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+
   // Routes pour les administrateurs
   <Route
     key="admin-home"

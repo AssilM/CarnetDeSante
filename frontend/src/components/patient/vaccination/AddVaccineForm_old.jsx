@@ -14,6 +14,8 @@ const AddVaccineForm = ({ onSubmit, onCancel }) => {
     fabricant: "",
     date_vaccination: "",
     lot_vaccin: "",
+    statut: "administré",
+    prochaine_dose: "",
     notes: "",
   });
 
@@ -27,7 +29,32 @@ const AddVaccineForm = ({ onSubmit, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validation de la date de vaccination
+    const today = new Date();
+    const vaccinationDate = new Date(formData.date_vaccination);
+    
+    if (vaccinationDate > today) {
+      alert("La date de vaccination ne peut pas être supérieure à aujourd'hui.");
+      return;
+    }
+    
+    // Validation de la prochaine dose si spécifiée
+    if (formData.prochaine_dose) {
+      const nextDoseDate = new Date(formData.prochaine_dose);
+      if (nextDoseDate <= vaccinationDate) {
+        alert("La date de la prochaine dose doit être postérieure à la date de vaccination.");
+        return;
+      }
+    }
+    
     onSubmit(formData);
+  };
+
+  // Calculer la date maximale (aujourd'hui)
+  const getMaxDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
   };
 
   return (
@@ -36,7 +63,7 @@ const AddVaccineForm = ({ onSubmit, onCancel }) => {
         Ajouter un vaccin
       </h2>
       <p className="text-sm text-gray-500 mb-6">
-        Les champs marqués d'un * sont obligatoires. Si la date est dans le futur, le vaccin sera automatiquement marqué comme "planifié".
+        Les champs marqués d'un * sont obligatoires
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -98,7 +125,6 @@ const AddVaccineForm = ({ onSubmit, onCancel }) => {
               <option value="COVID-19">COVID-19</option>
               <option value="Grippe">Grippe</option>
               <option value="DTP">DTP (Diphtérie-Tétanos-Poliomyélite)</option>
-              <option value="Hépatite A">Hépatite A</option>
               <option value="Hépatite B">Hépatite B</option>
               <option value="ROR">ROR (Rougeole-Oreillons-Rubéole)</option>
               <option value="Pneumocoque">Pneumocoque</option>
@@ -132,11 +158,12 @@ const AddVaccineForm = ({ onSubmit, onCancel }) => {
               name="date_vaccination"
               value={formData.date_vaccination}
               onChange={handleChange}
+              max={getMaxDate()}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               required
             />
             <p className="mt-1 text-xs text-gray-500">
-              Vous pouvez choisir une date future pour un vaccin planifié
+              La date ne peut pas être supérieure à aujourd'hui
             </p>
           </div>
 
@@ -153,6 +180,39 @@ const AddVaccineForm = ({ onSubmit, onCancel }) => {
               placeholder="ex: ABC123, XYZ789..."
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Statut
+            </label>
+            <select
+              name="statut"
+              value={formData.statut}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            >
+              <option value="administré">Administré</option>
+              <option value="planifié">Planifié</option>
+              <option value="rappel_nécessaire">Rappel nécessaire</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Prochaine dose (optionnel)
+            </label>
+            <input
+              type="date"
+              name="prochaine_dose"
+              value={formData.prochaine_dose}
+              onChange={handleChange}
+              min={formData.date_vaccination || getMaxDate()}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Doit être postérieure à la date de vaccination
+            </p>
           </div>
         </div>
 

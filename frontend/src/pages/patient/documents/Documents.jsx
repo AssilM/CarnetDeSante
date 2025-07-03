@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useDocumentContext, useAuth } from "../../../context";
 import PageWrapper from "../../../components/PageWrapper";
 import { ItemsList, ActionButton } from "../../../components/patient/common";
@@ -9,6 +9,7 @@ import { httpService } from "../../../services";
 
 const Documents = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser, loading: authLoading } = useAuth();
   const { selectItem, setItems, items, togglePinned } = useDocumentContext();
   const [loading, setLoading] = useState(false);
@@ -24,9 +25,7 @@ const Documents = () => {
   const submitDocument = async (formData) => {
     try {
       setLoading(true);
-      console.log("📤 Soumission du formulaire:", formData);
-      console.log("👤 Utilisateur connecté:", currentUser);
-
+      
       // Créer un FormData pour l'upload de fichier
       const data = new FormData();
       data.append("titre", formData.titre);
@@ -39,7 +38,6 @@ const Documents = () => {
       // Essayons différentes propriétés de currentUser
       const patientId =
         currentUser?.id || currentUser?.userId || currentUser?.user_id;
-      console.log("🔍 Patient ID trouvé:", patientId);
 
       if (patientId) {
         data.append("patient_id", patientId.toString());
@@ -51,23 +49,12 @@ const Documents = () => {
         throw new Error("Utilisateur non identifié");
       }
 
-      console.log("📤 Données à envoyer:", {
-        titre: formData.titre,
-        type_document: formData.type_document,
-        date_creation: formData.date_creation,
-        description: formData.description,
-        patient_id: patientId,
-        file: formData.file?.name,
-      });
-
       // Appel API
       const response = await httpService.post("/patient/documents", data, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-
-      console.log("✅ Réponse API:", response.data);
 
       // Afficher la notification de succès
       if (response.data.notification) {
@@ -105,16 +92,12 @@ const Documents = () => {
   const loadDocuments = async () => {
     try {
       if (!currentUser?.id) {
-        console.log("👤 Utilisateur non chargé, attente...");
         return;
       }
 
-      console.log("📥 Chargement des documents depuis l'API...");
       const response = await httpService.get(
         `/patient/${currentUser.id}/documents`
       );
-
-      console.log("📄 Réponse brute de l'API:", response.data);
 
       if (response.data.success) {
         // Convertir les documents de l'API au format attendu par le contexte
@@ -133,11 +116,9 @@ const Documents = () => {
           pinned: false, // TODO: implémenter la fonctionnalité d'épinglage
         }));
 
-        console.log("✅ Documents chargés:", documentsFormatted);
         setItems(documentsFormatted);
       }
     } catch (error) {
-      console.error("❌ Erreur lors du chargement des documents:", error);
       showNotification({
         type: "error",
         title: "Erreur de chargement",
@@ -148,10 +129,17 @@ const Documents = () => {
 
   // Initialisation des données depuis l'API
   useEffect(() => {
-    if (!authLoading && currentUser && items.length === 0) {
+    if (!authLoading && currentUser) {
       loadDocuments();
     }
-  }, [authLoading, currentUser, items.length]);
+  }, [authLoading, currentUser]);
+
+  // Forcer le rechargement des documents quand on revient sur la page
+  useEffect(() => {
+    if (!authLoading && currentUser && location.pathname === "/documents") {
+      loadDocuments();
+    }
+  }, [location.pathname, authLoading, currentUser]);
 
   const handleViewDetails = (document) => {
     selectItem(document);

@@ -1,5 +1,0 @@
-{
-  "name": "add-location-fields",
-  "script": "node src/data/migrations/addLocationFields.js",
-  "description": "Migration pour ajouter les champs de géolocalisation"
-}

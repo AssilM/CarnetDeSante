@@ -39,8 +39,8 @@ const VaccineDetails = () => {
           {/* En-tête de la carte */}
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center">
-                <FaSyringe className="text-2xl text-primary" />
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <FaSyringe className="text-2xl text-purple-600" />
               </div>
               <div>
                 <h1 className="text-2xl font-semibold text-gray-900">
@@ -111,23 +111,12 @@ const VaccineDetails = () => {
                   selectedItem.statut === 'administré' || !selectedItem.statut ? 
                     'bg-green-100 text-green-800' :
                   selectedItem.statut === 'planifié' ? 
-                    'bg-blue-100 text-blue-800' :
-                  selectedItem.statut === 'rappel_nécessaire' ? 
-                    'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
+                    'bg-orange-100 text-orange-800' :
+                    'bg-gray-100 text-gray-800'
                 }`}>
                   {selectedItem.statut || 'Administré'}
                 </span>
               </div>
-
-              {(selectedItem.prochaine_dose || selectedItem.nextDose) && (
-                <div>
-                  <h2 className="text-sm font-medium text-gray-500 mb-1">
-                    Prochaine dose prévue
-                  </h2>
-                  <p className="text-gray-900">{formatDateFrench(selectedItem.prochaine_dose) || selectedItem.nextDose}</p>
-                </div>
-              )}
 
               {selectedItem.notes && (
                 <div>

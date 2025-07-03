@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaUser, FaMapMarkerAlt, FaStethoscope, FaSave, FaArrowLeft } from "react-icons/fa";
 import PageWrapper from "../../components/PageWrapper";
-import LocationPicker from "../../components/doctor/LocationPicker";
+import LocationPicker from "../../components/common/LocationPicker";
 import { useAuth } from "../../context/AuthContext";
 import { useUserContext } from "../../context/UserContext";
 import { useAppContext } from "../../context/AppContext";
@@ -53,8 +53,8 @@ const DoctorProfile = () => {
         description: userData.description || "",
         adresse: userData.adresse || "",
         ville: userData.ville || "Lomé",
-        latitude: userData.latitude || null,
-        longitude: userData.longitude || null,
+        latitude: userData.latitude ? parseFloat(userData.latitude) : null,
+        longitude: userData.longitude ? parseFloat(userData.longitude) : null,
         description_localisation: userData.description_localisation || ""
       });
     }
@@ -367,6 +367,7 @@ const DoctorProfile = () => {
                   : null
               }
               initialAddress={formData.adresse}
+              userType="medecin"
             />
           )}
 
@@ -391,7 +392,11 @@ const DoctorProfile = () => {
                     Coordonnées GPS
                   </label>
                   <p className="text-gray-900">
-                    {formData.latitude?.toFixed(6)}, {formData.longitude?.toFixed(6)}
+                    {formData.latitude && formData.longitude && 
+                     typeof formData.latitude === 'number' && typeof formData.longitude === 'number'
+                      ? `${formData.latitude.toFixed(6)}, ${formData.longitude.toFixed(6)}`
+                      : 'Non renseignées'
+                    }
                   </p>
                 </div>
                 

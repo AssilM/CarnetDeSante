@@ -160,9 +160,8 @@ const VaccinationSummary = () => {
   const getUpcomingVaccines = () => {
     const today = new Date();
     return vaccines.filter(vaccine => {
-      if (!vaccine.prochaine_dose) return false;
-      const nextDose = new Date(vaccine.prochaine_dose);
-      return nextDose > today;
+      const vaccinationDate = new Date(vaccine.date_vaccination);
+      return vaccinationDate > today && vaccine.statut === 'planifié';
     });
   };
 
@@ -239,7 +238,7 @@ const VaccinationSummary = () => {
             <div className="text-3xl font-bold text-green-600 mb-2">
               {upcomingVaccines.length}
             </div>
-            <div className="text-gray-600">Rappels prévus</div>
+            <div className="text-gray-600">Vaccins à venir</div>
           </div>
         </div>
 
@@ -299,7 +298,7 @@ const VaccinationSummary = () => {
                       Type
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Prochaine dose
+                      Statut
                     </th>
                   </tr>
                 </thead>
@@ -338,11 +337,16 @@ const VaccinationSummary = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {vaccine.type_vaccin || "Non spécifié"}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {vaccine.prochaine_dose 
-                            ? new Date(vaccine.prochaine_dose).toLocaleDateString("fr-FR")
-                            : "Non programmée"
-                          }
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            vaccine.statut === 'administré' || !vaccine.statut ? 
+                              'bg-green-100 text-green-800' :
+                            vaccine.statut === 'planifié' ? 
+                              'bg-blue-100 text-blue-800' :
+                              'bg-gray-100 text-gray-800'
+                          }`}>
+                            {vaccine.statut || 'Administré'}
+                          </span>
                         </td>
                       </tr>
                     ))}
@@ -352,30 +356,30 @@ const VaccinationSummary = () => {
           )}
         </div>
 
-        {/* Rappels à venir */}
+        {/* Vaccins à venir */}
         {upcomingVaccines.length > 0 && (
           <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Rappels à venir
+              Vaccins à venir
             </h2>
             <div className="space-y-3">
               {upcomingVaccines.map((vaccine, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                <div key={index} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-yellow-200 rounded-full flex items-center justify-center">
-                      <FaSyringe className="text-yellow-600 text-sm" />
+                    <div className="w-8 h-8 bg-blue-200 rounded-full flex items-center justify-center">
+                      <FaSyringe className="text-blue-600 text-sm" />
                     </div>
                     <div>
                       <div className="font-medium text-gray-900">
-                        {vaccine.nom_vaccin} - Rappel
+                        {vaccine.nom_vaccin}
                       </div>
                       <div className="text-sm text-gray-600">
-                        Prévu le {new Date(vaccine.prochaine_dose).toLocaleDateString("fr-FR")}
+                        Planifié le {new Date(vaccine.date_vaccination).toLocaleDateString("fr-FR")}
                       </div>
                     </div>
                   </div>
-                  <div className="text-sm text-yellow-600 font-medium">
-                    À programmer
+                  <div className="text-sm text-blue-600 font-medium">
+                    Planifié
                   </div>
                 </div>
               ))}

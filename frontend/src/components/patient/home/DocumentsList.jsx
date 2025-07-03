@@ -1,11 +1,47 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiDownload } from "react-icons/hi";
-import { FaThumbtack } from "react-icons/fa";
+import { FaThumbtack, FaSyringe } from "react-icons/fa";
 import { useDocumentContext } from "../../../context";
 import { useAuth } from "../../../context/AuthContext";
 import { createDocumentService } from "../../../services/api";
 import { httpService } from "../../../services/http";
+import { vaccinService } from "../../../services/api/vaccinService";
+
+const VaccineItem = ({ vaccine, onVaccineClick }) => {
+  return (
+    <div
+      className="flex items-center gap-4 p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors cursor-pointer"
+      onClick={() => onVaccineClick(vaccine.id)}
+    >
+      <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center shadow-sm">
+        <FaSyringe className="text-purple-600" />
+      </div>
+      <div className="flex-grow">
+        <h4 className="font-medium">{vaccine.nom_vaccin}</h4>
+        <div className="flex items-center gap-4">
+          <p className="text-sm text-gray-600">
+            {vaccine.nom_medecin ? `Dr. ${vaccine.nom_medecin}` : 'Médecin non spécifié'}
+          </p>
+          <span className="text-sm text-gray-500">
+            {new Date(vaccine.date_vaccination).toLocaleDateString('fr-FR')}
+          </span>
+        </div>
+      </div>
+      <div className="flex items-center">
+        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+          vaccine.statut === 'administré' || !vaccine.statut ? 
+            'bg-green-100 text-green-800' :
+          vaccine.statut === 'planifié' ? 
+            'bg-orange-100 text-orange-800' :
+            'bg-gray-100 text-gray-800'
+        }`}> 
+          {vaccine.statut || 'Administré'}
+        </span>
+      </div>
+    </div>
+  );
+};
 
 const DocumentItem = ({
   id,
@@ -72,8 +108,10 @@ const DocumentItem = ({
 
 const DocumentsList = () => {
   const [activeTab, setActiveTab] = useState("recent");
+  const [widgetType, setWidgetType] = useState("documents"); // "documents" ou "vaccines"
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [vaccines, setVaccines] = useState([]);
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const {
@@ -97,7 +135,6 @@ const DocumentsList = () => {
         setLoading(true);
         setError(null);
         
-        console.log('📄 Récupération des documents pour l\'utilisateur:', currentUser.id);
         const response = await documentService.getPatientDocuments(currentUser.id);
         
         if (response.success && response.documents) {
@@ -119,13 +156,10 @@ const DocumentsList = () => {
           }));
           
           setItems(transformedDocuments);
-          console.log('✅ Documents chargés:', transformedDocuments.length);
         } else {
-          console.warn('⚠️ Aucun document trouvé ou réponse invalide');
           setItems([]);
         }
       } catch (err) {
-        console.error('❌ Erreur lors du chargement des documents:', err);
         setError('Impossible de charger les documents');
         setItems([]);
       } finally {
@@ -135,6 +169,28 @@ const DocumentsList = () => {
 
     fetchDocuments();
   }, [currentUser?.id, setItems, documentService]);
+
+  // Récupérer les vaccins depuis l'API
+  useEffect(() => {
+    const fetchVaccines = async () => {
+      if (!currentUser?.id) return;
+      
+      try {
+        const response = await vaccinService.getVaccins(currentUser.id);
+        
+        if (response && response.success) {
+          setVaccines(response.data);
+        } else {
+          setVaccines([]);
+        }
+      } catch (err) {
+        console.error('Erreur lors du chargement des vaccins:', err);
+        setVaccines([]);
+      }
+    };
+
+    fetchVaccines();
+  }, [currentUser?.id]);
 
   // Fonction pour télécharger un document
   const handleDownload = async (documentId) => {
@@ -158,7 +214,7 @@ const DocumentsList = () => {
     const document = items.find((doc) => doc.id === documentId);
     if (document) {
       selectItem(document);
-      navigate("/patient/documents/details");
+      navigate(`/patient/documents/${documentId}`);
     }
   };
 
@@ -166,23 +222,71 @@ const DocumentsList = () => {
     togglePinned(id);
   };
 
+  const handleVaccineClick = (vaccineId) => {
+    navigate(`/vaccination`);
+  };
+
   // Obtenir les documents récents et épinglés
   const recentDocuments = getRecentItems(3);
   const pinnedDocuments = getPinnedItems();
 
+  // Obtenir les vaccins récents
+  const recentVaccines = vaccines
+    .sort((a, b) => new Date(b.date_vaccination) - new Date(a.date_vaccination))
+    .slice(0, 3);
+
+  const getUpcomingVaccines = () => {
+    const today = new Date();
+    return vaccines
+      .filter(vaccine => {
+        const vaccinationDate = new Date(vaccine.date_vaccination);
+        return vaccinationDate > today && vaccine.statut === 'planifié';
+      })
+      .slice(0, 3);
+  };
+
+  const upcomingVaccines = getUpcomingVaccines();
+
   const currentDocuments =
     activeTab === "recent" ? recentDocuments : pinnedDocuments;
+
+  const currentVaccines =
+    activeTab === "recent" ? recentVaccines : upcomingVaccines;
 
   // Afficher un indicateur de chargement
   if (loading) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Mes documents</h2>
+          <h2 className="text-xl font-semibold">
+            {widgetType === "documents" ? "Mes documents" : "Mes vaccins"}
+          </h2>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setWidgetType("documents")}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                widgetType === "documents"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              📄 Documents
+            </button>
+            <button
+              onClick={() => setWidgetType("vaccines")}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                widgetType === "vaccines"
+                  ? "bg-purple-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              💉 Vaccins
+            </button>
+          </div>
         </div>
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-500">Chargement des documents...</p>
+          <p className="mt-2 text-gray-500">Chargement...</p>
         </div>
       </div>
     );
@@ -193,7 +297,31 @@ const DocumentsList = () => {
     return (
       <div className="bg-white p-6 rounded-lg shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Mes documents</h2>
+          <h2 className="text-xl font-semibold">
+            {widgetType === "documents" ? "Mes documents" : "Mes vaccins"}
+          </h2>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setWidgetType("documents")}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                widgetType === "documents"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              📄 Documents
+            </button>
+            <button
+              onClick={() => setWidgetType("vaccines")}
+              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                widgetType === "vaccines"
+                  ? "bg-purple-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              💉 Vaccins
+            </button>
+          </div>
         </div>
         <div className="text-center py-8">
           <p className="text-red-500">{error}</p>
@@ -211,62 +339,140 @@ const DocumentsList = () => {
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Mes documents</h2>
+        <h2 className="text-xl font-semibold">
+          {widgetType === "documents" ? "Mes documents" : "Mes vaccins"}
+        </h2>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setWidgetType("documents")}
+            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+              widgetType === "documents"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
+          >
+            📄 Documents
+          </button>
+          <button
+            onClick={() => setWidgetType("vaccines")}
+            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+              widgetType === "vaccines"
+                ? "bg-purple-600 text-white"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
+          >
+            💉 Vaccins
+          </button>
+        </div>
       </div>
 
-      <div className="flex gap-4 mb-4">
-        <button
-          className={`text-sm font-medium ${
-            activeTab === "recent"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-          onClick={() => setActiveTab("recent")}
-        >
-          Les plus récents
-        </button>
-        <button
-          className={`text-sm font-medium ${
-            activeTab === "pinned"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-          onClick={() => setActiveTab("pinned")}
-        >
-          Épinglés
-        </button>
-      </div>
-
-      <div className="space-y-3">
-        {currentDocuments.length === 0 ? (
-          <div className="text-center py-4 text-gray-500">
-            {activeTab === "pinned"
-              ? "Aucun document épinglé"
-              : "Aucun document récent"}
+      {widgetType === "documents" ? (
+        <>
+          <div className="flex gap-4 mb-4">
+            <button
+              className={`text-sm font-medium ${
+                activeTab === "recent"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab("recent")}
+            >
+              Les plus récents
+            </button>
+            <button
+              className={`text-sm font-medium ${
+                activeTab === "pinned"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab("pinned")}
+            >
+              Épinglés
+            </button>
           </div>
-        ) : (
-          currentDocuments.map((doc) => (
-            <DocumentItem
-              key={doc.id}
-              id={doc.id}
-              title={doc.name || doc.title}
-              name={doc.issuedBy || doc.name}
-              date={doc.date}
-              pinned={doc.pinned}
-              onDocumentClick={handleDocumentClick}
-              onTogglePin={handleTogglePin}
-              onDownload={handleDownload}
-            />
-          ))
-        )}
-      </div>
 
-      <button
-        onClick={() => navigate("/patient/documents")}
-        className="w-full mt-4 text-center text-sm text-gray-600 hover:text-gray-800"
-      >
-        Cliquez ici pour retrouver tous vos documents
-      </button>
+          <div className="space-y-3">
+            {currentDocuments.length === 0 ? (
+              <div className="text-center py-4 text-gray-500">
+                {activeTab === "pinned"
+                  ? "Aucun document épinglé"
+                  : "Aucun document récent"}
+              </div>
+            ) : (
+              currentDocuments.map((doc) => (
+                <DocumentItem
+                  key={doc.id}
+                  id={doc.id}
+                  title={doc.name || doc.title}
+                  name={doc.issuedBy || doc.name}
+                  date={doc.date}
+                  pinned={doc.pinned}
+                  onDocumentClick={handleDocumentClick}
+                  onTogglePin={handleTogglePin}
+                  onDownload={handleDownload}
+                />
+              ))
+            )}
+          </div>
+
+          <button
+            onClick={() => navigate("/documents")}
+            className="w-full mt-4 text-center text-sm text-gray-600 hover:text-gray-800"
+          >
+            Cliquez ici pour retrouver tous vos documents
+          </button>
+        </>
+      ) : (
+        <>
+          <div className="flex gap-4 mb-4">
+            <button
+              className={`text-sm font-medium ${
+                activeTab === "recent"
+                  ? "text-purple-600 border-b-2 border-purple-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab("recent")}
+            >
+              Les plus récents
+            </button>
+            <button
+              className={`text-sm font-medium ${
+                activeTab === "pinned"
+                  ? "text-purple-600 border-b-2 border-purple-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab("pinned")}
+            >
+              À venir
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {currentVaccines.length === 0 ? (
+              <div className="text-center py-4 text-gray-500">
+                {activeTab === "pinned"
+                  ? "Aucun vaccin planifié"
+                  : "Aucun vaccin récent"}
+              </div>
+            ) : (
+              currentVaccines.map((vaccine) => (
+                <VaccineItem
+                  key={vaccine.id}
+                  vaccine={vaccine}
+                  onVaccineClick={handleVaccineClick}
+                />
+              ))
+            )}
+          </div>
+
+          <button
+            onClick={() => navigate("/vaccination")}
+            className="w-full mt-4 text-center text-sm text-gray-600 hover:text-gray-800"
+          >
+            Cliquez ici pour retrouver tous vos vaccins
+          </button>
+        </>
+      )}
     </div>
   );
 };

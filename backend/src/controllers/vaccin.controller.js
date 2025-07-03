@@ -16,7 +16,6 @@ export const getVaccins = async (req, res) => {
         v.date_vaccination,
         v.lot_vaccin,
         v.statut,
-        v.prochaine_dose,
         v.notes,
         v.created_at,
         v.updated_at
@@ -57,7 +56,6 @@ export const getVaccinById = async (req, res) => {
         v.date_vaccination,
         v.lot_vaccin,
         v.statut,
-        v.prochaine_dose,
         v.notes,
         v.created_at,
         v.updated_at,
@@ -104,8 +102,6 @@ export const createVaccin = async (req, res) => {
       fabricant, 
       date_vaccination, 
       lot_vaccin, 
-      statut, 
-      prochaine_dose, 
       notes 
     } = req.body;
     
@@ -123,19 +119,24 @@ export const createVaccin = async (req, res) => {
       });
     }
     
+    // Déterminer automatiquement le statut en fonction de la date
+    const today = new Date();
+    const vaccinationDate = new Date(date_vaccination);
+    const statut = vaccinationDate > today ? 'planifié' : 'administré';
+    
     const query = `
       INSERT INTO vaccin (
         patient_id, nom_vaccin, nom_medecin, lieu_vaccination, 
         type_vaccin, fabricant, date_vaccination, lot_vaccin, 
-        statut, prochaine_dose, notes
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        statut, notes
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `;
     
     const values = [
       patient_id, nom_vaccin, nom_medecin, lieu_vaccination,
       type_vaccin, fabricant, date_vaccination, lot_vaccin,
-      statut || 'administré', prochaine_dose || null, notes || null
+      statut, notes || null
     ];
     
     console.log('Requête SQL:', query);
@@ -172,25 +173,27 @@ export const updateVaccin = async (req, res) => {
       fabricant, 
       date_vaccination, 
       lot_vaccin, 
-      statut, 
-      prochaine_dose, 
       notes 
     } = req.body;
+    
+    // Déterminer automatiquement le statut en fonction de la date
+    const today = new Date();
+    const vaccinationDate = new Date(date_vaccination);
+    const statut = vaccinationDate > today ? 'planifié' : 'administré';
     
     const query = `
       UPDATE vaccin 
       SET nom_vaccin = $1, nom_medecin = $2, lieu_vaccination = $3, 
           type_vaccin = $4, fabricant = $5, date_vaccination = $6, 
-          lot_vaccin = $7, statut = $8, prochaine_dose = $9, 
-          notes = $10, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $11
+          lot_vaccin = $7, statut = $8, notes = $9, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $10
       RETURNING *
     `;
     
     const values = [
       nom_vaccin, nom_medecin, lieu_vaccination, type_vaccin,
       fabricant, date_vaccination, lot_vaccin, statut,
-      prochaine_dose, notes, id
+      notes, id
     ];
     
     const result = await pool.query(query, values);

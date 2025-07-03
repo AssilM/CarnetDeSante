@@ -24,9 +24,6 @@ const Vaccination = () => {
     handleSubmit,
   } = useFormModal(async (data) => {
     try {
-      console.log("Données du vaccin à envoyer:", data);
-      console.log("Utilisateur connecté:", currentUser);
-      
       // Vérifier que l'utilisateur est connecté
       if (!currentUser || !currentUser.id) {
         setError("Utilisateur non connecté");
@@ -43,19 +40,13 @@ const Vaccination = () => {
         fabricant: data.fabricant,
         date_vaccination: data.date_vaccination,
         lot_vaccin: data.lot_vaccin,
-        statut: data.statut || 'administré',
-        prochaine_dose: data.prochaine_dose || null,
         notes: data.notes || null,
       };
 
-      console.log("Données formatées pour l'API:", vaccinData);
-
       // Envoyer à l'API
       const response = await vaccinService.createVaccin(vaccinData);
-      console.log("Réponse de l'API:", response);
 
       if (response && response.success) {
-        console.log("Vaccin créé avec succès, rechargement de la liste...");
         // Recharger la liste des vaccins depuis la base de données
         await loadVaccins();
       } else {
@@ -83,9 +74,7 @@ const Vaccination = () => {
       setLoading(true);
       setError(null);
       
-      console.log("Chargement des vaccins pour patient_id:", currentUser.id);
       const response = await vaccinService.getVaccins(currentUser.id);
-      console.log("Vaccins récupérés:", response);
       
       if (response && response.success) {
         // Formater les données pour la compatibilité avec l'interface
@@ -100,8 +89,6 @@ const Vaccination = () => {
           type: vaccin.type_vaccin,
           manufacturer: vaccin.fabricant,
           subtitle: `Lot: ${vaccin.lot_vaccin}`,
-          nextDose: vaccin.prochaine_dose ? 
-            new Date(vaccin.prochaine_dose).toLocaleDateString("fr-FR") : null,
           pinned: false, // À gérer plus tard si nécessaire
         }));
         
@@ -110,10 +97,8 @@ const Vaccination = () => {
       } else {
         // Si pas de données ou échec, initialiser avec un tableau vide
         setItems([]);
-        console.log("Aucun vaccin trouvé ou erreur de récupération");
       }
     } catch (error) {
-      console.error("Erreur lors du chargement des vaccins:", error);
       // En cas d'erreur, initialiser avec un tableau vide au lieu d'afficher une erreur
       setItems([]);
       // Optionnel : afficher l'erreur seulement si c'est critique
