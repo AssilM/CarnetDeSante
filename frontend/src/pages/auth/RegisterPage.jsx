@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "../../assets/logo-C.svg";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../context/AuthContext";
+import LocationPicker from "../../components/doctor/LocationPicker";
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -18,6 +19,12 @@ const RegisterPage = () => {
     specialite: "", // Pour les médecins uniquement
     groupeSanguin: "", // Pour les patients uniquement
     poids: "", // Pour les patients uniquement
+    // Géolocalisation pour les médecins
+    latitude: null,
+    longitude: null,
+    adresse: "",
+    ville: "Lomé",
+    description_localisation: ""
   });
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("patient");
@@ -146,6 +153,27 @@ const RegisterPage = () => {
     }
   };
 
+  // Gérer les changements de localisation pour les médecins
+  const handleLocationChange = (locationData) => {
+    setFormData(prev => ({
+      ...prev,
+      latitude: locationData.latitude,
+      longitude: locationData.longitude,
+      adresse: locationData.address,
+      ville: locationData.city,
+      description_localisation: locationData.description
+    }));
+    
+    // Effacer les erreurs de localisation
+    if (errors.localisation || errors.description_localisation) {
+      setErrors(prev => ({
+        ...prev,
+        localisation: "",
+        description_localisation: ""
+      }));
+    }
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -224,6 +252,16 @@ const RegisterPage = () => {
       newErrors.specialite = "La spécialité est requise pour les médecins";
     }
 
+    // Validation de la localisation pour les médecins
+    if (role === "medecin") {
+      if (!formData.latitude || !formData.longitude) {
+        newErrors.localisation = "Veuillez sélectionner votre localisation sur la carte";
+      }
+      if (!formData.description_localisation.trim()) {
+        newErrors.description_localisation = "Veuillez renseigner une description de votre localisation";
+      }
+    }
+
     // Validation du poids pour les patients
     if (role === "patient" && formData.poids) {
       const poids = parseFloat(formData.poids);
@@ -267,6 +305,13 @@ const RegisterPage = () => {
             specialite: formData.specialite,
             description: `Dr. ${formData.prenom} ${formData.nom}, ${formData.specialite}`,
           };
+          
+          // Ajouter les données de localisation pour les médecins
+          userData.adresse = formData.adresse;
+          userData.ville = formData.ville;
+          userData.latitude = formData.latitude;
+          userData.longitude = formData.longitude;
+          userData.description_localisation = formData.description_localisation;
         }
 
         // Enregistrer l'utilisateur avec toutes les données
@@ -726,6 +771,26 @@ const RegisterPage = () => {
                       <p className="mt-1 text-red-500 text-sm">
                         {errors.specialite}
                       </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Localisation du cabinet (pour les médecins uniquement) */}
+                {role === "medecin" && (
+                  <div className="md:col-span-2">
+                    <LocationPicker
+                      onLocationChange={handleLocationChange}
+                      className="mt-4"
+                    />
+                    {(errors.localisation || errors.description_localisation) && (
+                      <div className="mt-2 space-y-1">
+                        {errors.localisation && (
+                          <p className="text-red-500 text-sm">{errors.localisation}</p>
+                        )}
+                        {errors.description_localisation && (
+                          <p className="text-red-500 text-sm">{errors.description_localisation}</p>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}

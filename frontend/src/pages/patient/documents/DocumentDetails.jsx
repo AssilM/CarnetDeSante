@@ -43,7 +43,6 @@ const DocumentDetails = () => {
         };
         selectItem(doc);
       } catch (error) {
-        console.error("Erreur chargement document:", error);
         if (error.response?.status === 403) {
           navigate("/403", { replace: true });
         } else if (error.response?.status === 404) {
@@ -94,14 +93,12 @@ const DocumentDetails = () => {
       const contentType =
         response.headers["content-type"] || "application/octet-stream";
       setDocumentType(contentType);
-      console.log("📄 Type MIME du document:", contentType);
 
       // Créer un URL blob pour l'affichage
       const blob = new Blob([response.data], { type: contentType });
       const blobUrl = window.URL.createObjectURL(blob);
       setDocumentUrl(blobUrl);
     } catch (error) {
-      console.error("❌ Erreur lors du chargement du document:", error);
       setError("Impossible de charger le document pour la visualisation");
     } finally {
       setLoading(false);
@@ -119,13 +116,11 @@ const DocumentDetails = () => {
 
   const handleBack = () => {
     clearSelectedItem();
-    navigate(-1);
+    navigate("/documents");
   };
 
   const handleDownload = async () => {
     try {
-      console.log("📥 Téléchargement du document:", selectedItem);
-
       // Faire l'appel avec les en-têtes d'authentification
       const response = await httpService.get(
         `/patient/documents/${selectedItem.id}/download`,
@@ -137,8 +132,6 @@ const DocumentDetails = () => {
       // Récupérer le type MIME depuis les en-têtes de réponse
       const contentType =
         response.headers["content-type"] || "application/octet-stream";
-      console.log("📄 Type MIME du fichier:", contentType);
-      console.log("📄 En-têtes de réponse:", response.headers);
       // Récupérer le nom de fichier depuis les en-têtes Content-Disposition si disponible
       let fileName = selectedItem.originalFileName;
 
@@ -165,8 +158,6 @@ const DocumentDetails = () => {
         fileName = `${selectedItem.name}${extension}`;
       }
 
-      console.log("📁 Nom de fichier final pour téléchargement:", fileName);
-
       // Créer un lien de téléchargement avec le bon type MIME
       const blob = new Blob([response.data], { type: contentType });
 
@@ -182,8 +173,6 @@ const DocumentDetails = () => {
       // Nettoyer
       link.remove();
       window.URL.revokeObjectURL(url);
-
-      console.log("✅ Téléchargement initié");
     } catch (error) {
       console.error("❌ Erreur lors du téléchargement:", error);
       alert("Erreur lors du téléchargement du document");

@@ -102,7 +102,7 @@ const Sidebar = () => {
     {
       icon: <FaCog className="text-2xl" />,
       label: "Paramètres",
-      path: "/settings",
+      path: "/doctor/settings",
     },
   ];
 

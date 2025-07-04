@@ -47,6 +47,9 @@ export const UserProvider = ({ children }) => {
           adresse: currentUser.adresse || "",
           codePostal: currentUser.code_postal || "",
           ville: currentUser.ville || "",
+          latitude: currentUser.latitude,
+          longitude: currentUser.longitude,
+          description_localisation: currentUser.description_localisation || "",
         };
 
         setUserData(formattedUserData);
@@ -84,6 +87,9 @@ export const UserProvider = ({ children }) => {
         adresse: response.user.adresse || "",
         codePostal: response.user.code_postal || "",
         ville: response.user.ville || "",
+        latitude: response.user.latitude,
+        longitude: response.user.longitude,
+        description_localisation: response.user.description_localisation || "",
       }));
 
       return response;

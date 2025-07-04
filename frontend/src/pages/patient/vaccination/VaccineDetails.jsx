@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FaSyringe, FaArrowLeft } from "react-icons/fa";
 import { useVaccinationContext } from "../../../context/VaccinationContext";
 import PageWrapper from "../../../components/PageWrapper";
+import { formatDateFrench } from "../../../utils";
 
 const VaccineDetails = () => {
   const navigate = useNavigate();
@@ -38,14 +39,14 @@ const VaccineDetails = () => {
           {/* En-tête de la carte */}
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center">
-                <FaSyringe className="text-2xl text-primary" />
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <FaSyringe className="text-2xl text-purple-600" />
               </div>
               <div>
                 <h1 className="text-2xl font-semibold text-gray-900">
-                  {selectedItem.name}
+                  {selectedItem.nom_vaccin || selectedItem.name}
                 </h1>
-                <p className="text-gray-500">{selectedItem.date}</p>
+                <p className="text-gray-500">{formatDateFrench(selectedItem.date_vaccination) || selectedItem.date}</p>
               </div>
             </div>
           </div>
@@ -55,38 +56,76 @@ const VaccineDetails = () => {
             <div className="grid gap-6">
               <div>
                 <h2 className="text-sm font-medium text-gray-500 mb-1">
-                  Médecin
+                  Nom du vaccin
                 </h2>
-                <p className="text-gray-900">{selectedItem.doctor}</p>
+                <p className="text-gray-900">{selectedItem.nom_vaccin || selectedItem.name}</p>
               </div>
 
               <div>
-                <h2 className="text-sm font-medium text-gray-500 mb-1">Lieu</h2>
-                <p className="text-gray-900">{selectedItem.location}</p>
+                <h2 className="text-sm font-medium text-gray-500 mb-1">
+                  Médecin
+                </h2>
+                <p className="text-gray-900">{selectedItem.nom_medecin || selectedItem.doctor}</p>
               </div>
 
-              {selectedItem.nextDose && (
-                <div>
-                  <h2 className="text-sm font-medium text-gray-500 mb-1">
-                    Prochaine dose prévue
-                  </h2>
-                  <p className="text-gray-900">{selectedItem.nextDose}</p>
-                </div>
-              )}
+              <div>
+                <h2 className="text-sm font-medium text-gray-500 mb-1">
+                  Lieu de vaccination
+                </h2>
+                <p className="text-gray-900">{selectedItem.lieu_vaccination || selectedItem.location}</p>
+              </div>
 
               <div>
                 <h2 className="text-sm font-medium text-gray-500 mb-1">
                   Type de vaccin
                 </h2>
-                <p className="text-gray-900">{selectedItem.type}</p>
+                <p className="text-gray-900">{selectedItem.type_vaccin || selectedItem.type}</p>
               </div>
 
               <div>
                 <h2 className="text-sm font-medium text-gray-500 mb-1">
                   Fabricant
                 </h2>
-                <p className="text-gray-900">{selectedItem.manufacturer}</p>
+                <p className="text-gray-900">{selectedItem.fabricant || selectedItem.manufacturer}</p>
               </div>
+
+              <div>
+                <h2 className="text-sm font-medium text-gray-500 mb-1">
+                  Date de vaccination
+                </h2>
+                <p className="text-gray-900">{formatDateFrench(selectedItem.date_vaccination) || selectedItem.date}</p>
+              </div>
+
+              <div>
+                <h2 className="text-sm font-medium text-gray-500 mb-1">
+                  Lot du vaccin
+                </h2>
+                <p className="text-gray-900">{selectedItem.lot_vaccin || selectedItem.subtitle}</p>
+              </div>
+
+              <div>
+                <h2 className="text-sm font-medium text-gray-500 mb-1">
+                  Statut
+                </h2>
+                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                  selectedItem.statut === 'administré' || !selectedItem.statut ? 
+                    'bg-green-100 text-green-800' :
+                  selectedItem.statut === 'planifié' ? 
+                    'bg-orange-100 text-orange-800' :
+                    'bg-gray-100 text-gray-800'
+                }`}>
+                  {selectedItem.statut || 'Administré'}
+                </span>
+              </div>
+
+              {selectedItem.notes && (
+                <div>
+                  <h2 className="text-sm font-medium text-gray-500 mb-1">
+                    Notes
+                  </h2>
+                  <p className="text-gray-900">{selectedItem.notes}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

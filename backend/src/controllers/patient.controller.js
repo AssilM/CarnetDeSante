@@ -449,7 +449,6 @@ export const addDocument = async (req, res) => {
 
     const { titre, type_document, description, date_creation } = req.body;
     const file = req.file;
-
     // Validation des données requises
     if (!titre || !type_document || !file) {
       console.error('❌ Données manquantes:', { titre, type_document, file: !!file });
@@ -491,7 +490,6 @@ export const addDocument = async (req, res) => {
       }
       console.log('👨‍⚕️ Médecin ajoute un document, patient_id:', patient_id, 'medecin_id:', medecin_id);
     }
-
     // Vérifier que le patient existe
     const patientCheck = await pool.query(
       'SELECT utilisateur_id FROM patient WHERE utilisateur_id = $1',

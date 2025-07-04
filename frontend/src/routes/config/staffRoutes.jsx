@@ -3,6 +3,7 @@ import React from "react";
 // Pages pour le personnel médical et administratif
 import HomeDoctor from "../../pages/doctor/HomeDoctor";
 import HomeAdmin from "../../pages/admin/HomeAdmin";
+import DoctorProfile from "../../pages/doctor/DoctorProfile";
 
 // Configuration des routes pour le personnel
 const staffRoutes = [
@@ -10,6 +11,21 @@ const staffRoutes = [
   {
     path: "/doctor/home",
     element: <HomeDoctor />,
+    layout: "main",
+    protected: true,
+    role: "medecin",
+  },
+  {
+    path: "/doctor/profile",
+    element: <DoctorProfile />,
+    layout: "main",
+    protected: true,
+    role: "medecin",
+  },
+  // Rediriger /doctor/settings vers /doctor/profile pour l'instant
+  {
+    path: "/doctor/settings",
+    element: <DoctorProfile />,
     layout: "main",
     protected: true,
     role: "medecin",
