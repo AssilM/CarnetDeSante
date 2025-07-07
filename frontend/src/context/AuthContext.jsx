@@ -284,8 +284,11 @@ export const AuthProvider = ({ children }) => {
         userData.tel_numero = userData.tel_numero.replace(/\s/g, "");
       }
 
-      // Appeler le service d'inscription
-      const response = await authService.register(userData);
+      // Extraire le rôle pour le passer au service
+      const { role, ...userDataWithoutRole } = userData;
+
+      // Appeler le service d'inscription avec le rôle
+      const response = await authService.register(userDataWithoutRole, role);
       console.log("[AuthContext] Inscription réussie", response);
 
       // Pas de connexion automatique après l'inscription

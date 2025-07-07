@@ -2,14 +2,18 @@ import pool from "../config/db.js";
 
 // Récupérer tous les administrateurs
 export const getAllAdministrateurs = async (req, res) => {
+  //async permet d'autoriser la fonction à utiliser await pour gerer des opérations asynchrones
   try {
     const query = `
       SELECT a.id, a.niveau_acces, u.nom, u.prenom, u.email, u.tel
-      FROM administrateurs a
-      INNER JOIN utilisateurs u ON a.utilisateur_id = u.id
+      FROM administrateur a
+      INNER JOIN utilisateur u ON a.utilisateur_id = u.id
     `;
     const result = await pool.query(query);
+    //await permet d'attendre la fin de la promesse et renvoie un tableau de résultats
+    //query ne fait pas ca car c'est une promesse
 
+    //res c'est la reponse, .json transforme result.rows qui est le résultat de la requête en json
     res.status(200).json(result.rows);
   } catch (error) {
     console.error("Erreur lors de la récupération des administrateurs:", error);
@@ -21,7 +25,9 @@ export const getAllAdministrateurs = async (req, res) => {
 
 // Récupérer un administrateur par son ID
 export const getAdministrateurById = async (req, res) => {
+  //
   const { id } = req.params;
+  //extrait l'id de l'url (req.params)
 
   try {
     const query = `
@@ -36,6 +42,9 @@ export const getAdministrateurById = async (req, res) => {
       return res.status(404).json({ message: "Administrateur non trouvé" });
     }
 
+    //.json transforme ce qu'il y a dans result.rows[0] en json mais pas result.rows
+    //qui est toujours un tableau, pour ca qu'on fait result.rows[0] qui lui est un objet
+    //.json transforme tout en json, meme string, object, array, number, boolean, null
     res.status(200).json(result.rows[0]);
   } catch (error) {
     console.error("Erreur lors de la récupération de l'administrateur:", error);
@@ -277,11 +286,9 @@ export const manageUsers = async (req, res) => {
 
       case "toggleActive":
         if (isActive === undefined) {
-          return res
-            .status(400)
-            .json({
-              message: "isActive est requis pour l'action toggleActive",
-            });
+          return res.status(400).json({
+            message: "isActive est requis pour l'action toggleActive",
+          });
         }
 
         const updateActiveQuery = `
