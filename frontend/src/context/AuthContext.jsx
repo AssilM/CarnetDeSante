@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
 } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -13,11 +14,10 @@ import {
   getCurrentToken,
   resetSessionExpired,
   forceResetAuth,
+  setSessionExpiredHandler,
+  setForbiddenHandler,
 } from "../services/http";
 import { authService, createUserService } from "../services/api";
-
-// Variable globale pour suivre l'état d'expiration
-let SESSION_EXPIRED = false;
 
 const AuthContext = createContext();
 
@@ -25,7 +25,8 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sessionExpired, setSessionExpired] = useState(SESSION_EXPIRED);
+  const sessionExpiredRef = useRef(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const navigate = useNavigate();
 
   // ✅ Créer le service utilisateur avec useMemo pour éviter la re-création
@@ -35,11 +36,9 @@ export const AuthProvider = ({ children }) => {
   const forceUnlock = useCallback(() => {
     console.log("[AuthContext] DÉBLOCAGE FORCÉ - Reset complet de l'état");
 
-    // Reset complet de httpService
-    forceResetAuth();
+    forceResetAuth(); // Reset httpService interne
 
-    // Reset complet de AuthContext
-    SESSION_EXPIRED = false;
+    sessionExpiredRef.current = false;
     setSessionExpired(false);
     setCurrentUser(null);
     setLoading(false);
@@ -52,17 +51,15 @@ export const AuthProvider = ({ children }) => {
   const testExpireToken = useCallback(() => {
     console.log("[AuthContext] Expiration forcée de la session");
 
-    // Utiliser la fonction centralisée de nettoyage
     clearAuth();
 
-    // Marquer la session comme expirée
-    SESSION_EXPIRED = true;
+    sessionExpiredRef.current = true;
     setSessionExpired(true);
     setCurrentUser(null);
 
-    // Redirection forcée et complète
-    window.location.href = "/session-expired";
-  }, []);
+    // Utiliser la navigation React Router pour éviter un reload complet
+    navigate("/session-expired", { replace: true });
+  }, [navigate]);
 
   // Fonction de déconnexion standard
   const logout = useCallback(
@@ -107,11 +104,11 @@ export const AuthProvider = ({ children }) => {
       const accessToken = getCurrentToken();
       console.log("[AuthContext] Vérification des tokens au chargement", {
         hasAccessToken: !!accessToken,
-        isSessionExpired: SESSION_EXPIRED,
+        isSessionExpired: sessionExpiredRef.current,
       });
 
       // ✅ Si la session est marquée comme expirée, permettre quand même l'accès aux pages d'auth
-      if (SESSION_EXPIRED) {
+      if (sessionExpiredRef.current) {
         // Si on est sur une page d'authentification, réinitialiser l'état
         const isAuthPage =
           typeof window !== "undefined" &&
@@ -123,7 +120,7 @@ export const AuthProvider = ({ children }) => {
           console.log(
             "[AuthContext] Page d'auth détectée - réinitialisation de l'état d'expiration"
           );
-          SESSION_EXPIRED = false;
+          sessionExpiredRef.current = false;
           setSessionExpired(false);
           resetSessionExpired();
         } else {
@@ -208,13 +205,42 @@ export const AuthProvider = ({ children }) => {
     verifyToken();
   }, [userService]);
 
+  // --------------------------------------------------
+  // Enregistrer un callback pour gérer la fin de session
+  // --------------------------------------------------
+  useEffect(() => {
+    const handler = () => {
+      console.log("[AuthContext] Callback session expirée déclenché");
+      sessionExpiredRef.current = true;
+      setSessionExpired(true);
+      setCurrentUser(null);
+      navigate("/session-expired", { replace: true });
+    };
+
+    // Enregistrement auprès du httpService
+    setSessionExpiredHandler(handler);
+
+    // Handler 403 → rediriger vers page 403 dédiée
+    const forbiddenHandler = () => {
+      console.log("[AuthContext] Callback 403 déclenché");
+      navigate("/403", { replace: true });
+    };
+    setForbiddenHandler(forbiddenHandler);
+
+    // Nettoyage à la destruction du provider
+    return () => {
+      setSessionExpiredHandler(null);
+      setForbiddenHandler(null);
+    };
+  }, [navigate]);
+
   // Fonction de connexion
   const login = async (email, password) => {
     try {
       console.log("[AuthContext] Tentative de connexion", { email });
 
       // ✅ Réinitialiser l'état d'expiration de session (local ET httpService)
-      SESSION_EXPIRED = false;
+      sessionExpiredRef.current = false;
       setSessionExpired(false);
 
       // ✅ Réinitialiser l'état d'expiration dans httpService sans logout
@@ -234,11 +260,19 @@ export const AuthProvider = ({ children }) => {
       return user;
     } catch (err) {
       console.error("[AuthContext] Erreur lors de la connexion:", err);
-      setError(
-        err.response?.data?.message ||
-          "Erreur lors de la tentative de connexion"
-      );
-      throw err;
+
+      if (err.message === "STORAGE_FAILED") {
+        setError(
+          "Connexion impossible : votre navigateur bloque le stockage local. Activez-le ou utilisez un autre navigateur."
+        );
+      } else {
+        setError(
+          err.response?.data?.message ||
+            "Erreur lors de la tentative de connexion"
+        );
+      }
+
+      throw err; // Propager pour que le composant appelant sache que ça a échoué
     }
   };
 

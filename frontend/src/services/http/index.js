@@ -9,6 +9,9 @@ import {
   getCurrentToken,
   resetSessionExpired,
   forceResetAuth,
+  setAccessToken,
+  setSessionExpiredHandler,
+  setForbiddenHandler,
 } from "./httpService";
 import errorHandler from "./errorHandler"; // ✅ Import par défaut
 
@@ -19,5 +22,8 @@ export {
   getCurrentToken,
   resetSessionExpired,
   forceResetAuth,
+  setAccessToken,
+  setSessionExpiredHandler,
+  setForbiddenHandler,
   errorHandler,
 };
