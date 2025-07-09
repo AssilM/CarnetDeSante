@@ -7,7 +7,7 @@ import { z } from "zod";
 dotenv.config();
 
 // Récupérer la durée d'expiration du token depuis les variables d'environnement (en secondes)
-const TEMPS_EXPIRATION = Number(process.env.ACCESS_TOKEN_EXPIRES || 900); // Durée d'expiration du token (secondes)
+const TEMPS_EXPIRATION = Number(process.env.ACCESS_TOKEN_EXPIRES); // Durée d'expiration du token (secondes)
 console.log(`Durée d'expiration configurée: ${TEMPS_EXPIRATION} secondes`);
 
 // Schéma Zod de validation pour l'inscription

@@ -1,90 +1,27 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { useAuth } from "../AuthContext";
+import { httpService } from "../../services/http";
 import { createPatientService } from "../../services/api";
-import { createAuthConnector } from "../../services/http/apiConnector";
+import { useAuth } from "../AuthContext";
 
-// Fonction pour décoder un token JWT sans bibliothèque
-const decodeJWT = (token) => {
-  if (!token) return null;
-  try {
-    // Le token a trois parties séparées par un point
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
+// ✅ Plus besoin de décoder le JWT - httpService gère tout automatiquement
 
-    // Décoder la partie payload (deuxième partie)
-    const payload = JSON.parse(
-      atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
-    );
-    return payload;
-  } catch (e) {
-    console.error("Erreur lors du décodage du token:", e);
-    return null;
-  }
-};
-
-// Créer un contexte pour les patients
-const PatientContext = createContext(null);
+const PatientContext = createContext();
 
 export const PatientProvider = ({ children }) => {
   const [patientProfile, setPatientProfile] = useState(null);
   const [medicalInfo, setMedicalInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { currentUser, accessToken } = useAuth();
+  const [patientService, setPatientService] = useState(null);
 
-  // Afficher tous les détails sur l'utilisateur connecté et décoder le token
+  // ✅ Récupérer les données d'authentification - SIMPLIFIÉ
+  const { currentUser } = useAuth();
+
+  // ✅ Initialiser l'API - SIMPLIFIÉ
   useEffect(() => {
-    console.log(
-      "[PatientContext] Informations complètes sur l'utilisateur connecté:",
-      {
-        user: currentUser,
-        hasToken: !!accessToken,
-        tokenPrefix: accessToken ? accessToken.substring(0, 10) + "..." : null,
-      }
-    );
-
-    if (accessToken) {
-      const decodedToken = decodeJWT(accessToken);
-      console.log("[PatientContext] Contenu du token décodé:", decodedToken);
-
-      // Vérifier si le rôle dans le token correspond au rôle de l'utilisateur
-      if (currentUser && decodedToken) {
-        if (currentUser.role !== decodedToken.role) {
-          console.error(
-            "[PatientContext] ATTENTION: Le rôle dans le token ne correspond pas au rôle de l'utilisateur",
-            {
-              userRole: currentUser.role,
-              tokenRole: decodedToken.role,
-            }
-          );
-        } else {
-          console.log(
-            "[PatientContext] Le rôle dans le token correspond bien au rôle de l'utilisateur:",
-            decodedToken.role
-          );
-        }
-      }
-    }
-  }, [currentUser, accessToken]);
-
-  // Créer une instance authentifiée d'API pour les appels patients
-  const authConnector = createAuthConnector({
-    accessToken,
-    onTokenRefreshed: (newToken) => {
-      console.log(
-        "[PatientContext] Token rafraîchi:",
-        newToken.substring(0, 10) + "..."
-      );
-      localStorage.setItem("accessToken", newToken);
-    },
-    onSessionExpired: () => {
-      console.log("[PatientContext] Session expirée, redirection...");
-      window.location.href = "/session-expired";
-    },
-  });
-
-  // Créer une instance du service patient avec la connexion authentifiée
-  const patientService = createPatientService(authConnector);
+    // ✅ Utilisation directe de httpService - le refresh est automatique
+    setPatientService(createPatientService(httpService));
+  }, []); // ✅ Plus de dépendances complexes
 
   // Charger le profil du patient si l'utilisateur est connecté
   useEffect(() => {
@@ -101,6 +38,11 @@ export const PatientProvider = ({ children }) => {
           currentUser.role
         );
         setLoading(false);
+        return;
+      }
+
+      if (!patientService) {
+        console.log("[PatientContext] Service patient non initialisé");
         return;
       }
 
@@ -146,11 +88,11 @@ export const PatientProvider = ({ children }) => {
     };
 
     fetchPatientProfile();
-  }, [currentUser, accessToken]);
+  }, [currentUser, patientService]);
 
   // Mettre à jour le profil patient
   const updatePatientProfile = async (patientData) => {
-    if (!currentUser) return null;
+    if (!currentUser || !patientService) return null;
 
     try {
       setLoading(true);
@@ -175,6 +117,8 @@ export const PatientProvider = ({ children }) => {
 
   // Créer un profil patient lors de l'inscription
   const createPatientProfile = async (userId, patientData) => {
+    if (!patientService) return null;
+
     try {
       const response = await patientService.createOrUpdatePatientProfile(
         userId,
@@ -192,9 +136,9 @@ export const PatientProvider = ({ children }) => {
 
   // Récupérer manuellement les informations médicales
   const refreshMedicalInfo = async () => {
-    if (!currentUser || !accessToken) {
+    if (!currentUser || !patientService) {
       console.log(
-        "[PatientContext] refreshMedicalInfo: Pas d'utilisateur ou de token"
+        "[PatientContext] refreshMedicalInfo: Pas d'utilisateur ou de service"
       );
       return null;
     }

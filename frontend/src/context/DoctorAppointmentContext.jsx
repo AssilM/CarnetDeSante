@@ -1,10 +1,14 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import { useAuth } from "./AuthContext";
 import { createAppointmentService } from "../services/api";
 import { httpService } from "../services/http";
-
-// Créer une instance du service de rendez-vous
-const appointmentService = createAppointmentService(httpService);
 
 // Créer un contexte pour les rendez-vous des médecins
 const DoctorAppointmentContext = createContext(null);
@@ -15,21 +19,41 @@ export const DoctorAppointmentProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const { currentUser, accessToken } = useAuth();
+  const { currentUser } = useAuth(); // ✅ Simplifié
+
+  // ✅ Créer l'instance du service avec useMemo pour éviter la re-création
+  const appointmentService = useMemo(
+    () => createAppointmentService(httpService),
+    []
+  );
+
+  // ✅ Plus besoin de décoder le JWT - httpService gère tout automatiquement
 
   // Charger les rendez-vous du médecin connecté
   useEffect(() => {
     const fetchDoctorAppointments = async () => {
-      if (!currentUser || currentUser.role !== "medecin") {
-        console.log(
-          "[DoctorAppointmentContext] Utilisateur non connecté ou non médecin:",
-          {
-            currentUser: currentUser?.role,
-            userId: currentUser?.id,
-          }
-        );
+      // ✅ Ne pas charger si on est sur la page session-expired
+      if (
+        typeof window !== "undefined" &&
+        window.location.pathname.includes("/session-expired")
+      ) {
         return;
       }
+
+      if (
+        !currentUser ||
+        currentUser.role !== "medecin" ||
+        !appointmentService
+      ) {
+        console.log("[DoctorAppointmentContext] Conditions non remplies:", {
+          currentUser: currentUser?.role,
+          userId: currentUser?.id,
+          hasAppointmentService: !!appointmentService,
+        });
+        return;
+      }
+
+      // ✅ Plus besoin de vérifier le token - httpService gère tout automatiquement
 
       try {
         console.log(
@@ -162,7 +186,7 @@ export const DoctorAppointmentProvider = ({ children }) => {
     };
 
     fetchDoctorAppointments();
-  }, [currentUser, accessToken]);
+  }, [currentUser, appointmentService]); // Suppression d'accessToken des dépendances
 
   // Formater une date pour l'affichage (YYYY-MM-DD -> DD/MM/YYYY)
   const formatDateForDisplay = (dateString) => {

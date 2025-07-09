@@ -30,3 +30,41 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.5s ease-in-out;
 }
+
+/* Styles minimaux pour react-calendar */
+.custom-calendar-container .react-calendar {
+  @apply border-none shadow-none;
+}
+
+.custom-calendar-container .react-calendar button {
+  @apply m-0 border-0 outline-none;
+}
+
+.custom-calendar-container .react-calendar button:enabled:hover {
+  @apply bg-[#e8f4fd] rounded-md;
+}
+
+.custom-calendar-container .react-calendar__tile--now {
+  @apply bg-[#e8f4fd] border-2 border-[#4a90e2] rounded-md font-semibold text-[#4a90e2];
+}
+
+.custom-calendar-container .react-calendar__tile--now:enabled:hover {
+  @apply bg-[#4a90e2] text-white;
+}
+
+.custom-calendar-container .react-calendar__tile--active {
+  @apply bg-[#4a90e2] text-white rounded-md shadow-lg;
+}
+
+.custom-calendar-container .react-calendar__tile--active:enabled:hover {
+  @apply bg-[#2e5bba];
+}
+
+.custom-calendar-container .react-calendar__month-view__days__day--weekend {
+  @apply text-gray-600;
+}
+
+.custom-calendar-container
+  .react-calendar__month-view__days__day--neighboringMonth {
+  @apply text-gray-300;
+}

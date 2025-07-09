@@ -87,7 +87,7 @@ const Sidebar = () => {
     {
       icon: <FaCalendarAlt className="text-2xl" />,
       label: "Agenda",
-      path: "/agenda",
+      path: "/doctor/agenda",
     },
     {
       icon: <BsCalendar2Week className="text-2xl" />,

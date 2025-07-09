@@ -7,6 +7,7 @@ import MainLayout from "./layouts/MainLayout";
 
 // Pages pour le personnel médical et administratif
 import HomeDoctor from "../pages/doctor/HomeDoctor";
+import Agenda from "../pages/doctor/Agenda";
 import HomeAdmin from "../pages/admin/HomeAdmin";
 import Availability from "../pages/doctor/Availability";
 
@@ -24,6 +25,18 @@ const StaffRoutes = [
       <ProtectedRoute requiredRole="medecin">
         <MainLayout>
           <HomeDoctor />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+
+  <Route
+    key="doctor-agenda"
+    path="/doctor/agenda"
+    element={
+      <ProtectedRoute requiredRole="medecin">
+        <MainLayout>
+          <Agenda />
         </MainLayout>
       </ProtectedRoute>
     }

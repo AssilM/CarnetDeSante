@@ -18,19 +18,16 @@ import {
   createDocumentService,
 } from "./api";
 
-import { createAuthConnector } from "./http";
 import { httpService } from "./http";
 
 // Pour la compatibilité avec le code existant
 export const baseApi = httpService;
 
-// Pour la compatibilité avec le code existant
-export const createAuthenticatedApi = (options) => {
-  return createAuthConnector(options);
-};
-
-// Pour la compatibilité avec le code existant
-export const createApiService = (api) => {
+/**
+ * ✅ SIMPLIFIÉ : Plus besoin de createAuthConnector !
+ * Tous les services utilisent maintenant httpService directement
+ */
+export const createApiService = (api = httpService) => {
   return {
     users: createUserService(api),
     doctors: createDoctorService(api),
@@ -41,11 +38,11 @@ export const createApiService = (api) => {
 };
 
 /**
- * Crée tous les services API nécessaires avec une instance API authentifiée
- * @param {Object} api - Instance API authentifiée
+ * Crée tous les services API nécessaires avec httpService (gestion automatique des tokens)
+ * @param {Object} api - Instance API (par défaut: httpService)
  * @returns {Object} Tous les services API configurés
  */
-export const createServices = (api) => {
+export const createServices = (api = httpService) => {
   // Créer et retourner tous les services
   return {
     userService: createUserService(api),
