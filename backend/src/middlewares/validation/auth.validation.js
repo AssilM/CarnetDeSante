@@ -6,8 +6,8 @@ import pool from "../../config/db.js";
 export const validateRegistrationData = (req, res, next) => {
   const { nom, prenom, email, password, role } = req.body;
 
-  // Vérifier les champs obligatoires
-  if (!nom || !prenom || !email || !password || !role) {
+  // Vérifier les champs obligatoires (role devient optionnel, imposé par la route)
+  if (!nom || !prenom || !email || !password) {
     return res.status(400).json({
       message: "Tous les champs sont obligatoires",
     });
@@ -21,12 +21,14 @@ export const validateRegistrationData = (req, res, next) => {
     });
   }
 
-  // Valider le rôle
-  const rolesValides = ["patient", "medecin", "admin"];
-  if (!rolesValides.includes(role)) {
-    return res.status(400).json({
-      message: "Rôle invalide",
-    });
+  // Si un rôle est fourni, vérifier qu'il fait partie des rôles autorisés
+  if (role) {
+    const rolesValides = ["patient", "medecin", "admin"];
+    if (!rolesValides.includes(role)) {
+      return res.status(400).json({
+        message: "Rôle invalide",
+      });
+    }
   }
 
   next();

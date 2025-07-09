@@ -1,10 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
 import { createUserService } from "../services/api";
-import { httpService } from "../services/http";
-
-// Créer une instance du service utilisateur
-const userService = createUserService(httpService);
+import { httpService } from "../services/http"; // ✅ Utilisation directe
 
 const UserContext = createContext();
 
@@ -17,10 +14,17 @@ export const useUserContext = () => {
 };
 
 export const UserProvider = ({ children }) => {
-  const { currentUser } = useAuth();
+  const { currentUser } = useAuth(); // ✅ Plus besoin de accessToken, setAccessToken, testExpireToken
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userService, setUserService] = useState(null);
+
+  // Créer l'instance du service - SIMPLIFIÉ
+  useEffect(() => {
+    // ✅ Utilisation directe de httpService - le refresh est automatique
+    setUserService(createUserService(httpService));
+  }, []); // ✅ Plus de dépendances complexes
 
   // Charger les données de l'utilisateur depuis l'API
   useEffect(() => {
@@ -66,6 +70,11 @@ export const UserProvider = ({ children }) => {
 
   // Fonction pour mettre à jour les informations de l'utilisateur
   const updateUserInfo = async (userId, updatedData) => {
+    if (!userService) {
+      setError("Service utilisateur non disponible");
+      throw new Error("Service utilisateur non disponible");
+    }
+
     try {
       setError(null);
       const response = await userService.updateUser(userId, updatedData);
@@ -98,6 +107,11 @@ export const UserProvider = ({ children }) => {
 
   // Fonction pour mettre à jour le mot de passe
   const updatePassword = async (userId, currentPassword, newPassword) => {
+    if (!userService) {
+      setError("Service utilisateur non disponible");
+      throw new Error("Service utilisateur non disponible");
+    }
+
     try {
       setError(null);
       const response = await userService.updatePassword(userId, {
@@ -114,6 +128,27 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  // Fonctions wrapper pour les méthodes du service
+  const getAllUsers = async (...args) => {
+    if (!userService) throw new Error("Service utilisateur non disponible");
+    return userService.getAllUsers(...args);
+  };
+
+  const getUserById = async (...args) => {
+    if (!userService) throw new Error("Service utilisateur non disponible");
+    return userService.getUserById(...args);
+  };
+
+  const getUsersByRole = async (...args) => {
+    if (!userService) throw new Error("Service utilisateur non disponible");
+    return userService.getUsersByRole(...args);
+  };
+
+  const deleteUser = async (...args) => {
+    if (!userService) throw new Error("Service utilisateur non disponible");
+    return userService.deleteUser(...args);
+  };
+
   return (
     <UserContext.Provider
       value={{
@@ -122,10 +157,10 @@ export const UserProvider = ({ children }) => {
         error,
         updateUserInfo,
         updatePassword,
-        getAllUsers: userService.getAllUsers,
-        getUserById: userService.getUserById,
-        getUsersByRole: userService.getUsersByRole,
-        deleteUser: userService.deleteUser,
+        getAllUsers,
+        getUserById,
+        getUsersByRole,
+        deleteUser,
       }}
     >
       {children}

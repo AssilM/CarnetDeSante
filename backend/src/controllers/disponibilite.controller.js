@@ -1,7 +1,7 @@
 import pool from "../config/db.js";
 
 // Récupérer les disponibilités d'un médecin
-export const getDisponibilitesByMedecinId = async (req, res) => {
+export const getDisponibilitesByMedecinId = async (req, res, next) => {
   const { medecinId } = req.params;
 
   try {
@@ -26,23 +26,13 @@ export const getDisponibilitesByMedecinId = async (req, res) => {
     res.status(200).json(result.rows);
   } catch (error) {
     console.error("Erreur lors de la récupération des disponibilités:", error);
-    res.status(500).json({
-      message: "Erreur lors de la récupération des disponibilités",
-    });
+    next(error);
   }
 };
 
 // Créer une nouvelle disponibilité
-export const createDisponibilite = async (req, res) => {
+export const createDisponibilite = async (req, res, next) => {
   const { medecin_id, jour, heure_debut, heure_fin } = req.body;
-
-  // Vérifier que l'utilisateur est bien le médecin concerné ou un administrateur
-  if (req.userRole !== "admin" && req.userId !== parseInt(medecin_id)) {
-    return res.status(403).json({
-      message:
-        "Vous n'êtes pas autorisé à créer des disponibilités pour ce médecin",
-    });
-  }
 
   try {
     // Vérifier si le médecin existe
@@ -53,13 +43,6 @@ export const createDisponibilite = async (req, res) => {
 
     if (medecinResult.rows.length === 0) {
       return res.status(404).json({ message: "Médecin non trouvé" });
-    }
-
-    // Vérifier si l'heure de fin est après l'heure de début
-    if (heure_fin <= heure_debut) {
-      return res.status(400).json({
-        message: "L'heure de fin doit être postérieure à l'heure de début",
-      });
     }
 
     // Vérifier si la disponibilité existe déjà pour ce médecin, jour et créneau horaire
@@ -99,44 +82,28 @@ export const createDisponibilite = async (req, res) => {
       heure_fin,
     ]);
 
+    // Log d'audit spécifique
+    console.log(
+      `[AUDIT] Disponibilité créée | ID=${result.rows[0].id} | Médecin=${medecin_id} | ${jour} ${heure_debut}-${heure_fin} | Par user=${req.userId} role=${req.userRole}`
+    );
+
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error("Erreur lors de la création de la disponibilité:", error);
-    res.status(500).json({
-      message: "Erreur lors de la création de la disponibilité",
-    });
+    next(error);
   }
 };
 
 // Mettre à jour une disponibilité
-export const updateDisponibilite = async (req, res) => {
+export const updateDisponibilite = async (req, res, next) => {
   const { id } = req.params;
   const { jour, heure_debut, heure_fin } = req.body;
 
   try {
-    // Vérifier d'abord que la disponibilité existe et récupérer le medecin_id
-    const checkQuery = `SELECT medecin_id FROM disponibilite_medecin WHERE id = $1`;
-    const checkResult = await pool.query(checkQuery, [id]);
-
-    if (checkResult.rows.length === 0) {
-      return res.status(404).json({ message: "Disponibilité non trouvée" });
-    }
-
-    const medecin_id = checkResult.rows[0].medecin_id;
-
-    // Vérifier que l'utilisateur est bien le médecin concerné ou un administrateur
-    if (req.userRole !== "admin" && req.userId !== medecin_id) {
-      return res.status(403).json({
-        message: "Vous n'êtes pas autorisé à modifier cette disponibilité",
-      });
-    }
-
-    // Vérifier si l'heure de fin est après l'heure de début
-    if (heure_fin <= heure_debut) {
-      return res.status(400).json({
-        message: "L'heure de fin doit être postérieure à l'heure de début",
-      });
-    }
+    // Récupérer l'ancienne disponibilité pour l'audit
+    const oldDispoQuery = `SELECT * FROM disponibilite_medecin WHERE id = $1`;
+    const oldDispoResult = await pool.query(oldDispoQuery, [id]);
+    const oldDispo = oldDispoResult.rows[0];
 
     // Vérifier si la modification créerait un chevauchement avec une autre disponibilité
     const checkDispoQuery = `
@@ -149,7 +116,7 @@ export const updateDisponibilite = async (req, res) => {
       )
     `;
     const dispoResult = await pool.query(checkDispoQuery, [
-      medecin_id,
+      oldDispo.medecin_id,
       jour,
       id,
       heure_debut,
@@ -177,58 +144,48 @@ export const updateDisponibilite = async (req, res) => {
       id,
     ]);
 
+    // Log d'audit détaillé
+    console.log(
+      `[AUDIT] Disponibilité modifiée | ID=${id} | Médecin=${oldDispo.medecin_id} | Ancien: ${oldDispo.jour} ${oldDispo.heure_debut}-${oldDispo.heure_fin} | Nouveau: ${jour} ${heure_debut}-${heure_fin} | Par user=${req.userId} role=${req.userRole}`
+    );
+
     res.status(200).json(result.rows[0]);
   } catch (error) {
     console.error("Erreur lors de la mise à jour de la disponibilité:", error);
-    res.status(500).json({
-      message: "Erreur lors de la mise à jour de la disponibilité",
-    });
+    next(error);
   }
 };
 
 // Supprimer une disponibilité
-export const deleteDisponibilite = async (req, res) => {
+export const deleteDisponibilite = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    // Vérifier d'abord que la disponibilité existe et récupérer le medecin_id
-    const checkQuery = `SELECT medecin_id FROM disponibilite_medecin WHERE id = $1`;
-    const checkResult = await pool.query(checkQuery, [id]);
-
-    if (checkResult.rows.length === 0) {
-      return res.status(404).json({ message: "Disponibilité non trouvée" });
-    }
-
-    const medecin_id = checkResult.rows[0].medecin_id;
-
-    // Vérifier que l'utilisateur est bien le médecin concerné ou un administrateur
-    if (req.userRole !== "admin" && req.userId !== medecin_id) {
-      return res.status(403).json({
-        message: "Vous n'êtes pas autorisé à supprimer cette disponibilité",
-      });
-    }
+    // Récupérer les informations de la disponibilité avant suppression pour l'audit
+    const getDispoQuery = `SELECT * FROM disponibilite_medecin WHERE id = $1`;
+    const dispoResult = await pool.query(getDispoQuery, [id]);
+    const dispo = dispoResult.rows[0];
 
     // Supprimer la disponibilité
     const deleteQuery = `DELETE FROM disponibilite_medecin WHERE id = $1`;
     await pool.query(deleteQuery, [id]);
 
+    // Log d'audit détaillé
+    console.log(
+      `[AUDIT] Disponibilité supprimée | ID=${id} | Médecin=${dispo.medecin_id} | ${dispo.jour} ${dispo.heure_debut}-${dispo.heure_fin} | Par user=${req.userId} role=${req.userRole}`
+    );
+
     res.status(200).json({ message: "Disponibilité supprimée avec succès" });
   } catch (error) {
     console.error("Erreur lors de la suppression de la disponibilité:", error);
-    res.status(500).json({
-      message: "Erreur lors de la suppression de la disponibilité",
-    });
+    next(error);
   }
 };
 
 // Récupérer les créneaux disponibles pour un médecin à une date donnée
-export const getCreneauxDisponibles = async (req, res) => {
+export const getCreneauxDisponibles = async (req, res, next) => {
   const { medecinId } = req.params;
   const { date } = req.query;
-
-  if (!date) {
-    return res.status(400).json({ message: "La date est requise" });
-  }
 
   try {
     // Vérifier si le médecin existe
@@ -239,6 +196,44 @@ export const getCreneauxDisponibles = async (req, res) => {
 
     if (medecinResult.rows.length === 0) {
       return res.status(404).json({ message: "Médecin non trouvé" });
+    }
+
+    // Si aucune date n'est fournie, retourner simplement les disponibilités générales
+    if (!date) {
+      const dispoQuery = `
+        SELECT id, jour, heure_debut, heure_fin
+        FROM disponibilite_medecin
+        WHERE medecin_id = $1
+        ORDER BY 
+          CASE 
+            WHEN jour = 'lundi' THEN 1
+            WHEN jour = 'mardi' THEN 2
+            WHEN jour = 'mercredi' THEN 3
+            WHEN jour = 'jeudi' THEN 4
+            WHEN jour = 'vendredi' THEN 5
+            WHEN jour = 'samedi' THEN 6
+            WHEN jour = 'dimanche' THEN 7
+          END,
+          heure_debut
+      `;
+      const dispoResult = await pool.query(dispoQuery, [medecinId]);
+
+      return res.status(200).json({
+        disponible: dispoResult.rows.length > 0,
+        message:
+          dispoResult.rows.length > 0
+            ? `${dispoResult.rows.length} plages de disponibilité trouvées`
+            : "Aucune disponibilité configurée",
+        creneaux: [],
+        disponibilites: dispoResult.rows.map((dispo) => ({
+          id: dispo.id,
+          jour: dispo.jour,
+          debut: dispo.heure_debut,
+          fin: dispo.heure_fin,
+        })),
+        date: null,
+        jour: null,
+      });
     }
 
     // Déterminer le jour de la semaine pour la date donnée
@@ -260,6 +255,7 @@ export const getCreneauxDisponibles = async (req, res) => {
         creneaux: [],
         jour: jourSemaine,
         date: date,
+        disponibilites: [],
       });
     }
 
@@ -314,6 +310,15 @@ export const getCreneauxDisponibles = async (req, res) => {
       }
     }
 
+    // Log pour les requêtes fréquentes de créneaux (potentiel monitoring)
+    if (req.ip) {
+      console.log(
+        `[MONITORING] Consultation créneaux | Médecin=${medecinId} | Date=${
+          date || "générale"
+        } | ${creneauxDisponibles.length} créneaux | IP=${req.ip}`
+      );
+    }
+
     res.status(200).json({
       disponible: creneauxDisponibles.length > 0,
       message:
@@ -333,9 +338,7 @@ export const getCreneauxDisponibles = async (req, res) => {
       "Erreur lors de la récupération des créneaux disponibles:",
       error
     );
-    res.status(500).json({
-      message: "Erreur lors de la récupération des créneaux disponibles",
-    });
+    next(error);
   }
 };
 

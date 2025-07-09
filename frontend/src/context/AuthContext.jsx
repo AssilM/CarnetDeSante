@@ -3,81 +3,66 @@ import React, {
   useContext,
   useState,
   useEffect,
-  useRef,
   useCallback,
+  useMemo,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import { httpService } from "../services/http";
+import {
+  httpService,
+  clearAuth,
+  getCurrentToken,
+  resetSessionExpired,
+  forceResetAuth,
+} from "../services/http";
 import { authService, createUserService } from "../services/api";
 
 // Variable globale pour suivre l'état d'expiration
 let SESSION_EXPIRED = false;
 
-// =====================================================
-// CONFIGURATION GLOBALE - Durée d'expiration en secondes
-// Modifiez cette valeur pour changer le temps d'expiration
-// Cette valeur doit correspondre à celle du backend (TEMPS_EXPIRATION)
-// =====================================================
-
-// Durée d'inactivité avant déconnexion (en secondes)
-const INACTIVITY_TIMEOUT = Number(import.meta.env.VITE_ACCESS_EXP || 900);
-
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
-  const [accessToken, setAccessToken] = useState(
-    localStorage.getItem("accessToken") || null
-  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sessionExpired, setSessionExpired] = useState(SESSION_EXPIRED);
-  const logoutTimerRef = useRef(null); // Référence pour le timer de déconnexion automatique
-  const eventsSetupRef = useRef(false); // Référence pour suivre si les écouteurs d'événements sont déjà configurés
   const navigate = useNavigate();
 
-  // Créer le service utilisateur
-  const userService = createUserService(httpService);
+  // ✅ Créer le service utilisateur avec useMemo pour éviter la re-création
+  const userService = useMemo(() => createUserService(httpService), []);
+
+  // ✅ Fonction pour débloquer complètement l'état (solution d'urgence)
+  const forceUnlock = useCallback(() => {
+    console.log("[AuthContext] DÉBLOCAGE FORCÉ - Reset complet de l'état");
+
+    // Reset complet de httpService
+    forceResetAuth();
+
+    // Reset complet de AuthContext
+    SESSION_EXPIRED = false;
+    setSessionExpired(false);
+    setCurrentUser(null);
+    setLoading(false);
+    setError(null);
+
+    console.log("[AuthContext] État complètement réinitialisé");
+  }, []);
 
   // Fonction pour tester ou forcer l'expiration du token
   const testExpireToken = useCallback(() => {
     console.log("[AuthContext] Expiration forcée de la session");
 
-    // Nettoyer les données de session
-    localStorage.removeItem("accessToken");
+    // Utiliser la fonction centralisée de nettoyage
+    clearAuth();
 
     // Marquer la session comme expirée
     SESSION_EXPIRED = true;
     setSessionExpired(true);
+    setCurrentUser(null);
 
     // Redirection forcée et complète
     window.location.href = "/session-expired";
   }, []);
-
-  // Fonction pour configurer la déconnexion automatique après un délai d'inactivité
-  const autoLogout = useCallback(
-    (timeInSeconds = INACTIVITY_TIMEOUT) => {
-      console.log(
-        `[AuthContext] Configuration de la déconnexion automatique après ${timeInSeconds} secondes d'inactivité`
-      );
-
-      // Annuler tout timer existant
-      if (logoutTimerRef.current) {
-        clearTimeout(logoutTimerRef.current);
-      }
-
-      // Configurer le timer de déconnexion automatique
-      logoutTimerRef.current = setTimeout(() => {
-        console.log(
-          "[AuthContext] Déconnexion automatique déclenchée après inactivité"
-        );
-        testExpireToken();
-      }, timeInSeconds * 1000);
-
-      return timeInSeconds; // Retourner la valeur pour confirmation
-    },
-    [testExpireToken]
-  );
 
   // Fonction de déconnexion standard
   const logout = useCallback(
@@ -85,20 +70,10 @@ export const AuthProvider = ({ children }) => {
       console.log("[AuthContext] Déconnexion initiée", { expired });
 
       try {
-        // Annuler tout timer de déconnexion automatique
-        if (logoutTimerRef.current) {
-          clearTimeout(logoutTimerRef.current);
-          logoutTimerRef.current = null;
-        }
-
-        // Appeler l'API de déconnexion si possible
-        await authService.logout().catch(() => {
-          console.log("[AuthContext] Erreur lors de la déconnexion API");
-        });
+        // Nettoyer les tokens avec la fonction centralisée
+        await clearAuth();
       } finally {
         // Nettoyer les données de session
-        localStorage.removeItem("accessToken");
-        setAccessToken(null);
         setCurrentUser(null);
 
         // Si la session a expiré, rediriger vers la page de session expirée
@@ -115,127 +90,135 @@ export const AuthProvider = ({ children }) => {
   // Vérifier si l'utilisateur est déjà connecté au chargement
   useEffect(() => {
     const verifyToken = async () => {
+      // ✅ Si on est sur la page session-expired, ne pas vérifier automatiquement
+      // MAIS garder les fonctions login/logout disponibles pour la reconnexion
+      if (
+        typeof window !== "undefined" &&
+        window.location.pathname.includes("/session-expired")
+      ) {
+        console.log(
+          "[AuthContext] Sur la page session-expired, pas de vérification automatique"
+        );
+        setLoading(false);
+        setCurrentUser(null); // S'assurer qu'on est déconnecté
+        return; // ✅ Permettre les fonctions login/logout pour la reconnexion
+      }
+
+      const accessToken = getCurrentToken();
       console.log("[AuthContext] Vérification des tokens au chargement", {
         hasAccessToken: !!accessToken,
         isSessionExpired: SESSION_EXPIRED,
       });
 
-      // Si la session est déjà marquée comme expirée, ne rien faire
+      // ✅ Si la session est marquée comme expirée, permettre quand même l'accès aux pages d'auth
       if (SESSION_EXPIRED) {
-        setLoading(false);
-        return;
+        // Si on est sur une page d'authentification, réinitialiser l'état
+        const isAuthPage =
+          typeof window !== "undefined" &&
+          (window.location.pathname.includes("/auth/") ||
+            window.location.pathname.includes("/login") ||
+            window.location.pathname.includes("/register"));
+
+        if (isAuthPage) {
+          console.log(
+            "[AuthContext] Page d'auth détectée - réinitialisation de l'état d'expiration"
+          );
+          SESSION_EXPIRED = false;
+          setSessionExpired(false);
+          resetSessionExpired();
+        } else {
+          setLoading(false);
+          return;
+        }
       }
 
-      if (!accessToken) {
-        setLoading(false);
-        return;
-      }
-
+      // ✅ NOUVELLE LOGIQUE : Gérer les différents cas
       try {
-        console.log(
-          "[AuthContext] Tentative de récupération des infos utilisateur"
-        );
-        // Vérifier la validité du token en récupérant les infos de l'utilisateur
-        const userData = await userService.getCurrentUser();
-        console.log(
-          "[AuthContext] Infos utilisateur récupérées avec succès",
-          userData
-        );
-        setCurrentUser(userData.user);
-        // Initialiser le timer d'inactivité
-        autoLogout();
+        if (!accessToken) {
+          // Cas 1: Pas de token du tout
+          console.log(
+            "[AuthContext] Aucun token - tentative de refresh automatique"
+          );
+
+          // Essayer un refresh automatique (au cas où il y aurait un refresh token)
+          try {
+            const userData = await userService.getCurrentUser();
+            console.log("[AuthContext] Refresh automatique réussi", userData);
+            setCurrentUser(userData.user);
+          } catch {
+            console.log(
+              "[AuthContext] Aucun refresh token valide - déconnecté"
+            );
+            setCurrentUser(null);
+          }
+        } else {
+          // Cas 2: Il y a un token, essayons de l'utiliser
+          console.log("[AuthContext] Token présent - validation en cours");
+
+          try {
+            const userData = await userService.getCurrentUser();
+            console.log(
+              "[AuthContext] Token valide - utilisateur connecté",
+              userData
+            );
+            setCurrentUser(userData.user);
+          } catch (tokenError) {
+            if (tokenError.response?.status === 401) {
+              console.log("[AuthContext] Token expiré - tentative de refresh");
+
+              // Cas 2a: Token expiré, attendre le refresh automatique
+              // On fait un petit délai pour laisser le temps à l'intercepteur de faire son travail
+              await new Promise((resolve) => setTimeout(resolve, 100));
+
+              try {
+                // Retenter après le refresh automatique
+                const refreshedUserData = await userService.getCurrentUser();
+                console.log(
+                  "[AuthContext] Refresh automatique réussi",
+                  refreshedUserData
+                );
+                setCurrentUser(refreshedUserData.user);
+              } catch {
+                console.log(
+                  "[AuthContext] Refresh échoué - session vraiment expirée"
+                );
+                setCurrentUser(null);
+              }
+            } else {
+              // Cas 2b: Autre erreur (réseau, serveur, etc.)
+              console.error(
+                "[AuthContext] Erreur de récupération des données utilisateur",
+                tokenError
+              );
+              setCurrentUser(null);
+            }
+          }
+        }
       } catch (error) {
-        console.log(
-          "[AuthContext] Échec de récupération des infos utilisateur",
+        console.error(
+          "[AuthContext] Erreur générale lors de la vérification",
           error
         );
-        // Si le token est invalide, essayer de le rafraîchir
-        try {
-          console.log("[AuthContext] Tentative de rafraîchissement du token");
-          const refreshResponse = await httpService.post("/auth/refresh-token");
-
-          console.log("[AuthContext] Token rafraîchi avec succès");
-          setAccessToken(refreshResponse.data.token);
-          localStorage.setItem("accessToken", refreshResponse.data.token);
-
-          // Récupérer les infos de l'utilisateur avec le nouveau token
-          console.log(
-            "[AuthContext] Récupération des infos utilisateur avec le nouveau token"
-          );
-          const userData = await userService.getCurrentUser();
-          console.log(
-            "[AuthContext] Infos utilisateur récupérées avec succès",
-            userData
-          );
-          setCurrentUser(userData.user);
-          // Initialiser le timer d'inactivité
-          autoLogout();
-        } catch (refreshError) {
-          console.error(
-            "[AuthContext] Échec du rafraîchissement du token",
-            refreshError
-          );
-          // Si le refresh token est invalide, déconnecter l'utilisateur
-          testExpireToken();
-        }
+        setCurrentUser(null);
       } finally {
         setLoading(false);
       }
     };
 
     verifyToken();
-  }, [accessToken, autoLogout, testExpireToken]);
-
-  // Ajouter des écouteurs d'événements pour détecter l'activité de l'utilisateur
-  useEffect(() => {
-    // Ne pas ajouter les écouteurs si pas d'utilisateur connecté
-    if (!currentUser) return;
-
-    // Éviter d'ajouter les écouteurs plusieurs fois
-    if (eventsSetupRef.current) return;
-
-    console.log(
-      "[AuthContext] Configuration des écouteurs d'événements pour l'activité utilisateur"
-    );
-    eventsSetupRef.current = true;
-
-    const events = [
-      "mousedown",
-      "mousemove",
-      "keydown",
-      "scroll",
-      "touchstart",
-      "click",
-    ];
-
-    // Gestionnaire d'événements pour réinitialiser le timer à chaque activité
-    const handleUserActivity = () => {
-      autoLogout();
-    };
-
-    // Ajouter les écouteurs pour tous les événements
-    events.forEach((event) => {
-      window.addEventListener(event, handleUserActivity);
-    });
-
-    // Nettoyer les écouteurs lors du démontage
-    return () => {
-      console.log("[AuthContext] Nettoyage des écouteurs d'événements");
-      events.forEach((event) => {
-        window.removeEventListener(event, handleUserActivity);
-      });
-      eventsSetupRef.current = false;
-    };
-  }, [currentUser, autoLogout]);
+  }, [userService]);
 
   // Fonction de connexion
   const login = async (email, password) => {
     try {
       console.log("[AuthContext] Tentative de connexion", { email });
 
-      // Réinitialiser l'état d'expiration de session
+      // ✅ Réinitialiser l'état d'expiration de session (local ET httpService)
       SESSION_EXPIRED = false;
       setSessionExpired(false);
+
+      // ✅ Réinitialiser l'état d'expiration dans httpService sans logout
+      resetSessionExpired();
 
       setError(null);
       const authData = await authService.login(email, password);
@@ -244,16 +227,10 @@ export const AuthProvider = ({ children }) => {
         user: authData.user,
       });
 
-      const { token, user } = authData;
+      const { user } = authData;
+      // Le token est automatiquement stocké par authService.login
 
-      // Stocker les tokens et les informations utilisateur
-      localStorage.setItem("accessToken", token);
-      setAccessToken(token);
       setCurrentUser(user);
-
-      // Initialiser le timer d'inactivité
-      autoLogout();
-
       return user;
     } catch (err) {
       console.error("[AuthContext] Erreur lors de la connexion:", err);
@@ -284,8 +261,11 @@ export const AuthProvider = ({ children }) => {
         userData.tel_numero = userData.tel_numero.replace(/\s/g, "");
       }
 
-      // Appeler le service d'inscription
-      const response = await authService.register(userData);
+      // Extraire le rôle pour le passer au service
+      const { role, ...userDataWithoutRole } = userData;
+
+      // Appeler le service d'inscription avec le rôle
+      const response = await authService.register(userDataWithoutRole, role);
       console.log("[AuthContext] Inscription réussie", response);
 
       // Pas de connexion automatique après l'inscription
@@ -298,27 +278,32 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Nettoyer le timer lors du démontage du composant
-  useEffect(() => {
-    return () => {
-      if (logoutTimerRef.current) {
-        clearTimeout(logoutTimerRef.current);
-      }
-    };
-  }, []);
-
-  // Valeurs exposées par le contexte
-  const value = {
-    currentUser,
-    accessToken,
-    loading,
-    error,
-    login,
-    logout,
-    register,
-    sessionExpired,
-    testExpireToken,
-  };
+  // ✅ Valeurs exposées par le contexte avec useMemo pour éviter les re-renders
+  const value = useMemo(
+    () => ({
+      currentUser,
+      // ✅ Plus de getCurrentToken() automatique pour éviter les re-renders
+      loading,
+      error,
+      login,
+      logout,
+      register,
+      sessionExpired,
+      testExpireToken,
+      forceUnlock, // ✅ Fonction de déblocage d'urgence
+    }),
+    [
+      currentUser,
+      loading,
+      error,
+      login,
+      logout,
+      register,
+      sessionExpired,
+      testExpireToken,
+      forceUnlock,
+    ]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

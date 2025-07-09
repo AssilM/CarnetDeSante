@@ -2,30 +2,36 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
 import { useAppContext } from "./AppContext";
 import { usePatientContext } from "./patient/PatientContext";
+import { httpService } from "../services/http"; // ✅ Utilisation directe
 import { createAppointmentService } from "../services/api";
-import { httpService } from "../services/http";
 
-// Créer une instance du service de rendez-vous
-const appointmentService = createAppointmentService(httpService);
-
-// Créer un contexte pour les rendez-vous
-const AppointmentContext = createContext(null);
+const AppointmentContext = createContext();
 
 export const AppointmentProvider = ({ children }) => {
   const [appointments, setAppointments] = useState([]);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [appointmentService, setAppointmentService] = useState(null);
 
-  const { currentUser, accessToken } = useAuth();
+  const { currentUser } = useAuth(); // ✅ Plus besoin de accessToken ni setAccessToken
   const { isPatient, isDoctor } = useAppContext();
   const { patientProfile } = usePatientContext();
+
+  // Créer l'instance du service - SIMPLIFIÉ
+  useEffect(() => {
+    // ✅ Utilisation directe de httpService - le refresh est automatique
+    setAppointmentService(createAppointmentService(httpService));
+  }, []); // ✅ Plus de dépendance sur accessToken
 
   // Charger les rendez-vous de l'utilisateur connecté
   useEffect(() => {
     const fetchAppointments = async () => {
-      if (!currentUser) {
-        console.log("[AppointmentContext] Pas d'utilisateur connecté");
+      if (!currentUser || !appointmentService) {
+        console.log("[AppointmentContext] Conditions non remplies:", {
+          hasCurrentUser: !!currentUser,
+          hasAppointmentService: !!appointmentService,
+        });
         return;
       }
 
@@ -183,20 +189,15 @@ export const AppointmentProvider = ({ children }) => {
       } catch (err) {
         console.error("Erreur lors du chargement des rendez-vous:", err);
         setError("Impossible de charger vos rendez-vous");
+        // ✅ Plus besoin de gérer le refresh manuellement - httpService s'en charge
       } finally {
         setLoading(false);
       }
     };
 
     // Si nous avons déjà le profil patient ou si nous sommes médecin, charger les rendez-vous
-    if ((isPatient && patientProfile) || isDoctor) {
-      fetchAppointments();
-    } else {
-      console.log(
-        "[AppointmentContext] Attente du profil patient ou conditions non remplies"
-      );
-    }
-  }, [currentUser, patientProfile, accessToken, isPatient, isDoctor]);
+    fetchAppointments();
+  }, [currentUser, patientProfile, isPatient, isDoctor, appointmentService]); // ✅ Suppression d'accessToken des dépendances
 
   // Récupérer un rendez-vous par son ID
   const getAppointmentById = async (appointmentId) => {

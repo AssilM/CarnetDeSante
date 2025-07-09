@@ -34,19 +34,33 @@ const authService = {
   /**
    * Inscrit un nouvel utilisateur
    * @param {Object} userData - Données de l'utilisateur à inscrire
+   * @param {string} role - Rôle de l'utilisateur (patient, medecin) - optionnel, par défaut patient
    * @returns {Promise<Object>} Données de l'utilisateur créé
    */
-  register: async (userData) => {
-    console.log("[Auth Service] Tentative d'inscription");
+  register: async (userData, role = "patient") => {
+    console.log("[Auth Service] Tentative d'inscription", { role });
 
     try {
-      const response = await httpService.post("/auth/signup", userData);
+      // Déterminer l'endpoint en fonction du rôle
+      const endpoint =
+        role === "medecin" ? "/auth/signup/medecin" : "/auth/signup";
+
+      const response = await httpService.post(endpoint, userData);
       console.log("[Auth Service] Inscription réussie");
       return response.data;
     } catch (error) {
       console.error("[Auth Service] Erreur lors de l'inscription:", error);
       throw error;
     }
+  },
+
+  /**
+   * Inscrit un nouveau médecin (alias pour register avec rôle médecin)
+   * @param {Object} userData - Données du médecin à inscrire
+   * @returns {Promise<Object>} Données du médecin créé
+   */
+  registerMedecin: async (userData) => {
+    return authService.register(userData, "medecin");
   },
 
   /**
@@ -79,30 +93,6 @@ const authService = {
     } catch (error) {
       console.error(
         "[Auth Service] Erreur lors du rafraîchissement du token:",
-        error
-      );
-      throw error;
-    }
-  },
-
-  /**
-   * Diagnostique les problèmes d'authentification
-   * Vérifie l'état du token, le rôle de l'utilisateur et la consistance des données
-   * @returns {Promise<Object>} Résultats du diagnostic
-   */
-  checkAuth: async () => {
-    console.log("[Auth Service] Vérification de l'authentification");
-
-    try {
-      const response = await httpService.get("/auth/check-auth");
-      console.log(
-        "[Auth Service] Résultats du diagnostic d'authentification:",
-        response.data
-      );
-      return response.data;
-    } catch (error) {
-      console.error(
-        "[Auth Service] Erreur lors du diagnostic d'authentification:",
         error
       );
       throw error;

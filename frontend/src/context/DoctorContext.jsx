@@ -4,10 +4,11 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useMemo,
 } from "react";
 import { useAuth } from "./AuthContext";
 import { createDoctorService } from "../services/api";
-import { createAuthConnector } from "../services/http";
+import { httpService } from "../services/http"; // ✅ Utilisation directe
 
 // Créer un contexte pour les médecins
 const DoctorContext = createContext(null);
@@ -18,24 +19,10 @@ export const DoctorProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [doctorProfile, setDoctorProfile] = useState(null);
-  const { currentUser, accessToken, testExpireToken } = useAuth();
+  const { currentUser } = useAuth(); // ✅ Plus besoin de accessToken et testExpireToken
 
-  // Créer une instance du service docteur
-  const [doctorService, setDoctorService] = useState(null);
-
-  // Initialiser l'API authentifiée lorsque le token change
-  useEffect(() => {
-    if (accessToken) {
-      console.log("[DoctorContext] Création d'une API authentifiée");
-      const authenticatedApi = createAuthConnector({
-        accessToken,
-        onSessionExpired: testExpireToken,
-      });
-      setDoctorService(createDoctorService(authenticatedApi));
-    } else {
-      setDoctorService(null);
-    }
-  }, [accessToken, testExpireToken]);
+  // ✅ Créer une instance du service docteur avec useMemo pour éviter la re-création
+  const doctorService = useMemo(() => createDoctorService(httpService), []);
 
   // État pour stocker les spécialités disponibles
   const [specialties, setSpecialties] = useState([]);
@@ -49,9 +36,9 @@ export const DoctorProvider = ({ children }) => {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [availableSlots, setAvailableSlots] = useState({});
 
-  // Fonction pour charger les médecins
+  // ✅ Fonction pour charger les médecins sans dépendance sur loading
   const loadDoctors = useCallback(async () => {
-    if (loading || !doctorService) return [];
+    if (!doctorService) return [];
 
     try {
       setLoading(true);
@@ -85,11 +72,19 @@ export const DoctorProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [loading, doctorService]);
+  }, [doctorService]);
 
   // Charger le profil du médecin si l'utilisateur est connecté en tant que médecin
   useEffect(() => {
     const fetchDoctorProfile = async () => {
+      // ✅ Ne pas charger si on est sur la page session-expired
+      if (
+        typeof window !== "undefined" &&
+        window.location.pathname.includes("/session-expired")
+      ) {
+        return;
+      }
+
       if (!currentUser || currentUser.role !== "medecin" || !doctorService) {
         return;
       }
@@ -114,13 +109,21 @@ export const DoctorProvider = ({ children }) => {
     fetchDoctorProfile();
   }, [currentUser, doctorService]);
 
-  // Charger la liste des spécialités au démarrage
+  // ✅ Charger la liste des spécialités au démarrage sans dépendance sur loading
   useEffect(() => {
-    // Charger les données seulement une fois au démarrage et si le service est disponible
-    if (!hasLoadedInitialData && !loading && doctorService) {
+    // ✅ Ne pas charger si on est sur la page session-expired
+    if (
+      typeof window !== "undefined" &&
+      window.location.pathname.includes("/session-expired")
+    ) {
+      return;
+    }
+
+    // Charger les données seulement une fois au démarrage
+    if (!hasLoadedInitialData) {
       loadDoctors();
     }
-  }, [hasLoadedInitialData, loadDoctors, loading, doctorService]);
+  }, [hasLoadedInitialData, loadDoctors]);
 
   // Fonctions pour filtrer les médecins
   const getDoctorsBySpecialty = useCallback(

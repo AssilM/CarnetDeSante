@@ -3,9 +3,6 @@ import { useAuth } from "./AuthContext";
 import { createDoctorService } from "../services/api";
 import { httpService } from "../services/http";
 
-// Créer une instance du service médecin
-const doctorService = createDoctorService(httpService);
-
 // Créer un contexte pour les disponibilités des médecins
 const DoctorAvailabilityContext = createContext(null);
 
@@ -24,12 +21,27 @@ export const DoctorAvailabilityProvider = ({ children }) => {
   const [availabilities, setAvailabilities] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { currentUser } = useAuth();
+  const [doctorService, setDoctorService] = useState(null);
+
+  const { currentUser } = useAuth(); // ✅ Simplifié
+
+  // ✅ Créer l'instance du service - SIMPLIFIÉ
+  useEffect(() => {
+    // ✅ Utilisation directe de httpService - le refresh est automatique
+    setDoctorService(createDoctorService(httpService));
+  }, []); // ✅ Plus de dépendances complexes
 
   // Charger les disponibilités du médecin connecté
   useEffect(() => {
     const fetchAvailabilities = async () => {
-      if (!currentUser || currentUser.role !== "medecin") return;
+      if (!currentUser || currentUser.role !== "medecin" || !doctorService) {
+        console.log("[DoctorAvailabilityContext] Conditions non remplies:", {
+          hasCurrentUser: !!currentUser,
+          isDoctor: currentUser?.role === "medecin",
+          hasDoctorService: !!doctorService,
+        });
+        return;
+      }
 
       try {
         setLoading(true);
@@ -47,11 +59,11 @@ export const DoctorAvailabilityProvider = ({ children }) => {
     };
 
     fetchAvailabilities();
-  }, [currentUser]);
+  }, [currentUser, doctorService]);
 
   // Ajouter une nouvelle disponibilité
   const addAvailability = async (availabilityData) => {
-    if (!currentUser) {
+    if (!currentUser || !doctorService) {
       setError("Vous devez être connecté pour ajouter une disponibilité");
       return null;
     }
@@ -76,7 +88,7 @@ export const DoctorAvailabilityProvider = ({ children }) => {
 
   // Mettre à jour une disponibilité existante
   const updateAvailability = async (availabilityId, availabilityData) => {
-    if (!currentUser) {
+    if (!currentUser || !doctorService) {
       setError("Vous devez être connecté pour modifier une disponibilité");
       return null;
     }
@@ -103,7 +115,7 @@ export const DoctorAvailabilityProvider = ({ children }) => {
 
   // Supprimer une disponibilité
   const deleteAvailability = async (availabilityId) => {
-    if (!currentUser) {
+    if (!currentUser || !doctorService) {
       setError("Vous devez être connecté pour supprimer une disponibilité");
       return false;
     }

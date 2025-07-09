@@ -4,7 +4,20 @@
  */
 
 import httpService from "./httpService";
-import createAuthConnector from "./apiConnector";
-import errorHandler from "./errorHandler";
+import {
+  clearAuth,
+  getCurrentToken,
+  resetSessionExpired,
+  forceResetAuth,
+} from "./httpService";
+import errorHandler from "./errorHandler"; // ✅ Import par défaut
 
-export { httpService, createAuthConnector, errorHandler };
+// Exporter les services HTTP essentiels
+export {
+  httpService,
+  clearAuth,
+  getCurrentToken,
+  resetSessionExpired,
+  forceResetAuth,
+  errorHandler,
+};

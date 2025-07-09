@@ -1,6 +1,9 @@
 import React from "react";
 import { Route } from "react-router-dom";
 
+// Composant de protection des routes d'authentification
+import { AuthGuard } from "../components/AuthGuard";
+
 // Pages d'authentification
 import LandingPage from "../pages/auth/LandingPage";
 import RoleSelectPage from "../pages/auth/RoleSelectPage";
@@ -12,16 +15,56 @@ import Forbidden from "../pages/Forbidden";
 /**
  * Routes pour l'authentification
  * Exporte un tableau de routes d'authentification
+ *
+ * Les routes protégées par AuthGuard empêchent l'accès aux utilisateurs déjà connectés
+ * Les routes d'erreur (/session-expired, /403) restent accessibles
  */
 const AuthRoutes = [
-  <Route key="landing" path="/" element={<LandingPage />} />,
+  // Route d'accueil - protégée par AuthGuard
+  <Route
+    key="landing"
+    path="/"
+    element={
+      <AuthGuard>
+        <LandingPage />
+      </AuthGuard>
+    }
+  />,
+
+  // Route de sélection de rôle - protégée par AuthGuard
   <Route
     key="role-select"
     path="/auth/role-select"
-    element={<RoleSelectPage />}
+    element={
+      <AuthGuard>
+        <RoleSelectPage />
+      </AuthGuard>
+    }
   />,
-  <Route key="login" path="/auth/login" element={<LoginPage />} />,
-  <Route key="register" path="/auth/register" element={<RegisterPage />} />,
+
+  // Route de connexion - protégée par AuthGuard
+  <Route
+    key="login"
+    path="/auth/login"
+    element={
+      <AuthGuard>
+        <LoginPage />
+      </AuthGuard>
+    }
+  />,
+
+  // Route d'inscription - protégée par AuthGuard
+  <Route
+    key="register"
+    path="/auth/register"
+    element={
+      <AuthGuard>
+        <RegisterPage />
+      </AuthGuard>
+    }
+  />,
+
+  // Routes d'erreur - NON protégées (toujours accessibles)
   <Route
     key="session-expired"
     path="/session-expired"
