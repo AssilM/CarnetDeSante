@@ -3,8 +3,6 @@ import PageWrapper from "../../components/PageWrapper";
 import { useDoctorAppointmentContext } from "../../context";
 import { useAppContext } from "../../context/AppContext";
 import {
-  AgendaHeader,
-  AgendaStats,
   AgendaNavigation,
   DayView,
   WeekView,
@@ -114,30 +112,6 @@ const Agenda = () => {
     );
   };
 
-  // Statistiques
-  const getStats = () => {
-    const today = formatDateYMD(new Date());
-    const todayAppointments = appointments.filter(
-      (apt) => apt.dateOnly === today && apt.status !== "annulé"
-    );
-    const activeAppointments = appointments.filter(
-      (apt) => apt.status !== "annulé"
-    );
-    const confirmedCount = appointments.filter(
-      (apt) => apt.status === "confirmé"
-    ).length;
-    const cancelledCount = appointments.filter(
-      (apt) => apt.status === "annulé"
-    ).length;
-
-    return {
-      today: todayAppointments.length,
-      total: activeAppointments.length,
-      confirmed: confirmedCount,
-      cancelled: cancelledCount,
-    };
-  };
-
   // Gestion des actions
   const handleShowDetail = (appointment) => {
     setSelectedAppointment(appointment);
@@ -212,7 +186,6 @@ const Agenda = () => {
     setShowCalendar(!showCalendar);
   };
 
-  const stats = getStats();
   const weekDates = getWeekDates(currentDate);
   const monthDates = getMonthDates(currentDate);
 
@@ -254,12 +227,6 @@ const Agenda = () => {
   return (
     <PageWrapper className="bg-[#F8F9FA]">
       <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-4 md:space-y-8">
-        {/* Header avec titre centré */}
-        <AgendaHeader />
-
-        {/* Statistiques - responsive */}
-        <AgendaStats stats={stats} />
-
         {/* Contrôles de navigation */}
         <AgendaNavigation
           viewMode={viewMode}

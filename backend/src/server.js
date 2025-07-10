@@ -13,10 +13,10 @@ const port = process.env.PORT || 5001;
 const initDatabase = async () => {
   try {
     // Pour réinitialiser complètement la base de données, décommentez la ligne suivante
-    //await dropAllTables();
+    await dropAllTables();
 
     // Initialiser les tables
-    await initTables();
+    //await initTables();
     console.log("Base de données initialisée avec succès");
 
     // Générer des données de test

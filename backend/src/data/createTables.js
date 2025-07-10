@@ -21,6 +21,7 @@ const dropAllTables = async () => {
   try {
     // Ordre de suppression important pour respecter les contraintes de clés étrangères
     await dropTable("refresh_token");
+    await dropTable("documents_rendez_vous");
     await dropTable("document");
     await dropTable("rendez_vous");
     await dropTable("disponibilite_medecin");
@@ -163,9 +164,10 @@ const createRendezVousTable = async () => {
       date DATE NOT NULL,
       heure TIME NOT NULL,
       duree INTEGER NOT NULL DEFAULT 30,
-      statut VARCHAR(20) NOT NULL DEFAULT 'planifié' CHECK (statut IN ('planifié', 'confirmé', 'annulé', 'terminé')),
+      statut VARCHAR(20) NOT NULL DEFAULT 'planifié' CHECK (statut IN ('planifié', 'confirmé', 'annulé', 'en_cours', 'terminé')),
       motif TEXT,
       adresse VARCHAR(255),
+      notes_medecin TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
@@ -229,6 +231,29 @@ const createDocumentTable = async () => {
   }
 };
 
+const createDocumentsRendezVousTable = async () => {
+  const queryText = `
+    CREATE TABLE IF NOT EXISTS documents_rendez_vous (
+      id SERIAL PRIMARY KEY,
+      document_id INTEGER NOT NULL REFERENCES document(id) ON DELETE CASCADE,
+      rendez_vous_id INTEGER NOT NULL REFERENCES rendez_vous(id) ON DELETE CASCADE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(document_id, rendez_vous_id)
+    )
+  `;
+
+  try {
+    await pool.query(queryText);
+    console.log("Table documents_rendez_vous créée avec succès");
+  } catch (error) {
+    console.error(
+      "Erreur lors de la création de la table documents_rendez_vous:",
+      error
+    );
+    throw error;
+  }
+};
+
 const createIndexes = async () => {
   const queries = [
     `CREATE INDEX IF NOT EXISTS idx_utilisateur_email ON utilisateur(email)`,
@@ -241,6 +266,8 @@ const createIndexes = async () => {
     `CREATE INDEX IF NOT EXISTS idx_document_medecin ON document(medecin_id)`,
     `CREATE INDEX IF NOT EXISTS idx_document_type ON document(type_document)`,
     `CREATE INDEX IF NOT EXISTS idx_document_date ON document(date_creation)`,
+    `CREATE INDEX IF NOT EXISTS idx_documents_rendez_vous_document ON documents_rendez_vous(document_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_documents_rendez_vous_rdv ON documents_rendez_vous(rendez_vous_id)`,
   ];
 
   try {
@@ -268,6 +295,7 @@ const initTables = async () => {
     await createRendezVousTable();
     await createAdministrateurTable();
     await createDocumentTable();
+    await createDocumentsRendezVousTable();
     await createIndexes();
     console.log("Initialisation des tables terminée");
   } catch (error) {
@@ -284,6 +312,7 @@ export {
   createRendezVousTable,
   createAdministrateurTable,
   createDocumentTable,
+  createDocumentsRendezVousTable,
   createIndexes,
   dropAllTables,
   initTables,
