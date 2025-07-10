@@ -6,7 +6,7 @@ import {
   createPatient as createPatientRepo,
   updatePatient as updatePatientRepo,
   deletePatient as deletePatientRepo,
-} from "../repositories/patient.repository.js";
+} from "./patient.repository.js";
 
 // ==================== SERVICES PROFIL PATIENT ====================
 

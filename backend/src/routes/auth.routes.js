@@ -6,7 +6,7 @@ import {
   signout,
   refreshToken,
   getMe,
-} from "../controllers/auth.controller.js";
+} from "../auth/auth.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
 import {
   validateSignupData,

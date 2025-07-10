@@ -5,7 +5,7 @@ import {
   updateUserService,
   updatePasswordService,
   deleteUserService,
-} from "../services/user.service.js";
+} from "./user.service.js";
 
 /**
  * Controller pour la gestion des utilisateurs

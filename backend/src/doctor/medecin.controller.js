@@ -7,7 +7,7 @@ import {
   getMedecinIdByUserIdService,
   getMedecinsBySpecialiteService,
   getAllSpecialitesService,
-} from "../services/medecin.service.js";
+} from "./medecin.service.js";
 
 /**
  * Controller pour la gestion des médecins

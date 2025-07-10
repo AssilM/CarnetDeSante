@@ -5,7 +5,7 @@ import {
   existsMedecin,
   createMedecin as createMedecinRepo,
   updateMedecin as updateMedecinRepo,
-} from "../repositories/medecin.repository.js";
+} from "./medecin.repository.js";
 
 /**
  * Service de gestion des médecins

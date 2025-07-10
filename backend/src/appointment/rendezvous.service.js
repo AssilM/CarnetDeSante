@@ -9,7 +9,7 @@ import {
   cancelRendezVous as cancelRendezVousRepo,
   deleteRendezVous as deleteRendezVousRepo,
   checkRendezVousConflict,
-} from "../repositories/rendezvous.repository.js";
+} from "./rendezvous.repository.js";
 import { getJourSemaine, isDateInFuture } from "../utils/date.utils.js";
 
 /**

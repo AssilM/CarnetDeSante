@@ -8,7 +8,7 @@ import {
   getDashboardStats,
   getSystemStatus,
   manageUsers,
-} from "../controllers/admin.controller.js";
+} from "../admin/admin.controller.js";
 import { authenticate, authorize } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();

@@ -9,11 +9,11 @@ import {
   deleteRendezVousService,
   checkDoctorAvailabilityService,
   checkAppointmentConflictService,
-} from "../services/rendezvous.service.js";
+} from "./rendezvous.service.js";
 import {
   validatePatientExists,
   validateDoctorExists,
-} from "../services/validation.service.js";
+} from "../shared/index.js";
 
 /**
  * Controller pour la gestion des rendez-vous

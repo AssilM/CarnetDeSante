@@ -14,7 +14,8 @@ import {
   findRefreshToken,
   deleteRefreshToken,
   findByIdLite,
-} from "../repositories/user.repository.js";
+  isEmailTaken,
+} from "./auth.repository.js";
 import jwt from "jsonwebtoken";
 
 /**
@@ -132,8 +133,7 @@ export const createUser = async (userData, role) => {
   }
 
   // Vérifier si l'email est déjà utilisé
-  const existingUser = await findByEmail(email);
-  if (existingUser) {
+  if (await isEmailTaken(email)) {
     throw new Error("Cet email est déjà utilisé");
   }
 
@@ -355,6 +355,5 @@ export const getCurrentUser = async (userId) => {
  * @returns {Promise<boolean>} True si l'email est disponible
  */
 export const isEmailAvailable = async (email) => {
-  const existingUser = await findByEmail(email);
-  return !existingUser;
+  return !(await isEmailTaken(email));
 };

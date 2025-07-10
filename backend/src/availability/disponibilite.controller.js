@@ -4,7 +4,7 @@ import {
   updateDisponibiliteService,
   deleteDisponibiliteService,
   getCreneauxDisponiblesService,
-} from "../services/disponibilite.service.js";
+} from "./disponibilite.service.js";
 
 /**
  * Controller pour la gestion des disponibilités

@@ -8,7 +8,7 @@ import {
   updateRendezVous,
   cancelRendezVous,
   deleteRendezVous,
-} from "../controllers/rendezvous.controller.js";
+} from "../appointment/rendezvous.controller.js";
 import { authenticate, authorize } from "../middlewares/auth.middleware.js";
 // ❌ MIDDLEWARES SUPPRIMÉS : validation logique métier déplacée vers services
 // - validateAppointmentData, checkAppointmentConflict → rendezvous.service.js

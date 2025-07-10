@@ -15,7 +15,7 @@ import {
   getDocumentService,
   deleteDocumentService,
   getDocumentForDownloadService,
-} from "../services/patient.service.js";
+} from "./patient.service.js";
 
 // ==================== CONTRÔLEURS PROFIL PATIENT ====================
 

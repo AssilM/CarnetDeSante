@@ -7,7 +7,7 @@ import {
   updatePassword as updatePasswordRepo,
   deleteUser as deleteUserRepo,
   findByRole,
-} from "../repositories/user.repository.js";
+} from "./user.repository.js";
 import { hashPassword, comparePassword } from "../utils/auth.utils.js";
 
 /**

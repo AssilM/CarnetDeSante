@@ -4,7 +4,7 @@ import {
   refreshUserToken,
   signoutUser,
   getCurrentUser,
-} from "../services/auth.service.js";
+} from "./auth.service.js";
 import { setRefreshTokenCookie } from "../utils/auth.utils.js";
 
 // ✅ REFACTORING : Validation ZOD déplacée vers auth.validation.middleware.js

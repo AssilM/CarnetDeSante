@@ -5,7 +5,7 @@ import {
   updateDisponibilite,
   deleteDisponibilite,
   getCreneauxDisponibles,
-} from "../controllers/disponibilite.controller.js";
+} from "../availability/disponibilite.controller.js";
 import { authenticate, authorize } from "../middlewares/auth.middleware.js";
 import {
   checkDoctorBodyOwnership,

@@ -7,13 +7,13 @@ import {
   updateDisponibilite as updateDisponibiliteRepo,
   deleteDisponibilite as deleteDisponibiliteRepo,
   findDisponibilitesByJour,
-} from "../repositories/disponibilite.repository.js";
+} from "./disponibilite.repository.js";
 import {
   getJourSemaine,
   convertTimeToMinutes,
   formatMinutesToTime,
 } from "../utils/date.utils.js";
-import { findAppointmentsByMedecinAndDate } from "../repositories/rendezvous.repository.js";
+import { findAppointmentsByMedecinAndDate } from "../appointment/rendezvous.repository.js";
 
 /**
  * Service de gestion des disponibilités
