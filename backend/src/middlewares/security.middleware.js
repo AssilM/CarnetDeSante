@@ -105,45 +105,8 @@ export const rateLimiter = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
   };
 };
 
-/**
- * Middleware pour valider les ressources contre les attaques par timing
- * @param {Function} resourceChecker - Fonction qui vérifie l'existence de la ressource
- */
-export const preventTimingAttacks = (resourceChecker) => {
-  return async (req, res, next) => {
-    const startTime = Date.now();
-
-    try {
-      const exists = await resourceChecker(req);
-
-      // Ajouter un délai artificiel pour normaliser les temps de réponse
-      const minDelay = 50; // 50ms minimum
-      const elapsed = Date.now() - startTime;
-      const delay = Math.max(0, minDelay - elapsed);
-
-      if (delay > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-
-      if (!exists) {
-        return res.status(404).json({ message: "Ressource non trouvée" });
-      }
-
-      next();
-    } catch (error) {
-      // Même délai en cas d'erreur
-      const minDelay = 50;
-      const elapsed = Date.now() - startTime;
-      const delay = Math.max(0, minDelay - elapsed);
-
-      if (delay > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-
-      next(error);
-    }
-  };
-};
+// ❌ FONCTION SUPPRIMÉE : preventTimingAttacks
+// Raison: Code mort, jamais utilisée dans le projet
 
 /**
  * Middleware pour détecter les tentatives d'accès suspicieuses
@@ -192,27 +155,8 @@ export const detectSuspiciousActivity = (req, res, next) => {
   next();
 };
 
-/**
- * Middleware pour valider les tokens CSRF (si implémenté)
- */
-export const validateCSRF = (req, res, next) => {
-  // Pour les requêtes de modification (POST, PUT, DELETE)
-  if (["POST", "PUT", "DELETE"].includes(req.method)) {
-    const csrfToken = req.headers["x-csrf-token"] || req.body._csrf;
-
-    // Si un système CSRF est implémenté, valider ici
-    // Pour l'instant, on passe juste un warning si le token est absent
-    if (!csrfToken && process.env.NODE_ENV === "production") {
-      console.warn(
-        `[SECURITY] Missing CSRF token | user=${req.userId || "anonymous"} | ${
-          req.method
-        } ${req.originalUrl} - ${req.ip}`
-      );
-    }
-  }
-
-  next();
-};
+// ❌ FONCTION SUPPRIMÉE : validateCSRF
+// Raison: Code mort, système CSRF jamais implémenté
 
 /**
  * Middleware pour nettoyer et valider les entrées
@@ -267,49 +211,5 @@ export const sanitizeInput = (req, res, next) => {
   }
 };
 
-/**
- * Middleware pour s'assurer que l'utilisateur a le droit d'accéder aux données du médecin
- * Utilisé pour protéger les routes qui manipulent des données spécifiques à un médecin
- */
-export const ensureAuthorizedMedecin = async (req, res, next) => {
-  try {
-    // Récupérer l'ID du médecin cible depuis les paramètres ou le body
-    const targetMedecinId = parseInt(
-      req.params.medecinId || req.body.medecin_id
-    );
-    const userId = req.userId;
-    const role = req.userRole;
-
-    // Vérifier que l'ID du médecin cible est valide
-    if (!targetMedecinId || isNaN(targetMedecinId)) {
-      return res.status(400).json({
-        message: "ID du médecin invalide",
-        field: "medecinId",
-      });
-    }
-
-    // Autoriser les admins
-    if (role === "admin") {
-      return next();
-    }
-
-    // Autoriser les médecins à accéder à leurs propres données
-    if (role === "medecin" && userId === targetMedecinId) {
-      return next();
-    }
-
-    // Log de sécurité pour tentative d'accès non autorisé
-    console.warn(
-      `[SECURITY] Tentative d'accès non autorisé aux données médecin | user=${userId} role=${role} | Cible médecin=${targetMedecinId} | ${req.method} ${req.originalUrl} - ${req.ip}`
-    );
-
-    return res.status(403).json({
-      message: "Accès non autorisé à ce médecin",
-    });
-  } catch (error) {
-    console.error("Erreur dans ensureAuthorizedMedecin:", error);
-    return res.status(500).json({
-      message: "Erreur lors de la vérification des autorisations",
-    });
-  }
-};
+// ❌ FONCTION SUPPRIMÉE : ensureAuthorizedMedecin
+// Raison: Redondante avec ownership.middleware.js (restrictDoctorToSelf)

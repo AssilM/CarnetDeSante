@@ -2,6 +2,60 @@
  * Middleware de validation pour les disponibilités
  */
 
+/**
+ * Middleware pour convertir et normaliser les types de données des rendez-vous
+ * Utilisé dans rendezvous.routes.js
+ */
+export const convertAppointmentTypes = (req, res, next) => {
+  const data = req.body;
+
+  // Convertir les IDs string en nombres
+  if (data.patient_id) {
+    data.patient_id = Number(data.patient_id);
+  }
+  if (data.medecin_id) {
+    data.medecin_id = Number(data.medecin_id);
+  }
+  if (data.duree) {
+    data.duree = Number(data.duree);
+  }
+
+  // Normaliser les formats d'heure si présents
+  if (data.heure) {
+    data.heure = normalizeTimeFormat(data.heure);
+  }
+  if (data.heure_debut) {
+    data.heure_debut = normalizeTimeFormat(data.heure_debut);
+  }
+  if (data.heure_fin) {
+    data.heure_fin = normalizeTimeFormat(data.heure_fin);
+  }
+
+  // Validation basique des types convertis
+  if (data.patient_id && (isNaN(data.patient_id) || data.patient_id <= 0)) {
+    return res.status(400).json({
+      message: "L'ID du patient doit être un nombre entier positif",
+      field: "patient_id",
+    });
+  }
+
+  if (data.medecin_id && (isNaN(data.medecin_id) || data.medecin_id <= 0)) {
+    return res.status(400).json({
+      message: "L'ID du médecin doit être un nombre entier positif",
+      field: "medecin_id",
+    });
+  }
+
+  if (data.duree && (isNaN(data.duree) || data.duree <= 0)) {
+    return res.status(400).json({
+      message: "La durée doit être un nombre positif",
+      field: "duree",
+    });
+  }
+
+  next();
+};
+
 // Validation des jours de la semaine
 const joursValides = [
   "lundi",

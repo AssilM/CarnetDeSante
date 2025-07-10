@@ -9,21 +9,16 @@ import {
 } from "../controllers/auth.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
 import {
-  validateRegistrationData,
-  checkEmailUnique,
-} from "../middlewares/validation/auth.validation.js";
+  validateSignupData,
+  validateSigninData,
+} from "../middlewares/auth.validation.middleware.js";
 
 const router = express.Router();
 
-// Routes publiques
-router.post("/signup", validateRegistrationData, checkEmailUnique, signup);
-router.post(
-  "/signup/medecin",
-  validateRegistrationData,
-  checkEmailUnique,
-  signupMedecin
-);
-router.post("/signin", signin);
+// Routes publiques avec validation
+router.post("/signup", validateSignupData, signup);
+router.post("/signup/medecin", validateSignupData, signupMedecin);
+router.post("/signin", validateSigninData, signin);
 router.post("/refresh-token", refreshToken);
 router.post("/refresh", refreshToken);
 

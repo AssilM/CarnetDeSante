@@ -23,8 +23,8 @@ import {
   rateLimiter,
   detectSuspiciousActivity,
   sanitizeInput,
-  ensureAuthorizedMedecin,
 } from "../middlewares/security.middleware.js";
+// ❌ ensureAuthorizedMedecin supprimée - redondante avec ownership.middleware.js
 
 const router = express.Router();
 
@@ -62,7 +62,7 @@ router.post(
   authorize(["medecin", "admin"]),
   validateDisponibilite,
   checkDoctorBodyOwnership(), // Vérifie que medecin_id dans le body correspond à l'utilisateur
-  ensureAuthorizedMedecin, // Contrôle d'accès supplémentaire
+  // ✅ ensureAuthorizedMedecin supprimée - checkDoctorBodyOwnership fait déjà le contrôle
   auditAction("Création de disponibilité", "disponibilite"),
   createDisponibilite
 );

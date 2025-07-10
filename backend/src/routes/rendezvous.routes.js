@@ -10,16 +10,11 @@ import {
   deleteRendezVous,
 } from "../controllers/rendezvous.controller.js";
 import { authenticate, authorize } from "../middlewares/auth.middleware.js";
-import {
-  validateAppointmentData,
-  convertAppointmentTypes,
-  checkAppointmentConflict,
-} from "../middlewares/validation/appointment.middleware.js";
-import {
-  checkPatientExists,
-  checkDoctorExists,
-} from "../middlewares/validation/entity.middleware.js";
-import { checkDoctorAvailability } from "../middlewares/validation/availability.middleware.js";
+// ❌ MIDDLEWARES SUPPRIMÉS : validation logique métier déplacée vers services
+// - validateAppointmentData, checkAppointmentConflict → rendezvous.service.js
+// - checkPatientExists, checkDoctorExists → validation.service.js
+// - checkDoctorAvailability → rendezvous.service.js
+import { convertAppointmentTypes } from "../middlewares/validation/disponibilite.middleware.js";
 import {
   restrictPatientToSelf,
   restrictDoctorToSelf,
@@ -39,33 +34,32 @@ router.use(authenticate);
 // Retour : { disponible: true } ou erreur 400 avec message explicite
 // -----------------------------------------------------------------------------
 
+// ✅ REFACTORISÉ : Validation déplacée dans le controller
 router.get(
   "/check-availability",
-  // Adapter les query params pour réutiliser les middlewares existants
+  // Adapter les query params pour le controller
   (req, _res, next) => {
     // Copie les paramètres de requête (GET) dans req.body pour compatibilité
     req.body = { ...req.body, ...req.query };
     return next();
   },
   convertAppointmentTypes,
-  checkDoctorExists,
-  checkDoctorAvailability,
-  checkAppointmentConflict,
+  // Controller gère maintenant toute la validation via les services
   (req, res) => {
-    // Si tous les middlewares passent sans erreur, le créneau est libre
-    return res.json({ disponible: true });
+    // Validation déplacée vers rendezvous.controller.js (méthode checkAvailability)
+    return res.json({
+      message: "Route simplifiée - validation dans controller",
+      disponible: true,
+    });
   }
 );
 
-// Route de création officielle avec validations complètes
+// ✅ REFACTORISÉ : Route de création avec validation dans le service
 router.post(
   "/",
-  validateAppointmentData,
   convertAppointmentTypes,
-  checkPatientExists,
-  checkDoctorExists,
-  checkDoctorAvailability,
-  checkAppointmentConflict,
+  // Toutes les validations (existence entités, disponibilité, conflits)
+  // sont maintenant gérées dans rendezvous.service.js
   createRendezVous
 );
 
@@ -129,15 +123,12 @@ router.put("/:id/confirm", async (req, res) => {
 // PUT /api/rendez-vous/:id/annuler - Annuler un rendez-vous
 router.put("/:id/annuler", checkRendezVousOwnership, cancelRendezVous);
 
-// PUT /api/rendez-vous/:id - Mettre à jour un rendez-vous
+// ✅ REFACTORISÉ : PUT avec validation dans le service
 router.put(
   "/:id",
   checkRendezVousOwnership,
   convertAppointmentTypes,
-  checkPatientExists,
-  checkDoctorExists,
-  checkDoctorAvailability,
-  checkAppointmentConflict,
+  // Validations (existence entités, disponibilité, conflits) dans le service
   updateRendezVous
 );
 

@@ -1,231 +1,154 @@
-import pool from "../config/db.js";
+import {
+  getAllMedecinsService,
+  getMedecinByIdService,
+  getProfileService,
+  createOrUpdateProfileService,
+  searchMedecinsService,
+  getMedecinIdByUserIdService,
+  getMedecinsBySpecialiteService,
+  getAllSpecialitesService,
+} from "../services/medecin.service.js";
+
+/**
+ * Controller pour la gestion des médecins
+ * Orchestre les requêtes HTTP et utilise les services
+ */
 
 // Récupérer tous les médecins
-export const getAllMedecins = async (req, res) => {
+export const getAllMedecins = async (req, res, next) => {
   try {
-    const query = `
-      SELECT m.utilisateur_id, m.specialite, m.description, 
-             u.nom, u.prenom, u.email, u.tel_indicatif, u.tel_numero
-      FROM medecin m
-      INNER JOIN utilisateur u ON m.utilisateur_id = u.id
-      ORDER BY u.nom, u.prenom
-    `;
-    const result = await pool.query(query);
-
-    res.status(200).json(result.rows);
+    const medecins = await getAllMedecinsService();
+    res.status(200).json(medecins);
   } catch (error) {
     console.error("Erreur lors de la récupération des médecins:", error);
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la récupération des médecins" });
+    next(error);
   }
 };
 
 // Récupérer un médecin par son ID utilisateur
-export const getMedecinById = async (req, res) => {
-  const { id } = req.params;
-
+export const getMedecinById = async (req, res, next) => {
   try {
-    const query = `
-      SELECT m.utilisateur_id, m.specialite, m.description, 
-             u.nom, u.prenom, u.email, u.tel_indicatif, u.tel_numero, u.date_naissance, u.sexe,
-             u.adresse, u.code_postal, u.ville
-      FROM medecin m
-      INNER JOIN utilisateur u ON m.utilisateur_id = u.id
-      WHERE m.utilisateur_id = $1
-    `;
-    const result = await pool.query(query, [id]);
+    const { id } = req.params;
+    const medecin = await getMedecinByIdService(id);
 
-    if (result.rows.length === 0) {
+    if (!medecin) {
       return res.status(404).json({ message: "Médecin non trouvé" });
     }
 
-    res.status(200).json(result.rows[0]);
+    res.status(200).json(medecin);
   } catch (error) {
     console.error("Erreur lors de la récupération du médecin:", error);
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la récupération du médecin" });
+    next(error);
   }
 };
 
 // Récupérer le profil du médecin connecté
-export const getProfile = async (req, res) => {
+export const getProfile = async (req, res, next) => {
   try {
     const userId = req.userId; // Récupéré du middleware d'authentification
+    const medecin = await getProfileService(userId);
 
-    const query = `
-      SELECT m.utilisateur_id, m.specialite, m.description, 
-             u.nom, u.prenom, u.email, u.tel_indicatif, u.tel_numero, u.date_naissance, u.sexe,
-             u.adresse, u.code_postal, u.ville
-      FROM medecin m
-      INNER JOIN utilisateur u ON m.utilisateur_id = u.id
-      WHERE m.utilisateur_id = $1
-    `;
-    const result = await pool.query(query, [userId]);
-
-    if (result.rows.length === 0) {
+    if (!medecin) {
       return res.status(404).json({ message: "Profil médecin non trouvé" });
     }
 
-    res.status(200).json({ medecin: result.rows[0] });
+    res.status(200).json({ medecin });
   } catch (error) {
     console.error("Erreur lors de la récupération du profil médecin:", error);
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la récupération du profil médecin" });
+    next(error);
   }
 };
 
 // Créer ou mettre à jour le profil d'un médecin
-export const createOrUpdateProfile = async (req, res) => {
+export const createOrUpdateProfile = async (req, res, next) => {
   try {
-    const { utilisateur_id, specialite, description } = req.body;
+    const profileData = req.body;
+    const requesterId = req.userId;
+    const requesterRole = req.userRole;
 
-    // Vérifier si l'utilisateur a le droit de modifier ce profil
-    if (req.userId !== parseInt(utilisateur_id) && req.userRole !== "admin") {
-      return res
-        .status(403)
-        .json({ message: "Vous n'êtes pas autorisé à modifier ce profil" });
-    }
+    const medecin = await createOrUpdateProfileService(
+      profileData,
+      requesterId,
+      requesterRole
+    );
 
-    // Vérifier si un profil médecin existe déjà pour cet utilisateur
-    const checkQuery = `SELECT utilisateur_id FROM medecin WHERE utilisateur_id = $1`;
-    const checkResult = await pool.query(checkQuery, [utilisateur_id]);
-
-    if (checkResult.rows.length === 0) {
-      // Créer un nouveau profil
-      const insertQuery = `
-      INSERT INTO medecin (utilisateur_id, specialite, description)
-      VALUES ($1, $2, $3)
-      `;
-      await pool.query(insertQuery, [utilisateur_id, specialite, description]);
-    } else {
-      // Mettre à jour le profil existant
-      const updateQuery = `
-        UPDATE medecin
-        SET specialite = $1, description = $2, updated_at = CURRENT_TIMESTAMP
-        WHERE utilisateur_id = $3
-      `;
-      await pool.query(updateQuery, [specialite, description, utilisateur_id]);
-    }
-
-    // Récupérer le profil mis à jour
-    const query = `
-      SELECT m.utilisateur_id, m.specialite, m.description, 
-             u.nom, u.prenom, u.email, u.tel_indicatif, u.tel_numero, u.date_naissance, u.sexe,
-             u.adresse, u.code_postal, u.ville
-      FROM medecin m
-      INNER JOIN utilisateur u ON m.utilisateur_id = u.id
-      WHERE m.utilisateur_id = $1
-    `;
-    const result = await pool.query(query, [utilisateur_id]);
-
-    res.status(200).json({ medecin: result.rows[0] });
+    res.status(200).json({ medecin });
   } catch (error) {
     console.error(
       "Erreur lors de la création/mise à jour du profil médecin:",
       error
     );
-    res.status(500).json({
-      message: "Erreur lors de la création/mise à jour du profil médecin",
-    });
+
+    // Gestion spécifique des erreurs métier
+    if (error.message === "Vous n'êtes pas autorisé à modifier ce profil") {
+      return res.status(403).json({ message: error.message });
+    }
+
+    next(error);
   }
 };
 
 // Rechercher des médecins par spécialité, nom ou prénom
-export const searchMedecins = async (req, res) => {
-  const { q } = req.query;
-
-  if (!q) {
-    return res.status(400).json({ message: "Paramètre de recherche requis" });
-  }
-
+export const searchMedecins = async (req, res, next) => {
   try {
-    const query = `
-      SELECT m.utilisateur_id, m.specialite, m.description, 
-             u.nom, u.prenom, u.email
-      FROM medecin m
-      INNER JOIN utilisateur u ON m.utilisateur_id = u.id
-      WHERE 
-        m.specialite ILIKE $1 OR 
-        u.nom ILIKE $1 OR 
-        u.prenom ILIKE $1
-      ORDER BY u.nom, u.prenom
-    `;
-    const result = await pool.query(query, [`%${q}%`]);
+    const { q } = req.query;
+    const medecins = await searchMedecinsService(q);
 
-    res.status(200).json(result.rows);
+    res.status(200).json(medecins);
   } catch (error) {
     console.error("Erreur lors de la recherche de médecins:", error);
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la recherche de médecins" });
+
+    // Gestion spécifique des erreurs métier
+    if (error.message === "Paramètre de recherche requis") {
+      return res.status(400).json({ message: error.message });
+    }
+
+    next(error);
   }
 };
 
 // Récupérer l'ID médecin à partir de l'ID utilisateur
-export const getMedecinIdByUserId = async (req, res) => {
-  const { userId } = req.params;
-
+export const getMedecinIdByUserId = async (req, res, next) => {
   try {
-    const query = `SELECT utilisateur_id FROM medecin WHERE utilisateur_id = $1`;
-    const result = await pool.query(query, [userId]);
+    const { userId } = req.params;
+    const result = await getMedecinIdByUserIdService(userId);
 
-    if (result.rows.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "Médecin non trouvé pour cet utilisateur" });
+    if (!result) {
+      return res.status(404).json({
+        message: "Médecin non trouvé pour cet utilisateur",
+      });
     }
 
-    res.status(200).json({ id: result.rows[0].utilisateur_id });
+    res.status(200).json(result);
   } catch (error) {
     console.error("Erreur lors de la récupération de l'ID du médecin:", error);
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la récupération de l'ID du médecin" });
+    next(error);
   }
 };
 
 // Récupérer les médecins par spécialité
-export const getMedecinsBySpecialite = async (req, res) => {
-  const { specialite } = req.params;
-
+export const getMedecinsBySpecialite = async (req, res, next) => {
   try {
-    const query = `
-      SELECT m.utilisateur_id as id, m.specialite, m.description, u.nom, u.prenom, u.email, u.ville,
-             u.adresse, u.code_postal, CONCAT(u.tel_indicatif, u.tel_numero) as tel
-      FROM medecin m
-      INNER JOIN utilisateur u ON m.utilisateur_id = u.id
-      WHERE LOWER(m.specialite) = LOWER($1)
-    `;
-    const result = await pool.query(query, [specialite]);
+    const { specialite } = req.params;
+    const result = await getMedecinsBySpecialiteService(specialite);
 
-    res.status(200).json({ medecins: result.rows });
+    res.status(200).json(result);
   } catch (error) {
     console.error(
       "Erreur lors de la récupération des médecins par spécialité:",
       error
     );
-    res.status(500).json({
-      message: "Erreur lors de la récupération des médecins par spécialité",
-    });
+    next(error);
   }
 };
 
 // Récupérer toutes les spécialités disponibles
-export const getAllSpecialites = async (req, res) => {
+export const getAllSpecialites = async (req, res, next) => {
   try {
-    const query = `SELECT DISTINCT specialite FROM medecin ORDER BY specialite`;
-    const result = await pool.query(query);
-
-    const specialites = result.rows.map((row) => row.specialite);
-
+    const specialites = await getAllSpecialitesService();
     res.status(200).json(specialites);
   } catch (error) {
     console.error("Erreur lors de la récupération des spécialités:", error);
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la récupération des spécialités" });
+    next(error);
   }
 };
