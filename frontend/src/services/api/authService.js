@@ -1,4 +1,5 @@
 import httpService from "../http/httpService";
+import { setAccessToken } from "../http/httpService";
 
 /**
  * Service d'authentification
@@ -24,6 +25,12 @@ const authService = {
         hasUser: !!response.data.user,
       });
       const { token, user } = response.data;
+
+      // Stocker immédiatement le token pour les requêtes suivantes
+      const stored = setAccessToken(token);
+      if (!stored) {
+        throw new Error("STORAGE_FAILED");
+      }
       return { token, user };
     } catch (error) {
       console.error("[Auth Service] Erreur lors de la connexion:", error);

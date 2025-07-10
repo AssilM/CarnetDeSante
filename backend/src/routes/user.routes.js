@@ -7,7 +7,7 @@ import {
   updatePassword,
   getUsersByRole,
   getMe,
-} from "../controllers/user.controller.js";
+} from "../user/user.controller.js";
 import { authenticate, authorize } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();

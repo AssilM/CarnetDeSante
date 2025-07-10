@@ -10,6 +10,37 @@ export const httpService = axios.create({
 });
 
 // ===== GESTION CENTRALISÉE DES TOKENS =====
+// -------------------------------------------------------------
+// Gestion centralisée d'un *callback* optionnel déclenché quand
+// la session de l'utilisateur est définitivement expirée après
+// échec de rafraîchissement.  Cela permet au reste de l'app (par
+// exemple AuthContext) de naviguer proprement via React Router
+// au lieu de forcer un rechargement complet du navigateur. Si
+// aucun callback n'est fourni, on garde le comportement de
+// secours (redirection fenêtre) pour rester rétro-compatible.
+// -------------------------------------------------------------
+
+let onSessionExpired = null;
+let onForbidden = null; // ✅ Nouveau handler pour les erreurs 403 (accès interdit)
+
+/**
+ * Enregistre un gestionnaire appelé UNE SEULE FOIS lorsque la
+ * session est considérée comme expirée. Il n'est appelé qu'après
+ * l'échec du refresh automatique et avant toute redirection de
+ * secours. Passez `null` pour supprimer le gestionnaire.
+ */
+export const setSessionExpiredHandler = (handler) => {
+  onSessionExpired = typeof handler === "function" ? handler : null;
+};
+
+/**
+ * Enregistre un gestionnaire appelé lorsqu'une réponse 403 est reçue
+ * (accès interdit). Permet de naviguer via React Router plutôt que de
+ * forcer un rechargement complet. Passez `null` pour supprimer.
+ */
+export const setForbiddenHandler = (handler) => {
+  onForbidden = typeof handler === "function" ? handler : null;
+};
 
 // Variables pour tracker l'état de refresh en cours (évite les appels multiples)
 let isRefreshing = false;
@@ -32,11 +63,17 @@ const processQueue = (error, token = null) => {
 const getAccessToken = () => localStorage.getItem("accessToken");
 
 // Fonction pour sauvegarder le token
-const setAccessToken = (token) => {
-  if (token) {
-    localStorage.setItem("accessToken", token);
-  } else {
-    localStorage.removeItem("accessToken");
+export const setAccessToken = (token) => {
+  try {
+    if (token) {
+      localStorage.setItem("accessToken", token);
+    } else {
+      localStorage.removeItem("accessToken");
+    }
+    return true; // réussite
+  } catch (err) {
+    console.error("[HTTP Service] Impossible de stocker le token", err);
+    return false; // échec
   }
 };
 
@@ -142,7 +179,21 @@ httpService.interceptors.response.use(
 
           if (!isSessionPage && !isAuthPage) {
             console.log("[HTTP Service] Redirection vers session-expired");
-            window.location.href = "/session-expired";
+            // Utiliser le callback React Router si disponible pour éviter
+            // un rechargement complet et préserver l'état de l'application.
+            if (onSessionExpired) {
+              try {
+                onSessionExpired();
+              } catch (cbErr) {
+                console.error(
+                  "[HTTP Service] Erreur dans le callback onSessionExpired:",
+                  cbErr
+                );
+                window.location.href = "/session-expired"; // Secours
+              }
+            } else {
+              window.location.href = "/session-expired";
+            }
           } else {
             console.log(
               "[HTTP Service] Pas de redirection - page auth ou session déjà affichée"
@@ -156,9 +207,21 @@ httpService.interceptors.response.use(
       }
     }
 
-    // Gestion des autres erreurs
+    // Gestion des autres erreurs (403 = accès interdit)
     if (error.response?.status === 403) {
-      if (typeof window !== "undefined") {
+      if (onForbidden) {
+        try {
+          onForbidden();
+        } catch (cbErr) {
+          console.error(
+            "[HTTP Service] Erreur dans le callback onForbidden:",
+            cbErr
+          );
+          if (typeof window !== "undefined") {
+            window.location = "/403"; // Secours
+          }
+        }
+      } else if (typeof window !== "undefined") {
         window.location = "/403";
       }
     }

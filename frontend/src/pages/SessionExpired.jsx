@@ -1,13 +1,15 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo-C.svg";
 import Footer from "../components/Footer";
 
 const SessionExpired = () => {
+  const navigate = useNavigate();
+
   // Fonction pour gérer la reconnexion
   const handleReconnect = () => {
-    // Redirection forcée vers la page de connexion
-    window.location.replace("/auth/login");
+    // Redirection SPA vers la page de connexion (remplacement de l'historique)
+    navigate("/auth/login", { replace: true });
   };
 
   return (

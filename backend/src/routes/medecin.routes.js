@@ -8,7 +8,7 @@ import {
   getMedecinIdByUserId,
   getAllSpecialites,
   getMedecinsBySpecialite,
-} from "../controllers/medecin.controller.js";
+} from "../doctor/medecin.controller.js";
 import { authenticate, authorize } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
