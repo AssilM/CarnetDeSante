@@ -3,7 +3,6 @@ import React, {
   useContext,
   useState,
   useEffect,
-  useCallback,
   useMemo,
 } from "react";
 import { useAuth } from "./AuthContext";
@@ -298,8 +297,8 @@ export const DoctorAppointmentProvider = ({ children }) => {
 
   // Annuler un rendez-vous
   const cancelAppointment = async (appointmentId) => {
-    if (!currentUser) {
-      setError("Vous devez être connecté pour annuler un rendez-vous");
+    if (!appointmentService) {
+      setError("Service non disponible");
       return false;
     }
 
@@ -307,18 +306,14 @@ export const DoctorAppointmentProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      console.log(
-        "[DoctorAppointmentContext] Annulation du rendez-vous:",
-        appointmentId
-      );
-
-      // Annuler le rendez-vous via l'API
       await appointmentService.cancelAppointment(appointmentId);
 
-      // Mettre à jour le statut du rendez-vous dans la liste locale
+      // Mettre à jour l'état local
       setAppointments((prev) =>
-        prev.map((app) =>
-          app.id === appointmentId ? { ...app, status: "annulé" } : app
+        prev.map((apt) =>
+          apt.id === appointmentId.toString()
+            ? { ...apt, status: "annulé" }
+            : apt
         )
       );
 
@@ -328,7 +323,109 @@ export const DoctorAppointmentProvider = ({ children }) => {
         "[DoctorAppointmentContext] Erreur lors de l'annulation du rendez-vous:",
         err
       );
-      setError("Impossible d'annuler le rendez-vous");
+      setError(
+        "Impossible d'annuler ce rendez-vous. Veuillez réessayer plus tard."
+      );
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Démarrer un rendez-vous
+  const startAppointment = async (appointmentId) => {
+    if (!appointmentService) {
+      setError("Service non disponible");
+      return false;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await appointmentService.startAppointment(appointmentId);
+
+      // Mettre à jour l'état local
+      setAppointments((prev) =>
+        prev.map((apt) =>
+          apt.id === appointmentId.toString()
+            ? { ...apt, status: "en_cours" }
+            : apt
+        )
+      );
+
+      // Si l'appointment sélectionné est celui qu'on vient de modifier, mettre à jour
+      if (
+        selectedAppointment &&
+        selectedAppointment.id === appointmentId.toString()
+      ) {
+        setSelectedAppointment({
+          ...selectedAppointment,
+          status: "en_cours",
+        });
+      }
+
+      console.log("[DoctorAppointmentContext] Rendez-vous démarré:", response);
+      return true;
+    } catch (err) {
+      console.error(
+        "[DoctorAppointmentContext] Erreur lors du démarrage du rendez-vous:",
+        err
+      );
+      setError(
+        "Impossible de démarrer ce rendez-vous. Veuillez réessayer plus tard."
+      );
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Terminer un rendez-vous
+  const finishAppointment = async (appointmentId) => {
+    if (!appointmentService) {
+      setError("Service non disponible");
+      return false;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await appointmentService.finishAppointment(
+        appointmentId
+      );
+
+      // Mettre à jour l'état local
+      setAppointments((prev) =>
+        prev.map((apt) =>
+          apt.id === appointmentId.toString()
+            ? { ...apt, status: "terminé" }
+            : apt
+        )
+      );
+
+      // Si l'appointment sélectionné est celui qu'on vient de modifier, mettre à jour
+      if (
+        selectedAppointment &&
+        selectedAppointment.id === appointmentId.toString()
+      ) {
+        setSelectedAppointment({
+          ...selectedAppointment,
+          status: "terminé",
+        });
+      }
+
+      console.log("[DoctorAppointmentContext] Rendez-vous terminé:", response);
+      return true;
+    } catch (err) {
+      console.error(
+        "[DoctorAppointmentContext] Erreur lors de la fin du rendez-vous:",
+        err
+      );
+      setError(
+        "Impossible de terminer ce rendez-vous. Veuillez réessayer plus tard."
+      );
       return false;
     } finally {
       setLoading(false);
@@ -350,6 +447,50 @@ export const DoctorAppointmentProvider = ({ children }) => {
     );
   };
 
+  // Met à jour les notes du médecin pour un rendez-vous
+  const updateDoctorNotes = async (appointmentId, notes) => {
+    const updated = await appointmentService.updateDoctorNotes(
+      appointmentId,
+      notes
+    );
+    setAppointments((prev) =>
+      prev.map((a) =>
+        a.id === appointmentId
+          ? { ...a, rawData: { ...a.rawData, notes_medecin: notes } }
+          : a
+      )
+    );
+    if (selectedAppointment && selectedAppointment.id === appointmentId) {
+      setSelectedAppointment({
+        ...selectedAppointment,
+        rawData: { ...selectedAppointment.rawData, notes_medecin: notes },
+      });
+    }
+    return updated;
+  };
+
+  // Met à jour la raison d'annulation pour un rendez-vous
+  const updateCancelReason = async (appointmentId, reason) => {
+    const updated = await appointmentService.updateCancelReason(
+      appointmentId,
+      reason
+    );
+    setAppointments((prev) =>
+      prev.map((a) =>
+        a.id === appointmentId
+          ? { ...a, rawData: { ...a.rawData, raison_annulation: reason } }
+          : a
+      )
+    );
+    if (selectedAppointment && selectedAppointment.id === appointmentId) {
+      setSelectedAppointment({
+        ...selectedAppointment,
+        rawData: { ...selectedAppointment.rawData, raison_annulation: reason },
+      });
+    }
+    return updated;
+  };
+
   // Valeurs exposées par le contexte
   const value = {
     appointments,
@@ -359,8 +500,12 @@ export const DoctorAppointmentProvider = ({ children }) => {
     selectAppointment,
     addAppointment,
     cancelAppointment,
+    startAppointment,
+    finishAppointment,
     getUpcomingAppointments,
     getPastAppointments,
+    updateDoctorNotes,
+    updateCancelReason,
   };
 
   return (

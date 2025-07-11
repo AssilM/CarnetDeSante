@@ -187,3 +187,91 @@ export const findAppointmentsByMedecinAndDate = async (medecinId, dateStr) => {
     throw new Error("Erreur lors de la récupération des rendez-vous");
   }
 };
+
+/**
+ * Mettre à jour automatiquement le statut d'un ou plusieurs rendez-vous
+ * @param {string} status - Le nouveau statut ('en_cours' ou 'terminé')
+ * @param {Object} conditions - Les conditions pour la mise à jour
+ * @returns {Promise<Object>} Résultat de la requête
+ */
+export const updateAppointmentStatus = async (status, conditions = {}) => {
+  try {
+    // Construction dynamique de la requête selon les conditions fournies
+    let query = `
+      UPDATE rendez_vous
+      SET statut = $1, 
+          updated_at = CURRENT_TIMESTAMP
+      WHERE 1=1
+    `;
+
+    const params = [status];
+    let paramIndex = 2;
+
+    // Ajouter les conditions dynamiquement si présentes
+    if (conditions.id) {
+      query += ` AND id = $${paramIndex}`;
+      params.push(conditions.id);
+      paramIndex++;
+    }
+
+    if (conditions.status) {
+      query += ` AND statut = $${paramIndex}`;
+      params.push(conditions.status);
+      paramIndex++;
+    }
+
+    // Ajouter la clause RETURNING pour obtenir les lignes affectées
+    query += ` RETURNING id, statut, updated_at`;
+
+    const result = await pool.query(query, params);
+    return result.rows;
+  } catch (error) {
+    console.error(
+      `[REPOSITORY] Erreur mise à jour statut=${status}:`,
+      error.message
+    );
+    throw new Error(
+      `Erreur lors de la mise à jour du statut des rendez-vous: ${error.message}`
+    );
+  }
+};
+
+/**
+ * Met à jour les notes du médecin pour un rendez-vous donné (seulement par le médecin propriétaire)
+ * @param {number} appointmentId
+ * @param {number} medecinId
+ * @param {string} notes
+ * @returns {Promise<Object>} Le rendez-vous mis à jour
+ */
+export const updateNotesMedecin = async (appointmentId, medecinId, notes) => {
+  const query = `
+    UPDATE rendez_vous
+    SET notes_medecin = $1, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $2 AND medecin_id = $3
+    RETURNING id, notes_medecin, updated_at
+  `;
+  const result = await pool.query(query, [notes, appointmentId, medecinId]);
+  return result.rows[0];
+};
+
+/**
+ * Met à jour la raison d'annulation pour un rendez-vous donné (seulement par le médecin propriétaire)
+ * @param {number} appointmentId
+ * @param {number} medecinId
+ * @param {string} raison
+ * @returns {Promise<Object>} Le rendez-vous mis à jour
+ */
+export const updateRaisonAnnulation = async (
+  appointmentId,
+  medecinId,
+  raison
+) => {
+  const query = `
+    UPDATE rendez_vous
+    SET raison_annulation = $1, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $2 AND medecin_id = $3
+    RETURNING id, raison_annulation, updated_at
+  `;
+  const result = await pool.query(query, [raison, appointmentId, medecinId]);
+  return result.rows[0];
+};

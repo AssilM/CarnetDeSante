@@ -1,7 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import PageWrapper from "../../components/PageWrapper";
 import { useDoctorAppointmentContext } from "../../context";
-import { useAppContext } from "../../context/AppContext";
 import {
   AgendaNavigation,
   DayView,
@@ -9,181 +8,55 @@ import {
   MonthView,
   AppointmentModals,
 } from "../../components/doctor/agenda";
+import { useAppointmentActions } from "../../hooks/useAppointmentActions";
+import { useAgendaNavigation } from "../../hooks/useAgendaNavigation";
+import { useAppointmentModals } from "../../hooks/useAppointmentModals";
+import {
+  formatDateYMD,
+  formatDateFr,
+  formatDateTimeFr,
+  getWeekDates,
+  getMonthDates,
+} from "../../utils/date.utils";
 
 const Agenda = () => {
-  const { appointments, error, cancelAppointment } =
-    useDoctorAppointmentContext();
-  const { showNotification } = useAppContext();
+  const { appointments, error } = useDoctorAppointmentContext();
+  const {
+    handleCancel,
+    handleStartAppointment,
+    handleFinishAppointment,
+    cancelLoading,
+    actionLoading,
+  } = useAppointmentActions();
 
-  // États pour la navigation et les filtres
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState("week"); // "week", "month", "day"
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
-  const [showDetail, setShowDetail] = useState(false);
-  const [cancelLoading, setCancelLoading] = useState(false);
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [showDayDetail, setShowDayDetail] = useState(false);
-  const [expandedDays, setExpandedDays] = useState(new Set());
+  const {
+    currentDate,
+    viewMode,
+    showCalendar,
+    expandedDays,
+    setViewMode,
+    navigateDate,
+    handleDateChange,
+    toggleCalendar,
+    toggleDayExpansion,
+  } = useAgendaNavigation();
 
-  // Fonctions utilitaires pour les dates
-  const formatDateYMD = (date) => {
-    if (!(date instanceof Date) || isNaN(date.getTime())) return "";
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  const formatDateFr = (date) => {
-    if (!(date instanceof Date) || isNaN(date.getTime())) return "";
-    try {
-      const options = {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      };
-      return new Intl.DateTimeFormat("fr-FR", options).format(date);
-    } catch (error) {
-      console.error("Erreur formatage date:", error);
-      return date.toLocaleDateString("fr-FR");
-    }
-  };
-
-  const formatDateTimeFr = (dateStr, timeStr) => {
-    if (!dateStr) return "";
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return "";
-      const day = String(d.getDate()).padStart(2, "0");
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const year = d.getFullYear();
-      let time = timeStr ? timeStr.substring(0, 5) : "";
-      return `${day}/${month}/${year}${time ? " à " + time : ""}`;
-    } catch (error) {
-      console.error("Erreur formatage date/heure:", error);
-      return dateStr || "";
-    }
-  };
-
-  const getWeekDates = (date) => {
-    const week = [];
-    const startOfWeek = new Date(date);
-    const day = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
-    startOfWeek.setDate(diff);
-
-    for (let i = 0; i < 7; i++) {
-      const weekDate = new Date(startOfWeek);
-      weekDate.setDate(startOfWeek.getDate() + i);
-      week.push(weekDate);
-    }
-    return week;
-  };
-
-  const getMonthDates = (date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-
-    // Premier jour du mois
-    const firstDay = new Date(year, month, 1);
-
-    // Premier jour à afficher (début de semaine)
-    const startDate = new Date(firstDay);
-    const startDayOfWeek = firstDay.getDay();
-    const daysToSubtract = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
-    startDate.setDate(firstDay.getDate() - daysToSubtract);
-
-    // Générer 42 jours (6 semaines)
-    const dates = [];
-    for (let i = 0; i < 42; i++) {
-      const currentDate = new Date(startDate);
-      currentDate.setDate(startDate.getDate() + i);
-      dates.push(currentDate);
-    }
-
-    return dates;
-  };
+  const {
+    selectedAppointment,
+    showDetail,
+    selectedDate,
+    showDayDetail,
+    handleShowDetail,
+    handleCloseDetail,
+    handleShowDayDetail,
+    handleCloseDayDetail,
+  } = useAppointmentModals();
 
   const getDayAppointments = (date) => {
     const dateStr = formatDateYMD(date);
     return appointments.filter(
       (apt) => apt.dateOnly === dateStr && apt.status !== "annulé"
     );
-  };
-
-  // Gestion des actions
-  const handleShowDetail = (appointment) => {
-    setSelectedAppointment(appointment);
-    setShowDetail(true);
-  };
-
-  const handleCloseDetail = () => {
-    setShowDetail(false);
-    setSelectedAppointment(null);
-  };
-
-  const handleShowDayDetail = (date) => {
-    setSelectedDate(date);
-    setShowDayDetail(true);
-  };
-
-  const handleCloseDayDetail = () => {
-    setShowDayDetail(false);
-    setSelectedDate(null);
-  };
-
-  const toggleDayExpansion = (dateStr) => {
-    const newExpanded = new Set(expandedDays);
-    if (newExpanded.has(dateStr)) {
-      newExpanded.delete(dateStr);
-    } else {
-      newExpanded.add(dateStr);
-    }
-    setExpandedDays(newExpanded);
-  };
-
-  const handleCancel = async () => {
-    if (!selectedAppointment) return;
-    if (!window.confirm("Confirmer l'annulation de ce rendez-vous ?")) return;
-
-    setCancelLoading(true);
-    try {
-      await cancelAppointment(selectedAppointment.id);
-      setShowDetail(false);
-      showNotification({
-        type: "success",
-        message: "Rendez-vous annulé avec succès !",
-      });
-    } catch {
-      showNotification({
-        type: "error",
-        message: "Erreur lors de l'annulation du rendez-vous",
-      });
-    } finally {
-      setCancelLoading(false);
-    }
-  };
-
-  const navigateDate = (direction) => {
-    const newDate = new Date(currentDate);
-    if (viewMode === "week") {
-      newDate.setDate(newDate.getDate() + direction * 7);
-    } else if (viewMode === "month") {
-      newDate.setMonth(newDate.getMonth() + direction);
-    } else if (viewMode === "day") {
-      newDate.setDate(newDate.getDate() + direction);
-    }
-    setCurrentDate(newDate);
-  };
-
-  const handleDateChange = (date) => {
-    setCurrentDate(date);
-    setShowCalendar(false);
-  };
-
-  const toggleCalendar = () => {
-    setShowCalendar(!showCalendar);
   };
 
   const weekDates = getWeekDates(currentDate);
@@ -271,31 +144,31 @@ const Agenda = () => {
             </div>
           </div>
         )}
+
+        {/* Modals de rendez-vous */}
+        <AppointmentModals
+          showDetail={showDetail}
+          selectedAppointment={selectedAppointment}
+          handleCloseDetail={handleCloseDetail}
+          formatDateTimeFr={formatDateTimeFr}
+          handleCancel={handleCancel}
+          cancelLoading={cancelLoading}
+          showDayDetail={showDayDetail}
+          selectedDate={selectedDate}
+          handleCloseDayDetail={handleCloseDayDetail}
+          getDayAppointments={getDayAppointments}
+          formatDateFr={formatDateFr}
+          handleShowDetail={handleShowDetail}
+          handleStartAppointment={handleStartAppointment}
+          handleFinishAppointment={handleFinishAppointment}
+          actionLoading={actionLoading}
+        />
       </div>
 
       {/* Overlay pour fermer le calendrier */}
       {showCalendar && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setShowCalendar(false)}
-        ></div>
+        <div className="fixed inset-0 z-40" onClick={toggleCalendar}></div>
       )}
-
-      {/* Modales */}
-      <AppointmentModals
-        showDetail={showDetail}
-        selectedAppointment={selectedAppointment}
-        handleCloseDetail={handleCloseDetail}
-        formatDateTimeFr={formatDateTimeFr}
-        handleCancel={handleCancel}
-        cancelLoading={cancelLoading}
-        showDayDetail={showDayDetail}
-        selectedDate={selectedDate}
-        handleCloseDayDetail={handleCloseDayDetail}
-        getDayAppointments={getDayAppointments}
-        formatDateFr={formatDateFr}
-        handleShowDetail={handleShowDetail}
-      />
     </PageWrapper>
   );
 };

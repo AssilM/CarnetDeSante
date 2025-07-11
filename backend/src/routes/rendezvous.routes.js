@@ -8,6 +8,10 @@ import {
   updateRendezVous,
   cancelRendezVous,
   deleteRendezVous,
+  startAppointment,
+  finishAppointment,
+  updateNotesMedecin,
+  updateRaisonAnnulation,
 } from "../appointment/rendezvous.controller.js";
 import { authenticate, authorize } from "../middlewares/auth.middleware.js";
 // ❌ MIDDLEWARES SUPPRIMÉS : validation logique métier déplacée vers services
@@ -122,6 +126,38 @@ router.put("/:id/confirm", async (req, res) => {
 
 // PUT /api/rendez-vous/:id/annuler - Annuler un rendez-vous
 router.put("/:id/annuler", checkRendezVousOwnership, cancelRendezVous);
+
+// PUT /api/rendez-vous/:id/en-cours - Démarrer un rendez-vous (mettre le statut à "en_cours")
+router.put(
+  "/:id/en-cours",
+  authorize("medecin"),
+  checkRendezVousOwnership,
+  startAppointment
+);
+
+// PUT /api/rendez-vous/:id/termine - Terminer un rendez-vous (mettre le statut à "terminé")
+router.put(
+  "/:id/termine",
+  authorize("medecin"),
+  checkRendezVousOwnership,
+  finishAppointment
+);
+
+// PUT /api/rendez-vous/:id/notes-medecin - Modifier les notes du médecin (seulement le médecin propriétaire)
+router.put(
+  "/:id/notes-medecin",
+  authorize("medecin"),
+  checkRendezVousOwnership,
+  updateNotesMedecin
+);
+
+// PUT /api/rendez-vous/:id/raison-annulation - Modifier la raison d'annulation (seulement le médecin propriétaire)
+router.put(
+  "/:id/raison-annulation",
+  authorize("medecin"),
+  checkRendezVousOwnership,
+  updateRaisonAnnulation
+);
 
 // ✅ REFACTORISÉ : PUT avec validation dans le service
 router.put(

@@ -226,6 +226,112 @@ const createAppointmentService = (api) => {
         throw error;
       }
     },
+
+    /**
+     * Démarre un rendez-vous (change le statut à "en_cours")
+     * @param {number|string} appointmentId - ID du rendez-vous à démarrer
+     * @returns {Promise<Object>} Rendez-vous mis à jour
+     */
+    startAppointment: async (appointmentId) => {
+      try {
+        console.log(
+          `[appointmentService] Démarrage du rendez-vous #${appointmentId}`
+        );
+        const response = await api.put(
+          `/rendez-vous/${appointmentId}/en-cours`
+        );
+        console.log(
+          `[appointmentService] Rendez-vous #${appointmentId} démarré:`,
+          response.data
+        );
+        return response.data;
+      } catch (error) {
+        console.error(
+          `[appointmentService] Erreur lors du démarrage du rendez-vous #${appointmentId}:`,
+          error
+        );
+        console.error("[appointmentService] Message d'erreur:", error.message);
+        console.error(
+          "[appointmentService] Réponse d'erreur:",
+          error.response?.data
+        );
+        throw error;
+      }
+    },
+
+    /**
+     * Termine un rendez-vous (change le statut à "terminé")
+     * @param {number|string} appointmentId - ID du rendez-vous à terminer
+     * @returns {Promise<Object>} Rendez-vous mis à jour
+     */
+    finishAppointment: async (appointmentId) => {
+      try {
+        console.log(
+          `[appointmentService] Finalisation du rendez-vous #${appointmentId}`
+        );
+        const response = await api.put(`/rendez-vous/${appointmentId}/termine`);
+        console.log(
+          `[appointmentService] Rendez-vous #${appointmentId} terminé:`,
+          response.data
+        );
+        return response.data;
+      } catch (error) {
+        console.error(
+          `[appointmentService] Erreur lors de la finalisation du rendez-vous #${appointmentId}:`,
+          error
+        );
+        console.error("[appointmentService] Message d'erreur:", error.message);
+        console.error(
+          "[appointmentService] Réponse d'erreur:",
+          error.response?.data
+        );
+        throw error;
+      }
+    },
+
+    /**
+     * Met à jour les notes du médecin pour un rendez-vous
+     * @param {number|string} appointmentId - ID du rendez-vous
+     * @param {string} notes - Notes à enregistrer
+     * @returns {Promise<Object>} Rendez-vous mis à jour
+     */
+    updateDoctorNotes: async (appointmentId, notes) => {
+      try {
+        const response = await api.put(
+          `/rendez-vous/${appointmentId}/notes-medecin`,
+          { notes }
+        );
+        return response.data;
+      } catch (error) {
+        console.error(
+          `[appointmentService] Erreur lors de la mise à jour des notes du médecin pour le rendez-vous #${appointmentId}:`,
+          error
+        );
+        throw error;
+      }
+    },
+
+    /**
+     * Met à jour la raison d'annulation pour un rendez-vous
+     * @param {number|string} appointmentId - ID du rendez-vous
+     * @param {string} reason - Raison d'annulation
+     * @returns {Promise<Object>} Rendez-vous mis à jour
+     */
+    updateCancelReason: async (appointmentId, reason) => {
+      try {
+        const response = await api.put(
+          `/rendez-vous/${appointmentId}/raison-annulation`,
+          { raison: reason }
+        );
+        return response.data;
+      } catch (error) {
+        console.error(
+          `[appointmentService] Erreur lors de la mise à jour de la raison d'annulation pour le rendez-vous #${appointmentId}:`,
+          error
+        );
+        throw error;
+      }
+    },
   };
 };
 

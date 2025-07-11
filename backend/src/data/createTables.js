@@ -168,6 +168,11 @@ const createRendezVousTable = async () => {
       motif TEXT,
       adresse VARCHAR(255),
       notes_medecin TEXT,
+      notes_patient TEXT,
+      raison_annulation VARCHAR(255),
+      heure_debut_reel TIMESTAMP,
+      heure_fin_reel TIMESTAMP,
+      duree_reelle INTEGER,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )

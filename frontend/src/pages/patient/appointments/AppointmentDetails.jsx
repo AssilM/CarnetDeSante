@@ -1,17 +1,56 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   FaCalendarAlt,
-  FaArrowLeft,
-  FaMapMarkerAlt,
   FaUserMd,
+  FaMapMarkerAlt,
   FaClock,
   FaInfoCircle,
   FaCheckCircle,
+  FaTimes,
+  FaCheck,
 } from "react-icons/fa";
-import { useAppointmentContext } from "../../../context/AppointmentContext";
-import { useAppContext } from "../../../context/AppContext";
 import PageWrapper from "../../../components/PageWrapper";
+import { useAppContext } from "../../../context/AppContext";
+import { useAppointmentContext } from "../../../context/AppointmentContext";
+
+// Composant de modale de confirmation
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, loading }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <h2 className="text-xl font-semibold mb-4">Confirmer l'annulation</h2>
+        <p className="text-gray-600 mb-6">
+          Êtes-vous sûr de vouloir annuler ce rendez-vous ?
+        </p>
+        <div className="flex justify-end space-x-4">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition flex items-center disabled:opacity-50"
+          >
+            <FaTimes className="mr-2" /> Retour
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition flex items-center disabled:opacity-50"
+          >
+            {loading ? (
+              "Annulation en cours..."
+            ) : (
+              <>
+                <FaCheck className="mr-2" /> Confirmer
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const AppointmentDetails = () => {
   const navigate = useNavigate();
@@ -24,6 +63,7 @@ const AppointmentDetails = () => {
   const [error, setError] = useState(null);
   const [showConfirmationMessage, setShowConfirmationMessage] = useState(false);
   const [appointment, setAppointment] = useState(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Récupérer l'ID du rendez-vous depuis les paramètres d'URL
   const appointmentId = params.id;
@@ -101,35 +141,34 @@ const AppointmentDetails = () => {
 
   // Gérer l'annulation du rendez-vous
   const handleCancelAppointment = async () => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce rendez-vous ?")) {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      try {
-        const success = await deleteAppointment(appointment.id);
-        if (success) {
-          showNotification({
-            type: "success",
-            message: "Rendez-vous annulé avec succès !",
-          });
-          navigate("/appointments?tab=past");
-        } else {
-          setError("Impossible de supprimer le rendez-vous");
-          showNotification({
-            type: "error",
-            message: "Impossible de supprimer le rendez-vous",
-          });
-        }
-      } catch (err) {
-        console.error("Erreur lors de la suppression du rendez-vous:", err);
-        setError("Une erreur est survenue lors de la suppression");
+    try {
+      const success = await deleteAppointment(appointment.id);
+      if (success) {
+        showNotification({
+          type: "success",
+          message: "Rendez-vous annulé avec succès !",
+        });
+        navigate("/appointments?tab=past");
+      } else {
+        setError("Impossible de supprimer le rendez-vous");
         showNotification({
           type: "error",
-          message: "Une erreur est survenue lors de la suppression",
+          message: "Impossible de supprimer le rendez-vous",
         });
-      } finally {
-        setLoading(false);
       }
+    } catch (err) {
+      console.error("Erreur lors de la suppression du rendez-vous:", err);
+      setError("Une erreur est survenue lors de la suppression");
+      showNotification({
+        type: "error",
+        message: "Une erreur est survenue lors de la suppression",
+      });
+    } finally {
+      setLoading(false);
+      setShowConfirmModal(false);
     }
   };
 
@@ -281,7 +320,7 @@ const AppointmentDetails = () => {
                       Modifier
                     </button> */}
                     <button
-                      onClick={handleCancelAppointment}
+                      onClick={() => setShowConfirmModal(true)}
                       disabled={loading}
                       className="px-4 py-2 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-300"
                     >
@@ -322,6 +361,14 @@ const AppointmentDetails = () => {
           </button>
         </div>
       </div>
+
+      {/* Modale de confirmation */}
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleCancelAppointment}
+        loading={loading}
+      />
     </PageWrapper>
   );
 };

@@ -5,10 +5,40 @@ import {
   FaTrash,
   FaPen,
   FaExclamationTriangle,
+  FaCheck,
+  FaTimes,
 } from "react-icons/fa";
 import PageWrapper from "../../components/PageWrapper";
 import { useDoctorAvailability } from "../../context";
 import { useAppContext } from "../../context";
+
+// Composant de modale de confirmation
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <h2 className="text-xl font-semibold mb-4">{title}</h2>
+        <p className="text-gray-600 mb-6">{message}</p>
+        <div className="flex justify-end space-x-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition flex items-center"
+          >
+            <FaTimes className="mr-2" /> Annuler
+          </button>
+          <button
+            onClick={onConfirm}
+            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition flex items-center"
+          >
+            <FaCheck className="mr-2" /> Confirmer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Availability = () => {
   const {
@@ -32,6 +62,8 @@ const Availability = () => {
     heure_fin: "12:00",
   });
   const [validationError, setValidationError] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [availabilityToDelete, setAvailabilityToDelete] = useState(null);
 
   // Obtenir les disponibilités organisées par jour
   const availabilitiesByDay = getAvailabilitiesByDay();
@@ -157,18 +189,24 @@ const Availability = () => {
 
   // Gérer la suppression d'une disponibilité
   const handleDelete = async (id) => {
-    if (
-      window.confirm("Êtes-vous sûr de vouloir supprimer cette disponibilité ?")
-    ) {
-      try {
-        await deleteAvailability(id);
-        showSuccess("Disponibilité supprimée avec succès");
-      } catch (err) {
-        showError(
-          err.response?.data?.message ||
-            "Erreur lors de la suppression de la disponibilité"
-        );
-      }
+    setAvailabilityToDelete(id);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!availabilityToDelete) return;
+
+    try {
+      await deleteAvailability(availabilityToDelete);
+      showSuccess("Disponibilité supprimée avec succès");
+    } catch (err) {
+      showError(
+        err.response?.data?.message ||
+          "Erreur lors de la suppression de la disponibilité"
+      );
+    } finally {
+      setShowDeleteConfirm(false);
+      setAvailabilityToDelete(null);
     }
   };
 
@@ -479,6 +517,18 @@ const Availability = () => {
           </div>
         </div>
       )}
+
+      {/* Modale de confirmation de suppression */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setAvailabilityToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Confirmer la suppression"
+        message="Êtes-vous sûr de vouloir supprimer cette disponibilité ?"
+      />
     </PageWrapper>
   );
 };

@@ -9,6 +9,10 @@ import {
   deleteRendezVousService,
   checkDoctorAvailabilityService,
   checkAppointmentConflictService,
+  startAppointmentService,
+  finishAppointmentService,
+  updateNotesMedecinService,
+  updateRaisonAnnulationService,
 } from "./rendezvous.service.js";
 import {
   validatePatientExists,
@@ -291,6 +295,114 @@ export const deleteRendezVous = async (req, res, next) => {
     res.status(200).json({ message: "Rendez-vous supprimé avec succès" });
   } catch (error) {
     console.error("Erreur lors de la suppression du rendez-vous:", error);
+    next(error);
+  }
+};
+
+/**
+ * Démarre un rendez-vous (changement de statut vers "en_cours")
+ */
+export const startAppointment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const updatedAppointment = await startAppointmentService(id);
+
+    res.status(200).json({
+      message: "Rendez-vous démarré avec succès",
+      rendezVous: updatedAppointment,
+    });
+  } catch (error) {
+    console.error("Erreur lors du démarrage du rendez-vous:", error);
+
+    // Gestion spécifique des erreurs métier
+    if (error.message === "Rendez-vous non trouvé") {
+      return res.status(404).json({ message: error.message });
+    }
+
+    if (error.message.startsWith("Impossible de démarrer")) {
+      return res.status(400).json({ message: error.message });
+    }
+
+    next(error);
+  }
+};
+
+/**
+ * Termine un rendez-vous (changement de statut vers "terminé")
+ */
+export const finishAppointment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const updatedAppointment = await finishAppointmentService(id);
+
+    res.status(200).json({
+      message: "Rendez-vous terminé avec succès",
+      rendezVous: updatedAppointment,
+    });
+  } catch (error) {
+    console.error("Erreur lors de la fin du rendez-vous:", error);
+
+    // Gestion spécifique des erreurs métier
+    if (error.message === "Rendez-vous non trouvé") {
+      return res.status(404).json({ message: error.message });
+    }
+
+    if (error.message.startsWith("Impossible de terminer")) {
+      return res.status(400).json({ message: error.message });
+    }
+
+    next(error);
+  }
+};
+
+/**
+ * Met à jour les notes du médecin pour un rendez-vous
+ * Route : PUT /api/rendez-vous/:id/notes-medecin
+ */
+export const updateNotesMedecin = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const medecinId = req.userId;
+    const { notes } = req.body;
+    if (!notes || typeof notes !== "string") {
+      return res.status(400).json({ message: "Le champ notes est requis." });
+    }
+    const result = await updateNotesMedecinService(id, medecinId, notes);
+    res.status(200).json(result);
+  } catch (error) {
+    if (error.message.includes("non trouvé")) {
+      return res.status(404).json({ message: error.message });
+    }
+    if (error.message.includes("non autorisé")) {
+      return res.status(403).json({ message: error.message });
+    }
+    next(error);
+  }
+};
+
+/**
+ * Met à jour la raison d'annulation pour un rendez-vous
+ * Route : PUT /api/rendez-vous/:id/raison-annulation
+ */
+export const updateRaisonAnnulation = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const medecinId = req.userId;
+    const { raison } = req.body;
+    if (!raison || typeof raison !== "string") {
+      return res.status(400).json({ message: "Le champ raison est requis." });
+    }
+    const result = await updateRaisonAnnulationService(id, medecinId, raison);
+    res.status(200).json(result);
+  } catch (error) {
+    if (error.message.includes("non trouvé")) {
+      return res.status(404).json({ message: error.message });
+    }
+    if (error.message.includes("non autorisé")) {
+      return res.status(403).json({ message: error.message });
+    }
     next(error);
   }
 };

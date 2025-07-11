@@ -160,9 +160,8 @@ const HomeDoctor = () => {
   // Fonction pour annuler le rendez-vous
   const handleCancel = async () => {
     if (!selectedAppointment) return;
-    if (!window.confirm("Confirmer l'annulation de ce rendez-vous ?")) return;
+
     setCancelLoading(true);
-    setCancelError(null);
     try {
       await cancelAppointment(selectedAppointment.id);
       setShowDetail(false);
@@ -171,7 +170,10 @@ const HomeDoctor = () => {
         message: "Rendez-vous annulé avec succès !",
       });
     } catch {
-      setCancelError("Erreur lors de l'annulation du rendez-vous");
+      showNotification({
+        type: "error",
+        message: "Erreur lors de l'annulation du rendez-vous",
+      });
     } finally {
       setCancelLoading(false);
     }

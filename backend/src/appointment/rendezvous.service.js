@@ -9,6 +9,8 @@ import {
   cancelRendezVous as cancelRendezVousRepo,
   deleteRendezVous as deleteRendezVousRepo,
   checkRendezVousConflict,
+  updateNotesMedecin,
+  updateRaisonAnnulation,
 } from "./rendezvous.repository.js";
 import { getJourSemaine, isDateInFuture } from "../utils/date.utils.js";
 
@@ -516,4 +518,243 @@ const buildDynamicUpdateQuery = (id, updateData) => {
   updateValues.push(id);
 
   return { query: updateQuery, values: updateValues };
+};
+
+/**
+ * Vérifie et met à jour automatiquement le statut des rendez-vous
+ * basé sur la date/heure actuelle et la durée des rendez-vous
+ * @returns {Promise<Object>} Résultat avec nombre de mises à jour effectuées
+ */
+export const checkAppointmentsStatus = async () => {
+  try {
+    const now = new Date();
+    const currentDate = now.toISOString().split("T")[0]; // Format YYYY-MM-DD
+    const currentTime = now.toTimeString().split(" ")[0]; // Format HH:MM:SS
+
+    console.log(
+      `[SERVICE] Vérification des statuts des rendez-vous à ${currentDate} ${currentTime}`
+    );
+
+    // 1. Mettre à jour les rendez-vous qui devraient être en cours
+    // Logique: date = aujourd'hui, heure <= maintenant, et (heure + durée) > maintenant
+    const enCoursQuery = `
+      UPDATE rendez_vous 
+      SET statut = 'en_cours', updated_at = CURRENT_TIMESTAMP
+      WHERE date = $1 
+        AND CAST(heure AS time) <= CAST($2 AS time) 
+        AND CAST(heure AS time) + (duree * interval '1 minute') > CAST($2 AS time)
+        AND statut = 'confirmé'
+      RETURNING id, statut, date, heure, duree
+    `;
+
+    const enCoursResult = await pool.query(enCoursQuery, [
+      currentDate,
+      currentTime,
+    ]);
+
+    // 2. Mettre à jour les rendez-vous qui devraient être terminés
+    // Logique: soit date < aujourd'hui, soit (date = aujourd'hui et (heure + durée) <= maintenant)
+    const termineQuery = `
+      UPDATE rendez_vous 
+      SET statut = 'terminé', updated_at = CURRENT_TIMESTAMP
+      WHERE (
+        (date < $1) OR 
+        (date = $1 AND CAST(heure AS time) + (duree * interval '1 minute') <= CAST($2 AS time))
+      ) 
+      AND statut = 'en_cours'
+      RETURNING id, statut, date, heure, duree
+    `;
+
+    const termineResult = await pool.query(termineQuery, [
+      currentDate,
+      currentTime,
+    ]);
+
+    // Log des mises à jour
+    if (enCoursResult.rowCount > 0) {
+      console.log(
+        `[SERVICE] ${enCoursResult.rowCount} rendez-vous mis en statut 'en_cours'`
+      );
+      enCoursResult.rows.forEach((rdv) => {
+        console.log(
+          `[SERVICE] RDV #${rdv.id} mis en statut 'en_cours' (${rdv.date} ${rdv.heure})`
+        );
+      });
+    }
+
+    if (termineResult.rowCount > 0) {
+      console.log(
+        `[SERVICE] ${termineResult.rowCount} rendez-vous mis en statut 'terminé'`
+      );
+      termineResult.rows.forEach((rdv) => {
+        console.log(
+          `[SERVICE] RDV #${rdv.id} mis en statut 'terminé' (${rdv.date} ${rdv.heure})`
+        );
+      });
+    }
+
+    return {
+      enCoursUpdated: enCoursResult.rowCount,
+      termineUpdated: termineResult.rowCount,
+      enCoursAppointments: enCoursResult.rows,
+      termineAppointments: termineResult.rows,
+    };
+  } catch (error) {
+    console.error(
+      "[SERVICE] Erreur lors de la vérification des statuts de rendez-vous:",
+      error
+    );
+    throw new Error(
+      `Erreur lors de la vérification des statuts: ${error.message}`
+    );
+  }
+};
+
+/**
+ * Démarre manuellement un rendez-vous (statut -> en_cours)
+ * @param {number} id - ID du rendez-vous
+ * @returns {Promise<Object>} Rendez-vous mis à jour
+ * @throws {Error} Si le rendez-vous n'existe pas ou ne peut pas être démarré
+ */
+export const startAppointmentService = async (id) => {
+  try {
+    // Vérifier si le rendez-vous existe et peut être démarré
+    const checkQuery = `
+      SELECT id, statut, date, heure 
+      FROM rendez_vous 
+      WHERE id = $1
+    `;
+    const checkResult = await pool.query(checkQuery, [id]);
+
+    if (checkResult.rows.length === 0) {
+      throw new Error("Rendez-vous non trouvé");
+    }
+
+    const appointment = checkResult.rows[0];
+
+    // Vérifier que le statut actuel permet le démarrage
+    if (
+      appointment.statut !== "confirmé" &&
+      appointment.statut !== "planifié"
+    ) {
+      throw new Error(
+        `Impossible de démarrer un rendez-vous avec le statut '${appointment.statut}'`
+      );
+    }
+
+    // Mettre à jour le statut du rendez-vous
+    const updateQuery = `
+      UPDATE rendez_vous
+      SET statut = 'en_cours', 
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING id, patient_id, medecin_id, date, heure, statut, updated_at
+    `;
+
+    const updateResult = await pool.query(updateQuery, [id]);
+    console.log(`[SERVICE] Rendez-vous #${id} démarré manuellement`);
+
+    return updateResult.rows[0];
+  } catch (error) {
+    console.error(
+      `[SERVICE] Erreur lors du démarrage du rendez-vous #${id}:`,
+      error.message
+    );
+    throw error;
+  }
+};
+
+/**
+ * Termine manuellement un rendez-vous (statut -> terminé)
+ * @param {number} id - ID du rendez-vous
+ * @returns {Promise<Object>} Rendez-vous mis à jour
+ * @throws {Error} Si le rendez-vous n'existe pas ou ne peut pas être terminé
+ */
+export const finishAppointmentService = async (id) => {
+  try {
+    // Vérifier si le rendez-vous existe et peut être terminé
+    const checkQuery = `
+      SELECT id, statut, date, heure 
+      FROM rendez_vous 
+      WHERE id = $1
+    `;
+    const checkResult = await pool.query(checkQuery, [id]);
+
+    if (checkResult.rows.length === 0) {
+      throw new Error("Rendez-vous non trouvé");
+    }
+
+    const appointment = checkResult.rows[0];
+
+    // Vérifier que le statut actuel permet la fin
+    if (appointment.statut !== "en_cours") {
+      throw new Error(
+        `Impossible de terminer un rendez-vous avec le statut '${appointment.statut}'`
+      );
+    }
+
+    // Mettre à jour le statut du rendez-vous
+    const updateQuery = `
+      UPDATE rendez_vous
+      SET statut = 'terminé', 
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING id, patient_id, medecin_id, date, heure, statut, updated_at
+    `;
+
+    const updateResult = await pool.query(updateQuery, [id]);
+    console.log(`[SERVICE] Rendez-vous #${id} terminé manuellement`);
+
+    return updateResult.rows[0];
+  } catch (error) {
+    console.error(
+      `[SERVICE] Erreur lors de la fin du rendez-vous #${id}:`,
+      error.message
+    );
+    throw error;
+  }
+};
+
+/**
+ * Met à jour les notes du médecin pour un rendez-vous (seulement par le médecin propriétaire)
+ * @param {number} appointmentId
+ * @param {number} medecinId
+ * @param {string} notes
+ * @returns {Promise<Object>} Le rendez-vous mis à jour
+ */
+export const updateNotesMedecinService = async (
+  appointmentId,
+  medecinId,
+  notes
+) => {
+  // Vérifier que le médecin est bien propriétaire du rendez-vous
+  const rdv = await findRendezVousById(appointmentId);
+  if (!rdv) throw new Error("Rendez-vous non trouvé");
+  if (Number(rdv.medecin_id) !== Number(medecinId)) {
+    throw new Error("Accès non autorisé : ce n'est pas votre rendez-vous");
+  }
+  // Mettre à jour la note
+  return await updateNotesMedecin(appointmentId, medecinId, notes);
+};
+
+/**
+ * Met à jour la raison d'annulation pour un rendez-vous (seulement par le médecin propriétaire)
+ * @param {number} appointmentId
+ * @param {number} medecinId
+ * @param {string} raison
+ * @returns {Promise<Object>} Le rendez-vous mis à jour
+ */
+export const updateRaisonAnnulationService = async (
+  appointmentId,
+  medecinId,
+  raison
+) => {
+  // Vérifier que le médecin est bien propriétaire du rendez-vous
+  const rdv = await findRendezVousById(appointmentId);
+  if (!rdv) throw new Error("Rendez-vous non trouvé");
+  if (Number(rdv.medecin_id) !== Number(medecinId)) {
+    throw new Error("Accès non autorisé : ce n'est pas votre rendez-vous");
+  }
+  // Mettre à jour la raison
+  return await updateRaisonAnnulation(appointmentId, medecinId, raison);
 };

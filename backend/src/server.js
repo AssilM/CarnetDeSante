@@ -4,6 +4,7 @@ import pool from "./config/db.js";
 import initTables, { dropAllTables } from "./data/createTables.js";
 import seedDatabase from "./data/seedData.js";
 import cors from "cors";
+import { checkAppointmentsStatus } from "./appointment/rendezvous.service.js";
 
 dotenv.config();
 
@@ -13,10 +14,10 @@ const port = process.env.PORT || 5001;
 const initDatabase = async () => {
   try {
     // Pour réinitialiser complètement la base de données, décommentez la ligne suivante
-    await dropAllTables();
+    //await dropAllTables();
 
     // Initialiser les tables
-    //await initTables();
+    await initTables();
     console.log("Base de données initialisée avec succès");
 
     // Générer des données de test
@@ -37,4 +38,43 @@ app.use(cors());
 // Démarrer le serveur
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
+
+  // Démarrer la vérification périodique des statuts des rendez-vous
+  console.log(
+    "Démarrage de la vérification périodique des statuts de rendez-vous..."
+  );
+
+  // Exécuter immédiatement une première fois
+  checkAppointmentsStatus()
+    .then((result) => {
+      console.log("Vérification initiale des statuts terminée:", {
+        enCoursUpdated: result.enCoursUpdated,
+        termineUpdated: result.termineUpdated,
+      });
+    })
+    .catch((error) => {
+      console.error(
+        "Erreur lors de la vérification initiale des statuts:",
+        error
+      );
+    });
+
+  // Configurer l'interval pour vérifier toutes les minutes
+  const CHECK_INTERVAL = 60 * 1000; // 60 secondes
+  setInterval(async () => {
+    try {
+      const result = await checkAppointmentsStatus();
+      if (result.enCoursUpdated > 0 || result.termineUpdated > 0) {
+        console.log(`[${new Date().toISOString()}] Mise à jour des statuts:`, {
+          enCoursUpdated: result.enCoursUpdated,
+          termineUpdated: result.termineUpdated,
+        });
+      }
+    } catch (error) {
+      console.error(
+        `[${new Date().toISOString()}] Erreur lors de la vérification périodique des statuts:`,
+        error
+      );
+    }
+  }, CHECK_INTERVAL);
 });
