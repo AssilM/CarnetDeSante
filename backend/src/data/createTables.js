@@ -20,16 +20,26 @@ const dropTable = async (tableName) => {
 const dropAllTables = async () => {
   try {
     // Ordre de suppression important pour respecter les contraintes de clés étrangères
-    await dropTable("refresh_token");
+    await dropTable("document_permission");
+    await dropTable("patient_doctor");
     await dropTable("documents_rendez_vous");
     await dropTable("document");
+    await dropTable("document_type");
+    await dropTable("specialite");
+    await dropTable("refresh_token");
     await dropTable("rendez_vous");
     await dropTable("disponibilite_medecin");
     await dropTable("patient");
     await dropTable("medecin");
     await dropTable("administrateur");
     await dropTable("utilisateur");
-
+    // Suppression du type ENUM doc_role (à la fin)
+    try {
+      await pool.query("DROP TYPE IF EXISTS doc_role CASCADE");
+      console.log("Type ENUM doc_role supprimé");
+    } catch (err) {
+      // Peut ne pas exister, ignorer
+    }
     console.log("Toutes les tables ont été supprimées avec succès");
   } catch (error) {
     console.error("Erreur lors de la suppression des tables:", error);
@@ -215,7 +225,6 @@ const createDocumentTable = async () => {
       patient_id INTEGER NOT NULL REFERENCES patient(utilisateur_id) ON DELETE CASCADE,
       medecin_id INTEGER REFERENCES medecin(utilisateur_id) ON DELETE SET NULL,
       titre VARCHAR(255) NOT NULL,
-      type_document VARCHAR(50) NOT NULL CHECK (type_document IN ('ordonnance', 'analyse', 'radio', 'consultation', 'autre')),
       nom_fichier VARCHAR(255) NOT NULL,
       chemin_fichier VARCHAR(500) NOT NULL,
       type_mime VARCHAR(100) NOT NULL CHECK (type_mime IN ('application/pdf', 'image/jpeg', 'image/png')),
@@ -269,7 +278,8 @@ const createIndexes = async () => {
     `CREATE INDEX IF NOT EXISTS idx_disponibilite_medecin ON disponibilite_medecin(medecin_id, jour)`,
     `CREATE INDEX IF NOT EXISTS idx_document_patient ON document(patient_id)`,
     `CREATE INDEX IF NOT EXISTS idx_document_medecin ON document(medecin_id)`,
-    `CREATE INDEX IF NOT EXISTS idx_document_type ON document(type_document)`,
+    // Remplacement ici : index sur type_id au lieu de type_document
+    `CREATE INDEX IF NOT EXISTS idx_document_type ON document(type_id)`,
     `CREATE INDEX IF NOT EXISTS idx_document_date ON document(date_creation)`,
     `CREATE INDEX IF NOT EXISTS idx_documents_rendez_vous_document ON documents_rendez_vous(document_id)`,
     `CREATE INDEX IF NOT EXISTS idx_documents_rendez_vous_rdv ON documents_rendez_vous(rendez_vous_id)`,
@@ -286,12 +296,228 @@ const createIndexes = async () => {
   }
 };
 
+// --- NOUVELLES STRUCTURES POUR ACL DOCUMENTAIRE ET SUIVI PATIENT-MEDECIN ---
+
+// 0. Création de l'ENUM doc_role
+const createDocRoleEnum = async () => {
+  const queryText = `CREATE TYPE doc_role AS ENUM ('owner','author','shared')`;
+  try {
+    await pool.query(queryText);
+    console.log("Type ENUM doc_role créé avec succès");
+  } catch (error) {
+    // Si déjà existant, ignorer l'erreur spécifique
+    if (error.code === "42710") {
+      // Type already exists
+      console.log("Type ENUM doc_role déjà existant, on continue.");
+      return;
+    }
+    console.error("Erreur lors de la création de l'ENUM doc_role:", error);
+    throw error;
+  }
+};
+
+// 1. Table de référence pour les types de documents
+const createDocumentTypeTable = async () => {
+  const queryText = `
+    CREATE TABLE IF NOT EXISTS document_type (
+      id SERIAL PRIMARY KEY,
+      code VARCHAR(30) UNIQUE NOT NULL,
+      label VARCHAR(100) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+  try {
+    await pool.query(queryText);
+    console.log("Table document_type créée avec succès");
+  } catch (error) {
+    console.error(
+      "Erreur lors de la création de la table document_type:",
+      error
+    );
+    throw error;
+  }
+};
+
+// 1b. Seed des types de documents de base
+const seedDocumentTypes = async () => {
+  const queryText = `
+    INSERT INTO document_type (code, label) VALUES
+      ('ORD','Ordonnance'),
+      ('ANA','Analyse'),
+      ('VAC','Vaccination'),
+      ('RAD','Imagerie/Radio'),
+      ('ANT','Antécédent'),
+      ('AUT','Autre')
+    ON CONFLICT (code) DO NOTHING;
+  `;
+  try {
+    await pool.query(queryText);
+    console.log("Types de documents de base insérés (si besoin)");
+  } catch (error) {
+    console.error("Erreur lors du seed des types de documents:", error);
+    throw error;
+  }
+};
+
+// 2. Table de pivot patient_doctor
+const createPatientDoctorTable = async () => {
+  const queryText = `
+    CREATE TABLE IF NOT EXISTS patient_doctor (
+      patient_id INTEGER REFERENCES patient(utilisateur_id) ON DELETE CASCADE,
+      doctor_id  INTEGER REFERENCES medecin(utilisateur_id) ON DELETE CASCADE,
+      status     VARCHAR(15) DEFAULT 'actif',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (patient_id, doctor_id)
+    )
+  `;
+  try {
+    await pool.query(queryText);
+    console.log("Table patient_doctor créée avec succès");
+  } catch (error) {
+    console.error(
+      "Erreur lors de la création de la table patient_doctor:",
+      error
+    );
+    throw error;
+  }
+};
+
+// 3. Table ACL document_permission
+const createDocumentPermissionTable = async () => {
+  const queryText = `
+    CREATE TABLE IF NOT EXISTS document_permission (
+      document_id INTEGER REFERENCES document(id) ON DELETE CASCADE,
+      user_id     INTEGER REFERENCES utilisateur(id) ON DELETE CASCADE,
+      role        doc_role NOT NULL,
+      granted_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      expires_at  TIMESTAMP,
+      PRIMARY KEY (document_id, user_id)
+    )
+  `;
+  try {
+    await pool.query(queryText);
+    console.log("Table document_permission créée avec succès");
+  } catch (error) {
+    console.error(
+      "Erreur lors de la création de la table document_permission:",
+      error
+    );
+    throw error;
+  }
+};
+
+// 4. Altération de la table document
+const alterDocumentTable = async () => {
+  // Ajout des colonnes uploader_id et type_id
+  const addColumnsQuery = `
+    ALTER TABLE document
+      ADD COLUMN IF NOT EXISTS uploader_id INTEGER REFERENCES utilisateur(id),
+      ADD COLUMN IF NOT EXISTS type_id INTEGER REFERENCES document_type(id)
+  `;
+  // Suppression de l'ancien champ type_document
+  const dropOldTypeColumnQuery = `
+    ALTER TABLE document
+      DROP COLUMN IF EXISTS type_document
+  `;
+  try {
+    await pool.query(addColumnsQuery);
+    await pool.query(dropOldTypeColumnQuery);
+    console.log(
+      "Table document altérée (uploader_id, type_id, suppression type_document)"
+    );
+  } catch (error) {
+    console.error("Erreur lors de l'altération de la table document:", error);
+    throw error;
+  }
+};
+
+// 5. Index spécifiques pour les nouvelles tables
+const createNewIndexes = async () => {
+  const queries = [
+    `CREATE INDEX IF NOT EXISTS idx_docperm_user  ON document_permission(user_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_docperm_role  ON document_permission(role)`,
+    `CREATE INDEX IF NOT EXISTS idx_patdoc_patient ON patient_doctor(patient_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_patdoc_doctor  ON patient_doctor(doctor_id)`,
+  ];
+  try {
+    for (const query of queries) {
+      await pool.query(query);
+    }
+    console.log("Nouveaux index créés avec succès");
+  } catch (error) {
+    console.error("Erreur lors de la création des nouveaux index:", error);
+    throw error;
+  }
+};
+
+// --- TABLE SPECIALITE ---
+const createSpecialiteTable = async () => {
+  const queryText = `
+    CREATE TABLE IF NOT EXISTS specialite (
+      id SERIAL PRIMARY KEY,
+      nom VARCHAR(100) UNIQUE NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+  try {
+    await pool.query(queryText);
+    console.log("Table specialite créée avec succès");
+  } catch (error) {
+    console.error("Erreur lors de la création de la table specialite:", error);
+    throw error;
+  }
+};
+
+const seedSpecialites = async () => {
+  const queryText = `
+    INSERT INTO specialite (nom) VALUES
+      ('Médecine générale'),
+      ('Cardiologie'),
+      ('Dermatologie'),
+      ('Endocrinologie'),
+      ('Gastro-entérologie'),
+      ('Gynécologie'),
+      ('Neurologie'),
+      ('Oncologie'),
+      ('Ophtalmologie'),
+      ('ORL (Oto-rhino-laryngologie)'),
+      ('Orthopédie'),
+      ('Pédiatrie'),
+      ('Pneumologie'),
+      ('Psychiatrie'),
+      ('Radiologie'),
+      ('Rhumatologie'),
+      ('Urologie'),
+      ('Anesthésie-Réanimation'),
+      ('Chirurgie générale'),
+      ('Chirurgie cardiaque'),
+      ('Chirurgie orthopédique'),
+      ('Chirurgie plastique'),
+      ('Médecine d''urgence'),
+      ('Médecine du travail'),
+      ('Médecine du sport'),
+      ('Gériatrie'),
+      ('Infectiologie'),
+      ('Néphrologie'),
+      ('Autre spécialité')
+    ON CONFLICT (nom) DO NOTHING;
+  `;
+  try {
+    await pool.query(queryText);
+    console.log("Spécialités médicales de base insérées (si besoin)");
+  } catch (error) {
+    console.error("Erreur lors du seed des spécialités:", error);
+    throw error;
+  }
+};
+
 // Fonction principale pour initialiser toutes les tables
 const initTables = async () => {
   try {
     // Décommentez la ligne suivante pour supprimer toutes les tables avant de les recréer
     // await dropAllTables();
 
+    await createDocRoleEnum();
     await createUserTable();
     await createRefreshTokenTable();
     await createPatientTable();
@@ -299,9 +525,17 @@ const initTables = async () => {
     await createDisponibiliteMedecinTable();
     await createRendezVousTable();
     await createAdministrateurTable();
+    await createSpecialiteTable();
+    await seedSpecialites();
+    await createDocumentTypeTable();
+    await seedDocumentTypes();
     await createDocumentTable();
+    await alterDocumentTable();
+    await createPatientDoctorTable();
+    await createDocumentPermissionTable();
     await createDocumentsRendezVousTable();
     await createIndexes();
+    await createNewIndexes();
     console.log("Initialisation des tables terminée");
   } catch (error) {
     console.error("Erreur lors de l'initialisation des tables:", error);
@@ -321,6 +555,16 @@ export {
   createIndexes,
   dropAllTables,
   initTables,
+  // Nouvelles exports si besoin
+  createDocRoleEnum,
+  createDocumentTypeTable,
+  seedDocumentTypes,
+  createPatientDoctorTable,
+  createDocumentPermissionTable,
+  alterDocumentTable,
+  createNewIndexes,
+  createSpecialiteTable,
+  seedSpecialites,
 };
 
 export default initTables;

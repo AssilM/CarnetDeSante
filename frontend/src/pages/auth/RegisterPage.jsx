@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import logo from "../../assets/logo-C.svg";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../context/AuthContext";
+import { getAllSpecialites } from "../../services/api";
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -28,6 +29,9 @@ const RegisterPage = () => {
     level: "",
     score: 0,
   });
+  const [specialites, setSpecialites] = useState([]);
+  const [loadingSpecialites, setLoadingSpecialites] = useState(false);
+  const [errorSpecialites, setErrorSpecialites] = useState("");
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -41,6 +45,23 @@ const RegisterPage = () => {
       setRole(roleParam);
     }
   }, [location.search]);
+
+  // Charger dynamiquement les spécialités si role === 'medecin'
+  useEffect(() => {
+    if (role === "medecin") {
+      setLoadingSpecialites(true);
+      setErrorSpecialites("");
+      getAllSpecialites()
+        .then((data) => {
+          setSpecialites(data);
+        })
+        .catch(() => {
+          setErrorSpecialites("Impossible de charger les spécialités.");
+          setSpecialites([]);
+        })
+        .finally(() => setLoadingSpecialites(false));
+    }
+  }, [role]);
 
   const getRoleTitleAndDescription = () => {
     switch (role) {
@@ -662,66 +683,34 @@ const RegisterPage = () => {
                     >
                       Spécialité *
                     </label>
-                    <select
-                      id="specialite"
-                      name="specialite"
-                      value={formData.specialite}
-                      onChange={handleChange}
-                      className={`w-full px-4 py-2 border ${
-                        errors.specialite ? "border-red-500" : "border-gray-300"
-                      } rounded-lg focus:ring-blue-500 focus:border-blue-500`}
-                    >
-                      <option value="">Sélectionnez votre spécialité</option>
-                      <option value="Médecine générale">
-                        Médecine générale
-                      </option>
-                      <option value="Cardiologie">Cardiologie</option>
-                      <option value="Dermatologie">Dermatologie</option>
-                      <option value="Endocrinologie">Endocrinologie</option>
-                      <option value="Gastro-entérologie">
-                        Gastro-entérologie
-                      </option>
-                      <option value="Gynécologie">Gynécologie</option>
-                      <option value="Neurologie">Neurologie</option>
-                      <option value="Oncologie">Oncologie</option>
-                      <option value="Ophtalmologie">Ophtalmologie</option>
-                      <option value="ORL">ORL (Oto-rhino-laryngologie)</option>
-                      <option value="Orthopédie">Orthopédie</option>
-                      <option value="Pédiatrie">Pédiatrie</option>
-                      <option value="Pneumologie">Pneumologie</option>
-                      <option value="Psychiatrie">Psychiatrie</option>
-                      <option value="Radiologie">Radiologie</option>
-                      <option value="Rhumatologie">Rhumatologie</option>
-                      <option value="Urologie">Urologie</option>
-                      <option value="Anesthésie-Réanimation">
-                        Anesthésie-Réanimation
-                      </option>
-                      <option value="Chirurgie générale">
-                        Chirurgie générale
-                      </option>
-                      <option value="Chirurgie cardiaque">
-                        Chirurgie cardiaque
-                      </option>
-                      <option value="Chirurgie orthopédique">
-                        Chirurgie orthopédique
-                      </option>
-                      <option value="Chirurgie plastique">
-                        Chirurgie plastique
-                      </option>
-                      <option value="Médecine d'urgence">
-                        Médecine d'urgence
-                      </option>
-                      <option value="Médecine du travail">
-                        Médecine du travail
-                      </option>
-                      <option value="Médecine du sport">
-                        Médecine du sport
-                      </option>
-                      <option value="Gériatrie">Gériatrie</option>
-                      <option value="Infectiologie">Infectiologie</option>
-                      <option value="Néphrologie">Néphrologie</option>
-                      <option value="Autre">Autre spécialité</option>
-                    </select>
+                    {loadingSpecialites ? (
+                      <div className="text-gray-500 text-sm py-2">
+                        Chargement des spécialités...
+                      </div>
+                    ) : errorSpecialites ? (
+                      <div className="text-red-500 text-sm py-2">
+                        {errorSpecialites}
+                      </div>
+                    ) : (
+                      <select
+                        id="specialite"
+                        name="specialite"
+                        value={formData.specialite}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-2 border ${
+                          errors.specialite
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        } rounded-lg focus:ring-blue-500 focus:border-blue-500`}
+                      >
+                        <option value="">Sélectionnez votre spécialité</option>
+                        {specialites.map((s) => (
+                          <option key={s.id} value={s.nom}>
+                            {s.nom}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     {errors.specialite && (
                       <p className="mt-1 text-red-500 text-sm">
                         {errors.specialite}
