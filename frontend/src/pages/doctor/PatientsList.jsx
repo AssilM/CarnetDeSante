@@ -1,60 +1,408 @@
 import React, { useEffect, useState } from "react";
+import PageWrapper from "../../components/PageWrapper";
 import { useAuth } from "../../context/AuthContext";
 import { httpService } from "../../services/http";
 import createDoctorService from "../../services/api/doctorService";
-import ItemsList from "../../components/patient/common/ItemsList";
+import createAppointmentService from "../../services/api/appointmentService";
+import AppointmentModals from "../../components/doctor/agenda/AppointmentModals";
+import {
+  FaUserCircle,
+  FaCalendarAlt,
+  FaEnvelope,
+  FaPhone,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaExclamationTriangle,
+  FaClock,
+  FaChevronRight,
+  FaFileAlt,
+  FaStickyNote,
+} from "react-icons/fa";
+import { formatDateTimeFr } from "../../utils/date.utils";
 
 const doctorService = createDoctorService(httpService);
+const appointmentService = createAppointmentService(httpService);
+
+// Badge de statut réutilisable
+const StatusBadge = ({ status }) => {
+  let color = "bg-gray-100 text-gray-800 border-gray-200";
+  let icon = <FaClock className="text-gray-500" />;
+  let label = status;
+  switch (status) {
+    case "confirmé":
+      color = "bg-green-100 text-green-800 border-green-200";
+      icon = <FaCheckCircle className="text-green-500" />;
+      label = "Confirmé";
+      break;
+    case "annulé":
+      color = "bg-red-100 text-red-800 border-red-200";
+      icon = <FaTimesCircle className="text-red-500" />;
+      label = "Annulé";
+      break;
+    case "en_attente":
+      color = "bg-yellow-100 text-yellow-800 border-yellow-200";
+      icon = <FaExclamationTriangle className="text-yellow-500" />;
+      label = "En attente";
+      break;
+    case "en_cours":
+      color = "bg-blue-100 text-blue-800 border-blue-200";
+      icon = <FaClock className="text-blue-500 animate-pulse" />;
+      label = "En cours";
+      break;
+    case "terminé":
+      color = "bg-purple-100 text-purple-800 border-purple-200";
+      icon = <FaCheckCircle className="text-purple-500" />;
+      label = "Terminé";
+      break;
+    default:
+      break;
+  }
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${color}`}
+    >
+      {icon}
+      {label}
+    </span>
+  );
+};
+
+const PatientDetailsModal = ({ patient, onClose }) => {
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("infos");
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+
+  useEffect(() => {
+    if (!patient) return;
+    setLoading(true);
+    setError(null);
+    appointmentService
+      .getPatientAppointments(patient.utilisateur_id)
+      .then((data) => setAppointments(data))
+      .catch(() => setError("Erreur lors du chargement des rendez-vous."))
+      .finally(() => setLoading(false));
+  }, [patient]);
+
+  if (!patient) return null;
+
+  // --- LOGIQUE PROCHAIN RDV & HISTORIQUE ---
+  // On veut :
+  // - Prochain RDV = le plus proche dans le futur (statut != 'annulé')
+  // - Historique = tous les RDV statut 'terminé' (triés du plus récent au plus ancien)
+
+  // Construction d'un timestamp pour chaque RDV (date+heure)
+  // Fonction utilitaire pour normaliser la date (ISO ou DD/MM/YYYY)
+  function normalizeDate(dateStr) {
+    if (!dateStr) return "";
+    // Si déjà au format ISO
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    // Si format français DD/MM/YYYY
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+      const [day, month, year] = dateStr.split("/");
+      return `${year}-${month}-${day}`;
+    }
+    return dateStr; // fallback
+  }
+  const addTimestamp = (rdv) => {
+    if (!rdv.date) return 0;
+    const dateIso = normalizeDate(rdv.date);
+    if (!rdv.heure) return new Date(dateIso).getTime();
+    // Supporte HH:mm ou HH:mm:ss
+    const heure = rdv.heure.length === 5 ? rdv.heure : rdv.heure.slice(0, 5);
+    return new Date(`${dateIso}T${heure}`).getTime();
+  };
+  const appointmentsWithTs = appointments.map((rdv) => ({
+    ...rdv,
+    _ts: addTimestamp(rdv),
+  }));
+
+  // Historique : tous les RDV statut 'terminé', triés du plus récent au plus ancien
+  const history = appointmentsWithTs
+    .filter((rdv) => rdv.statut === "terminé")
+    .sort((a, b) => b._ts - a._ts);
+
+  // --- FIN LOGIQUE ---
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl relative animate-fade-in overflow-hidden border border-gray-200">
+        {/* Header coloré */}
+        <div className="bg-primary text-white p-6 flex items-center gap-4">
+          <FaUserCircle className="text-5xl" />
+          <div>
+            <h2 className="text-2xl font-bold">
+              {patient.nom} {patient.prenom}
+            </h2>
+            <div className="flex items-center gap-3 mt-1 text-sm">
+              <FaEnvelope /> <span>{patient.email}</span>
+              {patient.tel_numero && (
+                <>
+                  <span className="mx-2">·</span>
+                  <FaPhone /> <span>{patient.tel_numero}</span>
+                </>
+              )}
+            </div>
+          </div>
+          <button
+            className="ml-auto text-white/80 hover:text-white text-2xl"
+            onClick={onClose}
+            aria-label="Fermer"
+          >
+            ×
+          </button>
+        </div>
+        {/* Onglets */}
+        <div className="flex border-b border-gray-100 bg-gray-50">
+          <button
+            className={`flex-1 py-3 text-sm font-medium border-b-2 ${
+              activeTab === "infos"
+                ? "border-primary text-primary"
+                : "border-transparent text-gray-500"
+            }`}
+            onClick={() => setActiveTab("infos")}
+          >
+            <FaUserCircle className="inline mr-2" /> Infos générales
+          </button>
+          <button
+            className={`flex-1 py-3 text-sm font-medium border-b-2 ${
+              activeTab === "rdv"
+                ? "border-primary text-primary"
+                : "border-transparent text-gray-500"
+            }`}
+            onClick={() => setActiveTab("rdv")}
+          >
+            <FaCalendarAlt className="inline mr-2" /> Rendez-vous
+          </button>
+          <button
+            className={`flex-1 py-3 text-sm font-medium border-b-2 ${
+              activeTab === "docs"
+                ? "border-primary text-primary"
+                : "border-transparent text-gray-500"
+            }`}
+            onClick={() => setActiveTab("docs")}
+          >
+            <FaFileAlt className="inline mr-2" /> Documents
+          </button>
+          <button
+            className={`flex-1 py-3 text-sm font-medium border-b-2 ${
+              activeTab === "notes"
+                ? "border-primary text-primary"
+                : "border-transparent text-gray-500"
+            }`}
+            onClick={() => setActiveTab("notes")}
+          >
+            <FaStickyNote className="inline mr-2" /> Notes
+          </button>
+        </div>
+        {/* Contenu des onglets */}
+        <div className="p-6 bg-white max-h-[70vh] overflow-y-auto">
+          {activeTab === "infos" && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2 text-primary">
+                Identité du patient
+              </h3>
+              <div className="flex flex-col md:flex-row gap-6 items-start">
+                <div className="flex items-center gap-3">
+                  <FaUserCircle className="text-4xl text-primary" />
+                  <div>
+                    <div className="font-bold text-lg">
+                      {patient.nom} {patient.prenom}
+                    </div>
+                    <div className="text-gray-600 text-sm">{patient.email}</div>
+                    {patient.tel_numero && (
+                      <div className="text-gray-600 text-sm">
+                        {patient.tel_numero}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex-1" />
+                {/* Placeholder pour infos complémentaires */}
+              </div>
+            </div>
+          )}
+          {activeTab === "rdv" && (
+            <div>
+              {/* <h3 className="text-lg font-semibold mb-4 text-primary">
+                Prochain rendez-vous
+              </h3>
+              {loading ? (
+                <div className="text-gray-500">Chargement...</div>
+              ) : error ? (
+                <div className="text-red-500">{error}</div>
+              ) : upcoming ? (
+                <div className="flex items-center gap-3 bg-blue-50 rounded p-3 mb-6">
+                  <FaCalendarAlt className="text-blue-500 text-xl" />
+                  <span className="font-medium">
+                    {formatDateTimeFr(upcoming.date, upcoming.heure)}
+                  </span>
+                  <span className="ml-2 text-gray-700">{upcoming.motif}</span>
+                  <StatusBadge status={upcoming.statut} />
+                </div>
+              ) : (
+                <div className="text-gray-500 mb-6">
+                  Aucun rendez-vous à venir
+                </div>
+              )} */}
+              <h3 className="text-lg font-semibold mb-2 text-primary">
+                Rendez-vous terminés
+              </h3>
+              {loading ? (
+                <div className="text-gray-500">Chargement...</div>
+              ) : error ? (
+                <div className="text-red-500">{error}</div>
+              ) : history.length === 0 ? (
+                <div className="text-gray-500">Aucun rendez-vous terminé</div>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {history.map((rdv) => (
+                    <li
+                      key={rdv.id}
+                      className="py-3 flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded"
+                      onClick={() => {
+                        setSelectedAppointment({
+                          ...rdv,
+                          // Adapter les champs pour AppointmentModals
+                          id: rdv.id,
+                          title: rdv.motif,
+                          date: rdv.date,
+                          dateRaw: rdv.date,
+                          time: rdv.heure,
+                          status: rdv.statut,
+                          location: rdv.lieu || "",
+                          patient: {
+                            id: patient.utilisateur_id,
+                            name: `${patient.nom} ${patient.prenom}`,
+                          },
+                          rawData: rdv,
+                        });
+                        setShowAppointmentModal(true);
+                      }}
+                    >
+                      <FaCalendarAlt className="text-gray-400" />
+                      <span className="font-medium">
+                        {formatDateTimeFr(rdv.date, rdv.heure)}
+                      </span>
+                      <span className="ml-2 text-gray-700">{rdv.motif}</span>
+                      <StatusBadge status={rdv.statut} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+          {activeTab === "docs" && (
+            <div className="text-gray-500 flex flex-col items-center justify-center h-32">
+              <FaFileAlt className="text-3xl mb-2" />
+              <span>Pas encore de documents liés à ce patient.</span>
+            </div>
+          )}
+          {activeTab === "notes" && (
+            <div className="text-gray-500 flex flex-col items-center justify-center h-32">
+              <FaStickyNote className="text-3xl mb-2" />
+              <span>Pas encore de notes pour ce patient.</span>
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Modal de détail du rendez-vous */}
+      {showAppointmentModal && selectedAppointment && (
+        <AppointmentModals
+          showDetail={true}
+          selectedAppointment={selectedAppointment}
+          handleCloseDetail={() => setShowAppointmentModal(false)}
+          formatDateTimeFr={formatDateTimeFr}
+          // Props non utilisés dans ce contexte mais requis par le composant
+          handleCancel={() => {}}
+          cancelLoading={false}
+          showDayDetail={false}
+          selectedDate={null}
+          handleCloseDayDetail={() => {}}
+          getDayAppointments={() => []}
+          formatDateFr={formatDateTimeFr}
+          handleShowDetail={() => {}}
+          handleStartAppointment={() => {}}
+          handleFinishAppointment={() => {}}
+          actionLoading={false}
+        />
+      )}
+    </div>
+  );
+};
 
 const PatientsList = () => {
   const { currentUser } = useAuth();
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedPatient, setSelectedPatient] = useState(null);
 
   useEffect(() => {
-    const fetchPatients = async () => {
-      if (!currentUser) return;
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await doctorService.getPatients();
-        setPatients(data);
-      } catch {
-        setError("Erreur lors du chargement des patients.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPatients();
+    if (!currentUser) return;
+    setLoading(true);
+    setError(null);
+    doctorService
+      .getPatients()
+      .then((data) => setPatients(data))
+      .catch(() => setError("Erreur lors du chargement des patients."))
+      .finally(() => setLoading(false));
   }, [currentUser]);
 
-  if (loading) {
-    return (
-      <div className="p-8 text-center text-gray-500">
-        Chargement des patients...
-      </div>
-    );
-  }
-  if (error) {
-    return <div className="p-8 text-center text-red-500">{error}</div>;
-  }
-
   return (
-    <ItemsList
-      items={patients}
-      type="patient"
-      title="Mes patients suivis"
-      description="Liste de tous les patients que vous suivez via un rendez-vous."
-      itemNameField="nomComplet"
-      itemSubtitleField="email"
-      detailsText="Détails"
-      onViewDetails={(patient) => {
-        // TODO: Naviguer vers la fiche patient ou afficher un modal
-        alert(`Patient: ${patient.nomComplet}`);
-      }}
-      showPinnedSection={false}
-    />
+    <PageWrapper className="bg-gray-50 min-h-screen">
+      <div className="max-w-5xl mx-auto py-8 px-4">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          Mes patients suivis
+        </h1>
+        <p className="text-gray-600 mb-6">
+          Retrouvez ici la liste de tous les patients que vous suivez via un
+          rendez-vous.
+        </p>
+        {loading ? (
+          <div className="text-center text-gray-500 py-12">
+            Chargement des patients...
+          </div>
+        ) : error ? (
+          <div className="text-center text-red-500 py-12">{error}</div>
+        ) : patients.length === 0 ? (
+          <div className="text-center text-gray-500 py-12">
+            Aucun patient suivi pour le moment.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {patients.map((patient) => (
+              <div
+                key={patient.utilisateur_id}
+                className="bg-white rounded-xl shadow hover:shadow-lg transition-shadow p-5 flex flex-col items-center group cursor-pointer border border-transparent hover:border-primary"
+              >
+                <FaUserCircle className="text-5xl text-primary mb-2" />
+                <div className="text-lg font-semibold text-gray-900 mb-1">
+                  {patient.nom} {patient.prenom}
+                </div>
+                <div className="text-gray-500 text-sm mb-2">
+                  {patient.email}
+                </div>
+                <button
+                  className="mt-auto px-4 py-2 bg-primary text-white rounded-md font-medium shadow hover:bg-primary/90 transition-colors"
+                  onClick={() => setSelectedPatient(patient)}
+                >
+                  Détails
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {selectedPatient && (
+          <PatientDetailsModal
+            patient={selectedPatient}
+            onClose={() => setSelectedPatient(null)}
+          />
+        )}
+      </div>
+    </PageWrapper>
   );
 };
 

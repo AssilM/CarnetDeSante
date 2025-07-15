@@ -9,6 +9,12 @@ import {
   FaCheck,
 } from "react-icons/fa";
 
+const HOURS = Array.from({ length: 21 }, (_, i) => {
+  const hour = 8 + Math.floor(i / 2);
+  const min = i % 2 === 0 ? "00" : "30";
+  return `${hour.toString().padStart(2, "0")}:${min}`;
+});
+
 const WeekView = ({
   weekDates,
   getDayAppointments,
@@ -53,73 +59,131 @@ const WeekView = ({
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-[#E9ECEF] overflow-hidden">
-      {/* Version desktop */}
+      {/* Version desktop : grille horaire */}
       <div className="hidden md:block">
-        <div className="grid grid-cols-7 border-b border-[#E9ECEF]">
+        <div className="grid grid-cols-8 border-b border-[#E9ECEF]">
+          {/* Colonne vide pour les heures */}
+          <div className="bg-[#F8F9FA] border-r border-[#E9ECEF] p-4"></div>
           {weekDates.map((date, index) => {
-            const dayAppointments = getDayAppointments(date);
             const isToday = formatDateYMD(date) === formatDateYMD(new Date());
-
             return (
               <div
                 key={index}
-                className="p-6 border-r border-[#E9ECEF] last:border-r-0"
+                className="p-4 border-r border-[#E9ECEF] last:border-r-0 text-center"
               >
                 <div
-                  className={`text-center mb-4 h-20 ${
+                  className={`mb-2 h-20 flex flex-col items-center justify-center ${
                     isToday ? "text-[#4A90E2] font-bold" : "text-[#343A40]"
                   }`}
                 >
                   <div className="text-sm font-medium mb-1">
-                    {date.toLocaleDateString("fr-FR", {
-                      weekday: "long",
-                    })}
+                    {date.toLocaleDateString("fr-FR", { weekday: "short" })}
                   </div>
-                  <div className="text-sm mb-2">
+                  <div className="text-xs mb-1">
                     {date.toLocaleDateString("fr-FR", { month: "short" })}
                   </div>
                   <div
-                    className={`text-xl ${
+                    className={`text-lg ${
                       isToday
-                        ? "bg-[#4A90E2] text-white rounded-full w-10 h-10 flex items-center justify-center mx-auto"
+                        ? "bg-[#4A90E2] text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto"
                         : ""
                     }`}
                   >
                     {date.getDate()}
                   </div>
                 </div>
-
-                <div className="space-y-3 min-h-[300px]">
-                  {dayAppointments.map((appointment) => (
+              </div>
+            );
+          })}
+        </div>
+        {/* Grille horaire */}
+        <div className="grid grid-cols-8">
+          {/* Colonne des heures */}
+          <div className="flex flex-col border-r border-[#E9ECEF] bg-[#F8F9FA]">
+            {HOURS.map((hour) => (
+              <div
+                key={hour}
+                className="h-14 flex items-center justify-center text-xs font-semibold text-[#343A40] border-b border-[#E9ECEF]"
+              >
+                {hour}
+              </div>
+            ))}
+          </div>
+          {/* Colonnes jours */}
+          {weekDates.map((date, dayIdx) => {
+            const dayAppointments = getDayAppointments(date);
+            return (
+              <div key={dayIdx} className="flex flex-col">
+                {HOURS.map((hour) => {
+                  // RDV de ce créneau (heure exacte)
+                  const slotAppointments = dayAppointments.filter(
+                    (apt) => apt.time === hour
+                  );
+                  // Absence (optionnel) : motif ou statut contient "absence"
+                  const absences = dayAppointments.filter(
+                    (apt) =>
+                      (apt.motif &&
+                        apt.motif.toLowerCase().includes("absence")) ||
+                      (apt.status &&
+                        apt.status.toLowerCase().includes("absence"))
+                  );
+                  return (
                     <div
-                      key={appointment.id}
-                      onClick={() => handleShowDetail(appointment)}
-                      className={`p-3 rounded-lg border cursor-pointer hover:shadow-md transition-all ${getStatusColor(
-                        appointment.status
-                      )}`}
+                      key={hour}
+                      className="h-14 border-b border-[#E9ECEF] flex gap-1 px-1 items-center"
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium">
-                          {appointment.time}
-                        </span>
-                        {getStatusIcon(appointment.status)}
-                      </div>
-                      <div className="text-xs font-medium truncate mb-1">
-                        {appointment.patient.name}
-                      </div>
-                      <div className="text-xs truncate">
-                        {appointment.title}
-                      </div>
+                      {/* Affichage des absences */}
+                      {absences
+                        .filter((a) => a.time === hour)
+                        .map((absence) => (
+                          <div
+                            key={absence.id}
+                            className="flex-1 bg-gray-200 text-gray-700 text-xs rounded px-2 py-1 border border-gray-300 font-semibold text-center"
+                          >
+                            Absence
+                          </div>
+                        ))}
+                      {/* Affichage des rendez-vous */}
+                      {slotAppointments.map((appointment) => (
+                        <div
+                          key={appointment.id}
+                          onClick={() => handleShowDetail(appointment)}
+                          className={`flex-1 min-w-0 cursor-pointer rounded-lg border text-xs px-2 py-1 flex flex-col items-start justify-center hover:shadow-md transition-all ${getStatusColor(
+                            appointment.status
+                          )}`}
+                          title={
+                            appointment.patient.name + " - " + appointment.title
+                          }
+                        >
+                          <div className="flex items-center gap-1 mb-1">
+                            <span className="font-bold">
+                              {appointment.patient.name}
+                            </span>
+                            {getStatusIcon(appointment.status)}
+                          </div>
+                          <div className="truncate w-full">
+                            {appointment.title}
+                          </div>
+                        </div>
+                      ))}
+                      {/* Créneau libre */}
+                      {slotAppointments.length === 0 &&
+                        absences.filter((a) => a.time === hour).length ===
+                          0 && (
+                          <div className="flex-1 text-[#ADB5BD] text-xs text-center select-none">
+                            {/* Vide */}
+                          </div>
+                        )}
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Version mobile - liste par jour avec pliage */}
+      {/* Version mobile - inchangée */}
       <div className="md:hidden">
         {weekDates.map((date, index) => {
           const dayAppointments = getDayAppointments(date);
