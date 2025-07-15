@@ -230,6 +230,23 @@ const createDoctorService = (api) => {
         throw error;
       }
     },
+
+    /**
+     * Récupère les patients suivis par le médecin connecté
+     * @returns {Promise<Array>} Liste des patients
+     */
+    getPatients: async () => {
+      try {
+        const response = await api.get("/acl/followed-patients");
+        return response.data;
+      } catch (error) {
+        console.error(
+          `Erreur lors de la récupération des patients du médecin:`,
+          error
+        );
+        throw error;
+      }
+    },
   };
 };
 

@@ -1,0 +1,287 @@
+# 🏥 Roadmap - Système de Partage Documentaire
+
+## 📋 Vue d'ensemble
+
+Extension du système de gestion documentaire avec contrôle d'accès granulaire et suivi des relations patient-médecin.
+
+**Logique de sécurité :** Partage uniquement avec des médecins consultés (ayant eu au moins un RDV avec le patient)
+
+---
+
+## Backend - Tâches principales
+
+### 1. Module ACL (Access Control List)
+**Dossier :** backend/src/acl/
+
+**Fichiers à créer :**
+- acl.repository.js - Accès aux tables document_permission et patient_doctor
+- acl.service.js - Logique métier du partage et des permissions
+- acl.controller.js - Endpoints REST pour le partage
+- index.js - Routes du module ACL
+
+**Sous-tâches du Repository :**
+- getDocumentPermissions(documentId) - Récupérer toutes les permissions d'un document
+- getUserDocuments(userId) - Récupérer les documents accessibles à un utilisateur
+- createDocumentPermission(documentId, userId, role) - Créer une permission
+- deleteDocumentPermission(documentId, userId) - Supprimer une permission
+- getFollowedDoctors(patientId) - Récupérer les médecins suivis par un patient
+- getFollowedPatients(doctorId) - Récupérer les patients suivis par un médecin
+- createFollowRelationship(patientId, doctorId) - Créer un lien de suivi
+- removeFollowRelationship(patientId, doctorId) - Supprimer un lien de suivi
+- searchPatientByIdentity(nom, prenom, telephone) - Rechercher un patient par identité
+
+**Sous-tâches du Service :**
+- checkDocumentPermission(userId, documentId, requiredRole) - Vérifier les permissions
+- grantDocumentPermission(documentId, userId, role) - Accorder une permission
+- revokeDocumentPermission(documentId, userId) - Révoquer une permission
+- getAvailableDoctorsForPatient(patientId) - Lister les médecins disponibles pour le partage
+- getSharedDocumentsForUser(userId) - Lister les documents partagés d'un utilisateur
+- followPatientByIdentity(doctorId, nom, prenom, telephone) - Permettre à un médecin de suivre n'importe quel patient via identité
+
+**Sous-tâches du Controller :**
+- shareDocument(req, res) - Partager un document avec un médecin
+- revokeDocument(req, res) - Révoquer le partage d'un document
+- getSharedDocuments(req, res) - Lister les documents partagés
+- getAvailableDoctors(req, res) - Lister les médecins disponibles pour le partage
+- followPatient(req, res) - Suivre un patient via nom, prénom, téléphone
+
+### 2. Modification du Module Patient
+**Dossier :** backend/src/patient/
+
+- Ajouter getPatientFollowedDoctors(patientId) dans patient.service.js
+- Ajouter getPatientDocuments(patientId) dans patient.service.js
+- Ajouter getFollowedDoctors(req, res) dans patient.controller.js
+- Ajouter getPatientDocuments(req, res) dans patient.controller.js
+
+### 3. Modification du Module Doctor
+**Dossier :** backend/src/doctor/
+
+- Ajouter getDoctorFollowedPatients(doctorId) dans medecin.service.js
+- Ajouter getDoctorSharedDocuments(doctorId) dans medecin.service.js
+- Ajouter getFollowedPatients(req, res) dans medecin.controller.js
+- Ajouter getSharedDocuments(req, res) dans medecin.controller.js
+
+### 4. Modification du Module Appointment
+**Dossier :** backend/src/appointment/
+
+- Ajouter createFollowRelationshipAfterAppointment(appointmentId) dans rendezvous.service.js
+- Modifier updateRendezVous pour créer automatiquement le lien de suivi quand le statut passe à "terminé"
+
+### 5. Middleware de Vérification des Permissions
+**Dossier :** backend/src/middlewares/
+
+- checkDocumentAccess(req, res, next) - Vérifier l'accès à un document
+- validateDocumentOwnership(req, res, next) - Valider la propriété du document
+
+### 6. Intégration dans les Routes
+**Dossier :** backend/src/routes/
+
+- Ajouter les routes ACL : app.use('/api/acl', aclRoutes)
+
+---
+
+## Frontend - Tâches principales
+
+### 1. Service API de Partage
+frontend/src/services/api/aclService.js
+- shareDocument(documentId, doctorId, permission)
+- revokeDocument(documentId, doctorId)
+- getSharedDocuments()
+- getAvailableDoctors()
+- followPatient(nom, prenom, telephone)
+
+### 2. Composant de Partage de Documents
+frontend/src/components/patient/documents/ShareDocumentModal.jsx
+- ShareDocumentModal
+- DoctorSelectionList
+- PermissionLevelSelector
+- ShareConfirmation
+
+### 3. Composant de Gestion des Permissions
+frontend/src/components/patient/documents/DocumentPermissions.jsx
+- DocumentPermissionsList
+- RevokePermissionButton
+- PermissionStatusBadge
+
+### 4. Context pour le Partage
+frontend/src/context/ShareContext.jsx
+- ShareProvider
+- useShare
+- refreshSharedDocuments
+
+### 5. Intégration dans les Pages Existantes
+- Ajouter bouton "Partager" sur chaque document (Documents.jsx)
+- Ajouter section "Documents partagés" (Documents.jsx)
+- Ajouter section des permissions du document (DocumentDetails.jsx)
+- Ajouter boutons de gestion des permissions (DocumentDetails.jsx)
+- Ajouter section "Documents partagés par mes patients" (HomeDoctor.jsx)
+- Ajouter navigation vers les documents partagés (HomeDoctor.jsx)
+
+---
+
+## Logique Métier
+
+### Conditions de Partage
+- Patient peut partager uniquement avec des médecins consultés
+- Médecin peut partager ses documents avec ses patients suivis
+- Médecin peut suivre n'importe quel patient via nom, prénom, téléphone
+- Niveaux de permission : owner, author, shared
+
+### Création Automatique des Permissions
+- Patient upload → owner uniquement
+- Médecin upload → owner + author
+- Patient peut révoquer seulement les permissions shared
+
+### Suivi Patient-Médecin
+- Lien créé automatiquement quand un RDV est marqué comme "terminé"
+- Médecin peut suivre un patient manuellement via identité (nom, prénom, téléphone)
+- Permet au médecin de voir les documents partagés par le patient
+- Patient peut supprimer le lien de suivi à tout moment 
+
+---
+
+## 📚 Description détaillée de la base de données (ACL & Suivi Patient-Médecin)
+
+### 1. Table `utilisateur`
+- **id** (SERIAL, PK)
+- **email** (VARCHAR, unique, not null)
+- **password** (VARCHAR, not null)
+- **nom** (VARCHAR, not null)
+- **prenom** (VARCHAR, not null)
+- **tel_indicatif** (VARCHAR)
+- **tel_numero** (VARCHAR)
+- **date_naissance** (DATE)
+- **sexe** (VARCHAR)
+- **adresse** (VARCHAR)
+- **code_postal** (VARCHAR)
+- **ville** (VARCHAR)
+- **role** (VARCHAR, not null, 'patient' | 'medecin' | 'admin')
+- **created_at** (TIMESTAMP)
+- **updated_at** (TIMESTAMP)
+
+> **Rôle** : Table centrale pour tous les utilisateurs (patients, médecins, admins).
+
+### 2. Table `patient`
+- **utilisateur_id** (INTEGER, PK, FK → utilisateur.id)
+- **groupe_sanguin** (VARCHAR)
+- **taille** (INTEGER)
+- **poids** (INTEGER)
+- **updated_at** (TIMESTAMP)
+
+> **Rôle** : Extension des infos spécifiques au patient.
+
+### 3. Table `medecin`
+- **utilisateur_id** (INTEGER, PK, FK → utilisateur.id)
+- **specialite** (VARCHAR)
+- **description** (TEXT)
+- **updated_at** (TIMESTAMP)
+
+> **Rôle** : Extension des infos spécifiques au médecin.
+
+### 4. Table `patient_doctor` (Suivi patient-médecin)
+- **patient_id** (INTEGER, FK → patient.utilisateur_id)
+- **doctor_id** (INTEGER, FK → medecin.utilisateur_id)
+- **status** (VARCHAR, défaut 'actif')
+- **created_at** (TIMESTAMP)
+- **PRIMARY KEY** (patient_id, doctor_id)
+
+> **Rôle** : Lien de suivi entre un patient et un médecin. Créé automatiquement après un RDV terminé ou manuellement par le médecin (via identité patient). Permet de lister les médecins suivis par un patient et inversement.
+
+### 5. Table `document`
+- **id** (SERIAL, PK)
+- **patient_id** (INTEGER, FK → patient.utilisateur_id, not null)
+- **medecin_id** (INTEGER, FK → medecin.utilisateur_id, nullable)
+- **uploader_id** (INTEGER, FK → utilisateur.id, nullable)
+- **type_id** (INTEGER, FK → document_type.id, nullable)
+- **titre** (VARCHAR, not null)
+- **nom_fichier** (VARCHAR, not null)
+- **chemin_fichier** (VARCHAR, not null)
+- **type_mime** (VARCHAR, not null)
+- **taille_fichier** (INTEGER, not null)
+- **date_creation** (DATE, défaut CURRENT_DATE)
+- **description** (TEXT)
+- **created_at** (TIMESTAMP)
+- **updated_at** (TIMESTAMP)
+
+> **Rôle** : Stocke les documents médicaux, leur propriétaire (patient), l’uploader (patient ou médecin), et le type de document.
+
+### 6. Table `document_type`
+- **id** (SERIAL, PK)
+- **code** (VARCHAR, unique, not null)
+- **label** (VARCHAR, not null)
+- **created_at** (TIMESTAMP)
+
+> **Rôle** : Référence les types de documents (ordonnance, analyse, etc.).
+
+### 7. Table `document_permission` (ACL documentaire)
+- **document_id** (INTEGER, FK → document.id)
+- **user_id** (INTEGER, FK → utilisateur.id)
+- **role** (ENUM doc_role: 'owner', 'author', 'shared')
+- **granted_at** (TIMESTAMP, défaut CURRENT_TIMESTAMP)
+- **expires_at** (TIMESTAMP, nullable)
+- **PRIMARY KEY** (document_id, user_id)
+
+> **Rôle** : Gère les droits d’accès à chaque document pour chaque utilisateur (patient, médecin). Permet de savoir qui a accès à quoi et avec quel niveau de permission.
+
+### 8. Table `rendez_vous`
+- **id** (SERIAL, PK)
+- **patient_id** (INTEGER, FK → patient.utilisateur_id)
+- **medecin_id** (INTEGER, FK → medecin.utilisateur_id)
+- **date** (DATE, not null)
+- **heure** (TIME, not null)
+- **duree** (INTEGER, défaut 30)
+- **statut** (VARCHAR, 'planifié', 'confirmé', 'annulé', 'en_cours', 'terminé')
+- ... (autres champs)
+
+> **Rôle** : Permet de créer automatiquement un lien de suivi (patient_doctor) quand un RDV est terminé.
+
+### 9. Table `specialite`
+- **id** (SERIAL, PK)
+- **nom** (VARCHAR, unique, not null)
+- **created_at** (TIMESTAMP)
+
+> **Rôle** : Liste des spécialités médicales.
+
+### 10. Table `documents_rendez_vous`
+- **id** (SERIAL, PK)
+- **document_id** (INTEGER, FK → document.id)
+- **rendez_vous_id** (INTEGER, FK → rendez_vous.id)
+- **created_at** (TIMESTAMP)
+- **UNIQUE** (document_id, rendez_vous_id)
+
+> **Rôle** : Lien entre documents et rendez-vous.
+
+### 11. Table `refresh_token`
+- **id** (SERIAL, PK)
+- **token** (VARCHAR, unique, not null)
+- **utilisateur_id** (INTEGER, FK → utilisateur.id)
+- **expires_at** (TIMESTAMP, not null)
+- **created_at** (TIMESTAMP)
+
+> **Rôle** : Gestion des tokens de rafraîchissement pour l’authentification.
+
+### 12. Enum `doc_role`
+- **owner** : Propriétaire du document (créateur, patient ou médecin)
+- **author** : Médecin ayant uploadé le document
+- **shared** : Accès partagé (médecin consulté)
+
+---
+
+### 🔗 **Relations clés**
+- **Un patient** peut avoir plusieurs médecins suivis (via patient_doctor), et inversement.
+- **Un document** appartient toujours à un patient, peut être uploadé par un patient ou un médecin, et partagé à d’autres via document_permission.
+- **Les permissions** sont gérées par document_permission : chaque accès est explicite et typé (owner, author, shared).
+- **Le suivi** est créé automatiquement après un RDV terminé ou manuellement par le médecin.
+
+---
+
+### 🛡️ **Sécurité et intégrité**
+- **Clés étrangères** avec suppression en cascade pour garantir la cohérence (ex : suppression d’un patient supprime ses documents, permissions, liens de suivi).
+- **Index** sur les colonnes critiques pour la performance (user_id, document_id, patient_id, doctor_id).
+- **Vérification des permissions** obligatoire avant tout accès à un document.
+
+---
+
+### 📈 **Évolutivité**
+- La structure permet d’ajouter facilement de nouveaux rôles, types de documents, ou niveaux de permission.
+- Les tables de pivot (patient_doctor, document_permission) sont adaptées à un modèle de partage granulaire et scalable. 

@@ -10,6 +10,7 @@ import disponibiliteRoutes from "./routes/disponibilite.routes.js";
 import rendezVousRoutes from "./routes/rendezvous.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import specialiteRoutes from "./routes/specialite.routes.js";
+import aclRoutes from "./routes/acl.routes.js";
 import {
   errorHandler,
   notFoundHandler,
@@ -52,6 +53,7 @@ app.use("/api/disponibilite", disponibiliteRoutes);
 app.use("/api/rendez-vous", rendezVousRoutes);
 app.use("/api/admin", adminRoutes);
 app.use(specialiteRoutes);
+app.use("/api/acl", aclRoutes);
 
 // Routes de test
 app.get("/", (req, res) => {

@@ -82,7 +82,7 @@ const Sidebar = () => {
     {
       icon: <MdPeople className="text-2xl" />,
       label: "Patients",
-      path: "/patients",
+      path: "/doctor/patient",
     },
     {
       icon: <FaCalendarAlt className="text-2xl" />,

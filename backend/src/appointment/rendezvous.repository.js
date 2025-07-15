@@ -275,3 +275,17 @@ export const updateRaisonAnnulation = async (
   const result = await pool.query(query, [raison, appointmentId, medecinId]);
   return result.rows[0];
 };
+
+// Créer le lien de suivi patient-médecin si non existant
+export const createFollowRelationship = async (patientId, doctorId) => {
+  // Vérifie si le lien existe déjà
+  const checkQuery = `SELECT 1 FROM patient_doctor WHERE patient_id = $1 AND doctor_id = $2`;
+  const checkResult = await pool.query(checkQuery, [patientId, doctorId]);
+  if (checkResult.rows.length > 0) {
+    // Déjà existant, rien à faire
+    return;
+  }
+  // Sinon, insère le lien
+  const insertQuery = `INSERT INTO patient_doctor (patient_id, doctor_id, status) VALUES ($1, $2, 'actif')`;
+  await pool.query(insertQuery, [patientId, doctorId]);
+};

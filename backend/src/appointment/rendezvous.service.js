@@ -11,6 +11,7 @@ import {
   checkRendezVousConflict,
   updateNotesMedecin,
   updateRaisonAnnulation,
+  createFollowRelationship,
 } from "./rendezvous.repository.js";
 import { getJourSemaine, isDateInFuture } from "../utils/date.utils.js";
 
@@ -126,6 +127,16 @@ export const createRendezVousService = async (rdvData) => {
       "[createRendezVousService] Rendez-vous créé avec succès:",
       newRendezVous
     );
+    // Création souple du lien de suivi patient-médecin
+    try {
+      await createFollowRelationship(patient_id, medecin_id);
+    } catch (followError) {
+      console.warn(
+        "[createRendezVousService] Impossible de créer le lien patient-médecin:",
+        followError.message
+      );
+      // On ne bloque pas la création du rendez-vous
+    }
     return newRendezVous;
   } catch (error) {
     console.error("[createRendezVousService] Erreur:", error);

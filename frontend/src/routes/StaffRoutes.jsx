@@ -10,6 +10,7 @@ import HomeDoctor from "../pages/doctor/HomeDoctor";
 import Agenda from "../pages/doctor/Agenda";
 import HomeAdmin from "../pages/admin/HomeAdmin";
 import Availability from "../pages/doctor/Availability";
+import PatientsList from "../pages/doctor/PatientsList";
 
 /**
  * Routes pour le personnel médical et administratif
@@ -49,6 +50,18 @@ const StaffRoutes = [
       <ProtectedRoute requiredRole="medecin">
         <MainLayout>
           <Availability />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+
+  <Route
+    key="doctor-patients"
+    path="/doctor/patient"
+    element={
+      <ProtectedRoute requiredRole="medecin">
+        <MainLayout>
+          <PatientsList />
         </MainLayout>
       </ProtectedRoute>
     }
