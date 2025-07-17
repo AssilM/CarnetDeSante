@@ -6,27 +6,20 @@
 const createDocumentService = (api) => {
   return {
     /**
-     * Récupère tous les documents d'un patient
-     * @param {number} patientId - ID du patient
-     * @returns {Promise<Array>} Liste des documents du patient
+     * Récupère tous les documents accessibles à l'utilisateur connecté
      */
-    getPatientDocuments: async (patientId) => {
+    getMyDocuments: async () => {
       try {
-        const response = await api.get(`/documents/patient/${patientId}`);
+        const response = await api.get("/documents");
         return response.data;
       } catch (error) {
-        console.error(
-          `Erreur lors de la récupération des documents du patient #${patientId}:`,
-          error
-        );
+        console.error("Erreur lors de la récupération des documents:", error);
         throw error;
       }
     },
 
     /**
      * Récupère un document par son ID
-     * @param {number} documentId - ID du document
-     * @returns {Promise<Object>} Détails du document
      */
     getDocumentById: async (documentId) => {
       try {
@@ -43,8 +36,6 @@ const createDocumentService = (api) => {
 
     /**
      * Télécharge un document
-     * @param {number} documentId - ID du document
-     * @returns {Promise<Blob>} Contenu du document
      */
     downloadDocument: async (documentId) => {
       try {
@@ -63,8 +54,6 @@ const createDocumentService = (api) => {
 
     /**
      * Crée un nouveau document
-     * @param {FormData} documentData - Données du document (incluant le fichier)
-     * @returns {Promise<Object>} Document créé
      */
     createDocument: async (documentData) => {
       try {
@@ -81,31 +70,7 @@ const createDocumentService = (api) => {
     },
 
     /**
-     * Met à jour les métadonnées d'un document
-     * @param {number} documentId - ID du document
-     * @param {Object} metadata - Nouvelles métadonnées du document
-     * @returns {Promise<Object>} Document mis à jour
-     */
-    updateDocumentMetadata: async (documentId, metadata) => {
-      try {
-        const response = await api.put(
-          `/documents/${documentId}/metadata`,
-          metadata
-        );
-        return response.data;
-      } catch (error) {
-        console.error(
-          `Erreur lors de la mise à jour des métadonnées du document #${documentId}:`,
-          error
-        );
-        throw error;
-      }
-    },
-
-    /**
      * Supprime un document
-     * @param {number} documentId - ID du document
-     * @returns {Promise<Object>} Confirmation de la suppression
      */
     deleteDocument: async (documentId) => {
       try {
@@ -121,20 +86,17 @@ const createDocumentService = (api) => {
     },
 
     /**
-     * Partage un document avec un médecin
-     * @param {number} documentId - ID du document
-     * @param {number} doctorId - ID du médecin
-     * @returns {Promise<Object>} Confirmation du partage
+     * Récupère les documents partagés par un patient donné au médecin connecté
      */
-    shareDocumentWithDoctor: async (documentId, doctorId) => {
+    getDocumentsSharedByPatient: async (patientId) => {
       try {
-        const response = await api.post(`/documents/${documentId}/share`, {
-          medecin_id: doctorId,
-        });
+        const response = await api.get(
+          `/documents/shared-by-patient/${patientId}`
+        );
         return response.data;
       } catch (error) {
         console.error(
-          `Erreur lors du partage du document #${documentId}:`,
+          "Erreur lors de la récupération des documents partagés par le patient:",
           error
         );
         throw error;
@@ -142,17 +104,15 @@ const createDocumentService = (api) => {
     },
 
     /**
-     * Récupère les documents partagés avec un médecin
-     * @param {number} doctorId - ID du médecin
-     * @returns {Promise<Array>} Liste des documents partagés
+     * Récupère la liste des médecins ayant accès à un document
      */
-    getDocumentsSharedWithDoctor: async (doctorId) => {
+    getDocumentDoctorsWithAccess: async (documentId) => {
       try {
-        const response = await api.get(`/documents/shared/medecin/${doctorId}`);
+        const response = await api.get(`/documents/${documentId}/permissions`);
         return response.data;
       } catch (error) {
         console.error(
-          `Erreur lors de la récupération des documents partagés:`,
+          `Erreur lors de la récupération des permissions du document #${documentId}:`,
           error
         );
         throw error;

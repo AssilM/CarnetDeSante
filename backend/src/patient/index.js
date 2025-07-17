@@ -16,12 +16,6 @@ export {
   updatePatient,
   deletePatient,
   searchPatients,
-  addDocument,
-  getPatientDocuments,
-  getDocument,
-  deleteDocument,
-  downloadDocument,
-  viewDocument,
 } from "./patient.controller.js";
 
 // Export du service patient
@@ -37,11 +31,6 @@ export {
   updatePatientService,
   deletePatientService,
   searchPatientsService,
-  addDocumentService,
-  getPatientDocumentsService,
-  getDocumentService,
-  deleteDocumentService,
-  getDocumentForDownloadService,
 } from "./patient.service.js";
 
 // Export du repository patient

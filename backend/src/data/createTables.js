@@ -222,8 +222,10 @@ const createDocumentTable = async () => {
   const queryText = `
     CREATE TABLE IF NOT EXISTS document (
       id SERIAL PRIMARY KEY,
-      patient_id INTEGER NOT NULL REFERENCES patient(utilisateur_id) ON DELETE CASCADE,
+      patient_id INTEGER REFERENCES patient(utilisateur_id) ON DELETE CASCADE,
       medecin_id INTEGER REFERENCES medecin(utilisateur_id) ON DELETE SET NULL,
+      uploader_id INTEGER REFERENCES utilisateur(id),
+      type_id INTEGER REFERENCES document_type(id),
       titre VARCHAR(255) NOT NULL,
       nom_fichier VARCHAR(255) NOT NULL,
       chemin_fichier VARCHAR(500) NOT NULL,
@@ -406,31 +408,6 @@ const createDocumentPermissionTable = async () => {
   }
 };
 
-// 4. Altération de la table document
-const alterDocumentTable = async () => {
-  // Ajout des colonnes uploader_id et type_id
-  const addColumnsQuery = `
-    ALTER TABLE document
-      ADD COLUMN IF NOT EXISTS uploader_id INTEGER REFERENCES utilisateur(id),
-      ADD COLUMN IF NOT EXISTS type_id INTEGER REFERENCES document_type(id)
-  `;
-  // Suppression de l'ancien champ type_document
-  const dropOldTypeColumnQuery = `
-    ALTER TABLE document
-      DROP COLUMN IF EXISTS type_document
-  `;
-  try {
-    await pool.query(addColumnsQuery);
-    await pool.query(dropOldTypeColumnQuery);
-    console.log(
-      "Table document altérée (uploader_id, type_id, suppression type_document)"
-    );
-  } catch (error) {
-    console.error("Erreur lors de l'altération de la table document:", error);
-    throw error;
-  }
-};
-
 // 5. Index spécifiques pour les nouvelles tables
 const createNewIndexes = async () => {
   const queries = [
@@ -530,7 +507,6 @@ const initTables = async () => {
     await createDocumentTypeTable();
     await seedDocumentTypes();
     await createDocumentTable();
-    await alterDocumentTable();
     await createPatientDoctorTable();
     await createDocumentPermissionTable();
     await createDocumentsRendezVousTable();
@@ -561,8 +537,6 @@ export {
   seedDocumentTypes,
   createPatientDoctorTable,
   createDocumentPermissionTable,
-  alterDocumentTable,
-  createNewIndexes,
   createSpecialiteTable,
   seedSpecialites,
 };

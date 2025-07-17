@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import PageWrapper from "../../components/PageWrapper";
-import { useAuth } from "../../context/AuthContext";
 import { httpService } from "../../services/http";
 import createDoctorService from "../../services/api/doctorService";
 import createAppointmentService from "../../services/api/appointmentService";
+import createDocumentService from "../../services/api/documentService";
 import AppointmentModals from "../../components/doctor/agenda/AppointmentModals";
 import {
   FaUserCircle,
@@ -17,11 +17,15 @@ import {
   FaChevronRight,
   FaFileAlt,
   FaStickyNote,
+  FaDownload,
+  FaTimes,
+  FaEye,
 } from "react-icons/fa";
 import { formatDateTimeFr } from "../../utils/date.utils";
 
 const doctorService = createDoctorService(httpService);
 const appointmentService = createAppointmentService(httpService);
+const documentService = createDocumentService(httpService);
 
 // Badge de statut réutilisable
 const StatusBadge = ({ status }) => {
@@ -67,6 +71,106 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+const PreviewDocumentModal = ({ doc, onClose }) => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [documentUrl, setDocumentUrl] = useState(null);
+  const [documentType, setDocumentType] = useState(null);
+
+  useEffect(() => {
+    if (!doc) return;
+    const fetchDoc = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await httpService.get(
+          `/documents/${doc.id}/download`,
+          { responseType: "blob" }
+        );
+        const contentType =
+          response.headers["content-type"] || "application/octet-stream";
+        setDocumentType(contentType);
+        const blob = new Blob([response.data], { type: contentType });
+        const blobUrl = window.URL.createObjectURL(blob);
+        setDocumentUrl(blobUrl);
+      } catch {
+        setError("Impossible de charger le document pour la prévisualisation");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDoc();
+    return () => {
+      if (documentUrl) window.URL.revokeObjectURL(documentUrl);
+    };
+    // eslint-disable-next-line
+  }, [doc?.id]);
+
+  const renderContent = () => {
+    if (loading) return <div className="text-center p-8">Chargement...</div>;
+    if (error)
+      return <div className="text-center text-red-500 p-8">{error}</div>;
+    if (!documentUrl || !documentType)
+      return <div className="text-center p-8">Document non disponible</div>;
+    if (documentType.includes("pdf")) {
+      return (
+        <iframe
+          src={documentUrl}
+          className="w-full h-[80vh] border-0 rounded"
+          title={`Document: ${doc.titre}`}
+        >
+          <p>Votre navigateur ne supporte pas l'affichage PDF.</p>
+        </iframe>
+      );
+    }
+    if (documentType.includes("image/")) {
+      return (
+        <div className="flex justify-center">
+          <img
+            src={documentUrl}
+            alt={doc.titre}
+            className="max-w-full max-h-[80vh] object-contain rounded shadow"
+          />
+        </div>
+      );
+    }
+    return (
+      <div className="text-center p-8">
+        Aperçu non disponible pour ce type de fichier
+      </div>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-[90vw] relative animate-fade-in overflow-hidden border border-gray-200">
+        <button
+          className="absolute top-2 right-2 text-gray-500 hover:text-gray-900 text-2xl"
+          onClick={onClose}
+          aria-label="Fermer"
+        >
+          <FaTimes />
+        </button>
+        <div className="p-6">
+          <h2 className="text-lg font-semibold mb-4">
+            Prévisualisation du document
+          </h2>
+          <div
+            style={{
+              width: "80vw",
+              maxWidth: "80vw",
+              height: "80vh",
+              maxHeight: "80vh",
+            }}
+          >
+            {renderContent()}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PatientDetailsModal = ({ patient, onClose }) => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +178,10 @@ const PatientDetailsModal = ({ patient, onClose }) => {
   const [activeTab, setActiveTab] = useState("infos");
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [sharedDocuments, setSharedDocuments] = useState([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+  const [errorDocs, setErrorDocs] = useState(null);
+  const [previewDoc, setPreviewDoc] = useState(null);
 
   useEffect(() => {
     if (!patient) return;
@@ -84,6 +192,19 @@ const PatientDetailsModal = ({ patient, onClose }) => {
       .then((data) => setAppointments(data))
       .catch(() => setError("Erreur lors du chargement des rendez-vous."))
       .finally(() => setLoading(false));
+
+    // Charger les documents partagés par le patient au médecin connecté
+    setLoadingDocs(true);
+    setErrorDocs(null);
+    documentService
+      .getDocumentsSharedByPatient(patient.utilisateur_id)
+      .then((data) => {
+        setSharedDocuments(data.documents || []);
+      })
+      .catch(() =>
+        setErrorDocs("Erreur lors du chargement des documents partagés.")
+      )
+      .finally(() => setLoadingDocs(false));
   }, [patient]);
 
   if (!patient) return null;
@@ -295,9 +416,93 @@ const PatientDetailsModal = ({ patient, onClose }) => {
             </div>
           )}
           {activeTab === "docs" && (
-            <div className="text-gray-500 flex flex-col items-center justify-center h-32">
-              <FaFileAlt className="text-3xl mb-2" />
-              <span>Pas encore de documents liés à ce patient.</span>
+            <div>
+              <h3 className="text-lg font-semibold mb-2 text-primary">
+                Documents partagés par le patient
+              </h3>
+              {loadingDocs ? (
+                <div className="text-gray-500">Chargement...</div>
+              ) : errorDocs ? (
+                <div className="text-red-500">{errorDocs}</div>
+              ) : sharedDocuments.length === 0 ? (
+                <div className="text-gray-500">
+                  Aucun document partagé par ce patient.
+                </div>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {sharedDocuments.map((doc) => (
+                    <li
+                      key={doc.id}
+                      className="py-3 flex items-center gap-3 group"
+                    >
+                      <FaFileAlt className="text-gray-400" />
+                      <span
+                        className="font-medium cursor-pointer hover:underline"
+                        onClick={() => setPreviewDoc(doc)}
+                        title="Prévisualiser le document"
+                      >
+                        {doc.titre}
+                      </span>
+                      <span className="ml-2 text-gray-700">
+                        {doc.type_document}
+                      </span>
+                      <span className="ml-2 text-gray-500 text-sm">
+                        {new Date(doc.date_creation).toLocaleDateString(
+                          "fr-FR"
+                        )}
+                      </span>
+                      <button
+                        className="ml-auto px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm flex items-center mr-2"
+                        onClick={() => setPreviewDoc(doc)}
+                        title="Prévisualiser le document"
+                      >
+                        <FaEye className="mr-1" /> Prévisualiser
+                      </button>
+                      <button
+                        className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm flex items-center"
+                        onClick={async () => {
+                          try {
+                            const response = await httpService.get(
+                              `/documents/${doc.id}/download`,
+                              { responseType: "blob" }
+                            );
+                            const contentType =
+                              response.headers["content-type"] ||
+                              "application/octet-stream";
+                            let fileName =
+                              doc.nom_fichier ||
+                              doc.titre ||
+                              `document-${doc.id}`;
+                            const contentDisposition =
+                              response.headers["content-disposition"];
+                            if (contentDisposition) {
+                              const match =
+                                contentDisposition.match(/filename="([^"]+)"/);
+                              if (match) fileName = match[1];
+                            }
+                            const blob = new Blob([response.data], {
+                              type: contentType,
+                            });
+                            const url = window.URL.createObjectURL(blob);
+                            const link = document.createElement("a");
+                            link.href = url;
+                            link.setAttribute("download", fileName);
+                            document.body.appendChild(link);
+                            link.click();
+                            link.remove();
+                            window.URL.revokeObjectURL(url);
+                          } catch {
+                            alert("Erreur lors du téléchargement du document");
+                          }
+                        }}
+                        title="Télécharger le document"
+                      >
+                        <FaDownload className="mr-1" /> Télécharger
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
           {activeTab === "notes" && (
@@ -308,6 +513,12 @@ const PatientDetailsModal = ({ patient, onClose }) => {
           )}
         </div>
       </div>
+      {previewDoc && (
+        <PreviewDocumentModal
+          doc={previewDoc}
+          onClose={() => setPreviewDoc(null)}
+        />
+      )}
       {/* Modal de détail du rendez-vous */}
       {showAppointmentModal && selectedAppointment && (
         <AppointmentModals
@@ -334,14 +545,12 @@ const PatientDetailsModal = ({ patient, onClose }) => {
 };
 
 const PatientsList = () => {
-  const { currentUser } = useAuth();
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPatient, setSelectedPatient] = useState(null);
 
   useEffect(() => {
-    if (!currentUser) return;
     setLoading(true);
     setError(null);
     doctorService
@@ -349,7 +558,7 @@ const PatientsList = () => {
       .then((data) => setPatients(data))
       .catch(() => setError("Erreur lors du chargement des patients."))
       .finally(() => setLoading(false));
-  }, [currentUser]);
+  }, []);
 
   return (
     <PageWrapper className="bg-gray-50 min-h-screen">

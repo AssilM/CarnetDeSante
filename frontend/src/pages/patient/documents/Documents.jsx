@@ -6,6 +6,9 @@ import { ItemsList, ActionButton } from "../../../components/patient/common";
 import AddDocumentForm from "../../../components/patient/documents/AddDocumentForm";
 import { useFormModal } from "../../../hooks";
 import { httpService } from "../../../services";
+import createDocumentService from "../../../services/api/documentService";
+
+const documentService = createDocumentService(httpService);
 
 const Documents = () => {
   const navigate = useNavigate();
@@ -24,69 +27,23 @@ const Documents = () => {
   const submitDocument = async (formData) => {
     try {
       setLoading(true);
-      console.log("📤 Soumission du formulaire:", formData);
-      console.log("👤 Utilisateur connecté:", currentUser);
-
-      // Créer un FormData pour l'upload de fichier
       const data = new FormData();
       data.append("titre", formData.titre);
       data.append("type_document", formData.type_document);
       data.append("date_creation", formData.date_creation);
       data.append("description", formData.description || "");
-      data.append("document", formData.file); // Le fichier
-
-      // Ajouter le patient_id (utilisateur connecté)
-      // Essayons différentes propriétés de currentUser
-      const patientId =
-        currentUser?.id || currentUser?.userId || currentUser?.user_id;
-      console.log("🔍 Patient ID trouvé:", patientId);
-
-      if (patientId) {
-        data.append("patient_id", patientId.toString());
-      } else {
-        console.error(
-          "❌ Aucun patient_id trouvé dans currentUser:",
-          currentUser
-        );
-        throw new Error("Utilisateur non identifié");
-      }
-
-      console.log("📤 Données à envoyer:", {
-        titre: formData.titre,
-        type_document: formData.type_document,
-        date_creation: formData.date_creation,
-        description: formData.description,
-        patient_id: patientId,
-        file: formData.file?.name,
-      });
-
-      // Appel API
-      const response = await httpService.post("/patient/documents", data, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      console.log("✅ Réponse API:", response.data);
-
-      // Afficher la notification de succès
-      if (response.data.notification) {
-        showNotification(response.data.notification);
-      }
-
-      // Recharger la liste des documents
+      data.append("document", formData.file);
+      // patient_id n'est plus nécessaire, le backend l'infère via le token
+      const response = await documentService.createDocument(data);
+      if (response.notification) showNotification(response.notification);
       await loadDocuments();
       closeForm();
     } catch (error) {
-      console.error("❌ Erreur lors de l'ajout du document:", error);
-
-      // Afficher la notification d'erreur
       const errorNotification = error.response?.data?.notification || {
         type: "error",
         title: "Erreur",
         message: "Une erreur est survenue lors de l'ajout du document",
       };
-
       showNotification(errorNotification);
     } finally {
       setLoading(false);
@@ -104,21 +61,9 @@ const Documents = () => {
   // Fonction pour charger les documents depuis l'API
   const loadDocuments = async () => {
     try {
-      if (!currentUser?.id) {
-        console.log("👤 Utilisateur non chargé, attente...");
-        return;
-      }
-
-      console.log("📥 Chargement des documents depuis l'API...");
-      const response = await httpService.get(
-        `/patient/${currentUser.id}/documents`
-      );
-
-      console.log("📄 Réponse brute de l'API:", response.data);
-
-      if (response.data.success) {
-        // Convertir les documents de l'API au format attendu par le contexte
-        const documentsFormatted = response.data.documents.map((doc) => ({
+      const response = await documentService.getMyDocuments();
+      if (response.success) {
+        const documentsFormatted = response.documents.map((doc) => ({
           id: doc.id,
           name: doc.titre,
           date: new Date(doc.date_creation).toLocaleDateString("fr-FR"),
@@ -128,16 +73,13 @@ const Documents = () => {
             ? `Dr. ${doc.medecin_nom} ${doc.medecin_prenom}`
             : "Auto-ajouté",
           subtitle: doc.type_document,
-          url: `/api/patient/documents/${doc.id}/download`, // URL de téléchargement
-          originalFileName: doc.nom_fichier, // Nom de fichier original avec extension
-          pinned: false, // TODO: implémenter la fonctionnalité d'épinglage
+          url: `/api/documents/${doc.id}/download`,
+          originalFileName: doc.nom_fichier,
+          pinned: false,
         }));
-
-        console.log("✅ Documents chargés:", documentsFormatted);
         setItems(documentsFormatted);
       }
-    } catch (error) {
-      console.error("❌ Erreur lors du chargement des documents:", error);
+    } catch {
       showNotification({
         type: "error",
         title: "Erreur de chargement",
