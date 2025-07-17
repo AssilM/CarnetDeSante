@@ -513,10 +513,10 @@ const DocumentDetails = () => {
     // Rendu selon le type de document
     if (documentType.includes("pdf")) {
       return (
-        <div className="w-full h-screen max-h-[80vh]">
+        <div className="w-full h-[70vh]">
           <iframe
             src={documentUrl}
-            className="w-full h-full border-0 rounded-lg"
+            className="w-full h-full border-0"
             title={`Document: ${selectedItem.name}`}
           >
             <p>
@@ -580,34 +580,32 @@ const DocumentDetails = () => {
     <PageWrapper className="bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* En-tête avec bouton retour et téléchargement */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between flex-wrap gap-2 sm:gap-4">
           <button
             onClick={handleBack}
-            className="flex items-center text-gray-600 hover:text-gray-900"
+            className="flex items-center text-gray-600 hover:text-gray-900 text-sm px-2 py-1"
           >
             <FaArrowLeft className="mr-2" />
             Retour
           </button>
-          <div className="flex gap-2">
-            {/* Bouton partager à un médecin (ouvre la modale) */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 w-full sm:w-auto">
             <button
               onClick={handleOpenShareModal}
-              className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
+              className="px-2 py-1 sm:px-3 sm:py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center text-sm justify-center"
             >
               <FaShareAlt className="mr-1" />
               Partager à un médecin
             </button>
-            {/* Bouton voir accès */}
             <button
               onClick={handleOpenAccessModal}
-              className="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 flex items-center"
+              className="px-2 py-1 sm:px-3 sm:py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 flex items-center text-sm justify-center"
             >
               <FaUserMd className="mr-1" />
-              Voir les médecins ayant accès
+              Voir accès
             </button>
             <button
               onClick={handleDownload}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
+              className="px-2 py-1 sm:px-4 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center text-sm justify-center"
             >
               <FaDownload className="mr-2" />
               Télécharger
@@ -622,7 +620,7 @@ const DocumentDetails = () => {
                 ? "bg-green-500"
                 : "bg-red-500"
             }`}
-            style={{ minWidth: 280, maxWidth: 400 }}
+            style={{ minWidth: 200, maxWidth: 320 }}
           >
             {shareNotification.message}
           </div>
@@ -653,59 +651,78 @@ const DocumentDetails = () => {
         {/* Carte principale */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           {/* En-tête de la carte */}
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center">
-                <FaFileAlt className="text-2xl text-primary" />
+          <div className="p-4 sm:p-6 border-b border-gray-200">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-secondary rounded-lg flex items-center justify-center">
+                <FaFileAlt className="text-xl sm:text-2xl text-primary" />
               </div>
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">
-                  {selectedItem?.name}
+              <div className="min-w-0">
+                <h1
+                  className="text-lg sm:text-2xl font-semibold text-gray-900 break-words max-w-full"
+                  title={selectedItem?.name}
+                  style={{ wordBreak: "break-word" }}
+                >
+                  {selectedItem?.name && selectedItem.name.length > 80
+                    ? selectedItem.name.slice(0, 80) + "…"
+                    : selectedItem?.name}
                 </h1>
-                <p className="text-gray-500">{selectedItem?.date}</p>
+                <p className="text-gray-500 text-xs sm:text-base">
+                  {selectedItem?.date}
+                </p>
               </div>
             </div>
           </div>
 
           {/* Informations du document */}
-          <div className="p-6 border-b border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="p-4 sm:p-6 border-b border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
               <div>
-                <h2 className="text-sm font-medium text-gray-500 mb-1">
+                <h2 className="text-xs sm:text-sm font-medium text-gray-500 mb-1">
                   Type de document
                 </h2>
-                <p className="text-gray-900">{selectedItem?.type}</p>
+                <p className="text-gray-900 text-sm sm:text-base">
+                  {selectedItem?.type}
+                </p>
               </div>
-
               <div>
-                <h2 className="text-sm font-medium text-gray-500 mb-1">
+                <h2 className="text-xs sm:text-sm font-medium text-gray-500 mb-1">
                   Émis par
                 </h2>
-                <p className="text-gray-900">{selectedItem?.issuedBy}</p>
+                <p className="text-gray-900 text-sm sm:text-base">
+                  {selectedItem?.issuedBy}
+                </p>
               </div>
-
               <div>
-                <h2 className="text-sm font-medium text-gray-500 mb-1">Date</h2>
-                <p className="text-gray-900">{selectedItem?.date}</p>
+                <h2 className="text-xs sm:text-sm font-medium text-gray-500 mb-1">
+                  Date
+                </h2>
+                <p className="text-gray-900 text-sm sm:text-base">
+                  {selectedItem?.date}
+                </p>
               </div>
-
               {selectedItem?.description && (
                 <div className="md:col-span-3">
-                  <h2 className="text-sm font-medium text-gray-500 mb-1">
+                  <h2 className="text-xs sm:text-sm font-medium text-gray-500 mb-1">
                     Description
                   </h2>
-                  <p className="text-gray-900">{selectedItem?.description}</p>
+                  <p className="text-gray-900 text-sm sm:text-base">
+                    {selectedItem?.description}
+                  </p>
                 </div>
               )}
             </div>
           </div>
 
           {/* Aperçu du document */}
-          <div className="p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
+          <div className="p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-2 sm:mb-4">
               Aperçu du document
             </h2>
-            {renderDocumentContent()}
+            <div className="w-full flex justify-center">
+              <div className="w-full max-w-full sm:max-w-2xl rounded-lg border border-gray-100 bg-gray-50 p-2 sm:p-4">
+                {renderDocumentContent()}
+              </div>
+            </div>
           </div>
         </div>
       </div>

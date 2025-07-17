@@ -95,11 +95,6 @@ const Sidebar = () => {
       path: "/doctor/availability",
     },
     {
-      icon: <MdDescription className="text-2xl" />,
-      label: "Documents",
-      path: "/documents",
-    },
-    {
       icon: <FaCog className="text-2xl" />,
       label: "Paramètres",
       path: "/settings",

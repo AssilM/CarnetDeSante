@@ -82,7 +82,31 @@ const ItemCard = ({
             <Icon className={`text-xl ${text}`} />
           </div>
           <div className="flex-grow">
-            <h3 className="text-sm font-medium text-gray-900">{title}</h3>
+            <h3
+              className={`text-sm font-medium text-gray-900 ${
+                type === "document"
+                  ? "max-w-[120px] break-words sm:max-w-xs sm:overflow-hidden sm:text-ellipsis sm:whitespace-nowrap"
+                  : ""
+              }`}
+              title={type === "document" ? title : undefined}
+            >
+              {type === "document" && title ? (
+                title.length > 40 ? (
+                  <>
+                    <span className="hidden sm:inline">
+                      {title.slice(0, 40) + "…"}
+                    </span>
+                    <span className="sm:hidden">
+                      {title.length > 20 ? title.slice(0, 20) + "…" : title}
+                    </span>
+                  </>
+                ) : (
+                  <>{title}</>
+                )
+              ) : (
+                title
+              )}
+            </h3>
             <p className="text-sm text-gray-500">{date}</p>
             {subtitle && (
               <p className="text-sm text-gray-600 mt-1">{subtitle}</p>

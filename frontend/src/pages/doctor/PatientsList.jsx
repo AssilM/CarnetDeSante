@@ -183,6 +183,14 @@ const PatientDetailsModal = ({ patient, onClose }) => {
   const [errorDocs, setErrorDocs] = useState(null);
   const [previewDoc, setPreviewDoc] = useState(null);
 
+  // Blocage du scroll arrière-plan comme dans AppointmentModals
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, []);
+
   useEffect(() => {
     if (!patient) return;
     setLoading(true);
@@ -248,10 +256,10 @@ const PatientDetailsModal = ({ patient, onClose }) => {
   // --- FIN LOGIQUE ---
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl relative animate-fade-in overflow-hidden border border-gray-200">
-        {/* Header coloré */}
-        <div className="bg-primary text-white p-6 flex items-center gap-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-2 sm:px-0">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl relative animate-fade-in overflow-hidden mx-2 sm:mx-0">
+        {/* Header bleu foncé harmonisé */}
+        <div className="bg-[#002846] text-white p-6 flex items-center gap-4">
           <FaUserCircle className="text-5xl" />
           <div>
             <h2 className="text-2xl font-bold">
@@ -271,6 +279,7 @@ const PatientDetailsModal = ({ patient, onClose }) => {
             className="ml-auto text-white/80 hover:text-white text-2xl"
             onClick={onClose}
             aria-label="Fermer"
+            style={{ background: "none", border: "none" }}
           >
             ×
           </button>
@@ -433,72 +442,80 @@ const PatientDetailsModal = ({ patient, onClose }) => {
                   {sharedDocuments.map((doc) => (
                     <li
                       key={doc.id}
-                      className="py-3 flex items-center gap-3 group"
+                      className="py-3 flex flex-wrap items-center gap-3 group"
                     >
                       <FaFileAlt className="text-gray-400" />
                       <span
-                        className="font-medium cursor-pointer hover:underline"
+                        className="font-medium cursor-pointer hover:underline max-w-xs overflow-hidden text-ellipsis whitespace-nowrap"
                         onClick={() => setPreviewDoc(doc)}
-                        title="Prévisualiser le document"
+                        title={doc.titre}
                       >
-                        {doc.titre}
+                        {doc.titre.length > 40
+                          ? doc.titre.slice(0, 40) + "…"
+                          : doc.titre}
                       </span>
-                      <span className="ml-2 text-gray-700">
+                      <span className="ml-2 text-gray-700 text-sm">
                         {doc.type_document}
                       </span>
-                      <span className="ml-2 text-gray-500 text-sm">
+                      <span className="ml-2 text-gray-500 text-xs">
                         {new Date(doc.date_creation).toLocaleDateString(
                           "fr-FR"
                         )}
                       </span>
-                      <button
-                        className="ml-auto px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm flex items-center mr-2"
-                        onClick={() => setPreviewDoc(doc)}
-                        title="Prévisualiser le document"
-                      >
-                        <FaEye className="mr-1" /> Prévisualiser
-                      </button>
-                      <button
-                        className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm flex items-center"
-                        onClick={async () => {
-                          try {
-                            const response = await httpService.get(
-                              `/documents/${doc.id}/download`,
-                              { responseType: "blob" }
-                            );
-                            const contentType =
-                              response.headers["content-type"] ||
-                              "application/octet-stream";
-                            let fileName =
-                              doc.nom_fichier ||
-                              doc.titre ||
-                              `document-${doc.id}`;
-                            const contentDisposition =
-                              response.headers["content-disposition"];
-                            if (contentDisposition) {
-                              const match =
-                                contentDisposition.match(/filename="([^"]+)"/);
-                              if (match) fileName = match[1];
+                      <div className="ml-auto flex gap-2">
+                        <button
+                          className="p-2 rounded hover:bg-gray-200 text-gray-700"
+                          onClick={() => setPreviewDoc(doc)}
+                          title="Prévisualiser"
+                        >
+                          <FaEye />
+                        </button>
+                        <button
+                          className="p-2 rounded hover:bg-blue-100 text-blue-600"
+                          onClick={async () => {
+                            try {
+                              const response = await httpService.get(
+                                `/documents/${doc.id}/download`,
+                                { responseType: "blob" }
+                              );
+                              const contentType =
+                                response.headers["content-type"] ||
+                                "application/octet-stream";
+                              let fileName =
+                                doc.nom_fichier ||
+                                doc.titre ||
+                                `document-${doc.id}`;
+                              const contentDisposition =
+                                response.headers["content-disposition"];
+                              if (contentDisposition) {
+                                const match =
+                                  contentDisposition.match(
+                                    /filename="([^"]+)"/
+                                  );
+                                if (match) fileName = match[1];
+                              }
+                              const blob = new Blob([response.data], {
+                                type: contentType,
+                              });
+                              const url = window.URL.createObjectURL(blob);
+                              const link = document.createElement("a");
+                              link.href = url;
+                              link.setAttribute("download", fileName);
+                              document.body.appendChild(link);
+                              link.click();
+                              link.remove();
+                              window.URL.revokeObjectURL(url);
+                            } catch {
+                              alert(
+                                "Erreur lors du téléchargement du document"
+                              );
                             }
-                            const blob = new Blob([response.data], {
-                              type: contentType,
-                            });
-                            const url = window.URL.createObjectURL(blob);
-                            const link = document.createElement("a");
-                            link.href = url;
-                            link.setAttribute("download", fileName);
-                            document.body.appendChild(link);
-                            link.click();
-                            link.remove();
-                            window.URL.revokeObjectURL(url);
-                          } catch {
-                            alert("Erreur lors du téléchargement du document");
-                          }
-                        }}
-                        title="Télécharger le document"
-                      >
-                        <FaDownload className="mr-1" /> Télécharger
-                      </button>
+                          }}
+                          title="Télécharger"
+                        >
+                          <FaDownload />
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>

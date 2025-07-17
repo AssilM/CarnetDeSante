@@ -18,6 +18,7 @@ import {
   FaChevronRight,
   FaNotesMedical,
   FaArrowLeft,
+  FaDownload,
 } from "react-icons/fa";
 import { useDoctorAppointmentContext } from "../../../context/DoctorAppointmentContext";
 import createDocumentService from "../../../services/api/documentService";
@@ -589,7 +590,7 @@ const AppointmentModals = ({
           onClick={handleCloseDetail}
         >
           <div
-            className="bg-white rounded-xl shadow-xl w-full max-w-5xl relative border border-[#E9ECEF] max-h-[90vh] overflow-hidden flex flex-col"
+            className="bg-white rounded-xl shadow-xl w-full max-w-5xl relative max-h-[90vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* En-tête du modal avec info patient */}
@@ -919,10 +920,17 @@ const AppointmentModals = ({
                             {rdvDocuments.map((doc) => (
                               <li
                                 key={doc.id}
-                                className="py-3 flex items-center gap-3"
+                                className="py-3 flex flex-wrap items-center gap-3"
                               >
                                 <FaFileAlt className="text-gray-400" />
-                                <span className="font-medium">{doc.titre}</span>
+                                <span
+                                  className="font-medium max-w-xs overflow-hidden text-ellipsis whitespace-nowrap"
+                                  title={doc.titre}
+                                >
+                                  {doc.titre.length > 40
+                                    ? doc.titre.slice(0, 40) + "…"
+                                    : doc.titre}
+                                </span>
                                 <span className="ml-2 text-gray-700">
                                   {doc.type_document}
                                 </span>
@@ -931,21 +939,24 @@ const AppointmentModals = ({
                                     doc.date_creation
                                   ).toLocaleDateString("fr-FR")}
                                 </span>
-                                <button
-                                  className="ml-auto px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm flex items-center mr-2"
-                                  onClick={() => setPreviewDoc(doc)}
-                                  title="Prévisualiser le document"
-                                >
-                                  <FaEye className="mr-1" /> Prévisualiser
-                                </button>
-                                <a
-                                  href={`/api/documents/${doc.id}/download`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                                >
-                                  Télécharger
-                                </a>
+                                <div className="ml-auto flex gap-2">
+                                  <button
+                                    className="p-2 rounded hover:bg-gray-200 text-gray-700"
+                                    onClick={() => setPreviewDoc(doc)}
+                                    title="Prévisualiser"
+                                  >
+                                    <FaEye />
+                                  </button>
+                                  <a
+                                    href={`/api/documents/${doc.id}/download`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-2 rounded hover:bg-blue-100 text-blue-600"
+                                    title="Télécharger"
+                                  >
+                                    <FaDownload />
+                                  </a>
+                                </div>
                               </li>
                             ))}
                           </ul>
@@ -964,7 +975,7 @@ const AppointmentModals = ({
       {showStartModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div
-            className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md relative border border-[#E9ECEF]"
+            className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md relative"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
@@ -1030,7 +1041,7 @@ const AppointmentModals = ({
       {showFinishModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div
-            className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md relative border border-[#E9ECEF]"
+            className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md relative"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
@@ -1096,7 +1107,7 @@ const AppointmentModals = ({
       {showCancelModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div
-            className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md relative border border-[#E9ECEF]"
+            className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md relative"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
@@ -1176,7 +1187,7 @@ const AppointmentModals = ({
       {showAddDocModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
           <div
-            className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg relative border border-[#E9ECEF]"
+            className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg relative"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
