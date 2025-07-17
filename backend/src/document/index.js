@@ -16,6 +16,8 @@ import {
   revokeDocumentByPatient,
   getDocumentsSharedByPatientToDoctor,
   getDocumentDoctorsWithAccess,
+  createDocumentByDoctorWithRdv,
+  getDocumentsByRendezVous,
 } from "./document.controller.js";
 
 const router = express.Router();
@@ -36,6 +38,14 @@ router.post(
   authorize(["medecin"]),
   uploadDocument,
   createDocumentByDoctor
+);
+
+// Upload document (médecin) lié à un rendez-vous
+router.post(
+  "/doctor-with-rdv",
+  authorize(["medecin"]),
+  uploadDocument,
+  createDocumentByDoctorWithRdv
 );
 
 // Récupérer tous les documents accessibles à l'utilisateur
@@ -64,6 +74,13 @@ router.get(
   "/shared-by-patient/:patientId",
   authorize(["medecin"]),
   getDocumentsSharedByPatientToDoctor
+);
+
+// Récupérer tous les documents liés à un rendez-vous
+router.get(
+  "/by-rendezvous/:rendezVousId",
+  authorize(["medecin", "patient", "admin"]),
+  getDocumentsByRendezVous
 );
 
 // Liste des permissions (médecins ayant accès) pour un document

@@ -136,15 +136,37 @@ class DocumentRepository {
     );
     return rows;
   }
-}
 
-// Helper pour vérifier l'existence d'un patient
-export async function findPatientById(patientId) {
-  const { rows } = await pool.query(
-    "SELECT utilisateur_id FROM patient WHERE utilisateur_id = $1",
-    [patientId]
-  );
-  return rows.length > 0;
+  // Lier un document à un rendez-vous
+  async linkDocumentToRendezVous(documentId, rendezVousId) {
+    await pool.query(
+      `INSERT INTO documents_rendez_vous (document_id, rendez_vous_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [documentId, rendezVousId]
+    );
+    return { success: true };
+  }
+
+  // Récupérer tous les documents liés à un rendez-vous
+  async getDocumentsByRendezVous(rendezVousId) {
+    const { rows } = await pool.query(
+      `SELECT d.*
+       FROM document d
+       JOIN documents_rendez_vous drv ON drv.document_id = d.id
+       WHERE drv.rendez_vous_id = $1
+       ORDER BY d.date_creation DESC, d.created_at DESC`,
+      [rendezVousId]
+    );
+    return rows;
+  }
+
+  // Vérifie l'existence d'un patient par son utilisateur_id
+  async findPatientById(patientId) {
+    const { rows } = await pool.query(
+      "SELECT utilisateur_id FROM patient WHERE utilisateur_id = $1",
+      [patientId]
+    );
+    return rows.length > 0;
+  }
 }
 
 export default new DocumentRepository();

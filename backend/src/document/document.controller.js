@@ -7,6 +7,7 @@ import {
   getDocumentsSharedByPatientToDoctorService,
   getDocumentDoctorsWithAccessService,
   shareDocumentByPatientService,
+  getDocumentsByRendezVousService,
 } from "./document.service.js";
 import path from "path";
 import fs from "fs";
@@ -279,6 +280,37 @@ export const getDocumentDoctorsWithAccess = async (req, res, next) => {
     const { id } = req.params;
     const doctors = await getDocumentDoctorsWithAccessService(id);
     res.status(200).json({ success: true, doctors });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Upload document (médecin) lié à un rendez-vous
+export const createDocumentByDoctorWithRdv = async (req, res, next) => {
+  try {
+    const doctorId = req.userId;
+    const userRole = req.userRole;
+    const documentData = req.body;
+    const file = req.file;
+    // Appel du service dédié (gère la liaison au RDV)
+    const doc = await createDocumentByDoctorService(
+      doctorId,
+      userRole,
+      documentData,
+      file
+    );
+    res.status(201).json({ document: doc });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Récupérer tous les documents liés à un rendez-vous
+export const getDocumentsByRendezVous = async (req, res, next) => {
+  try {
+    const { rendezVousId } = req.params;
+    const docs = await getDocumentsByRendezVousService(rendezVousId);
+    res.status(200).json({ success: true, documents: docs });
   } catch (error) {
     next(error);
   }

@@ -128,6 +128,13 @@ export const createDocumentByDoctorService = async (
     doctorId,
     "author"
   );
+  // 7. Lier au rendez-vous si besoin
+  if (documentData.rendez_vous_id) {
+    await documentRepository.linkDocumentToRendezVous(
+      insertedDocument.id,
+      parseInt(documentData.rendez_vous_id)
+    );
+  }
   return insertedDocument;
 };
 
@@ -209,4 +216,8 @@ export const shareDocumentByPatientService = async (
     "shared",
     expiresAt
   );
+};
+
+export const getDocumentsByRendezVousService = async (rendezVousId) => {
+  return await documentRepository.getDocumentsByRendezVous(rendezVousId);
 };

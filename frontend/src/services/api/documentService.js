@@ -118,6 +118,48 @@ const createDocumentService = (api) => {
         throw error;
       }
     },
+
+    /**
+     * Upload d'un document par un médecin lié à un rendez-vous
+     */
+    createDocumentByDoctorWithRdv: async (formData) => {
+      try {
+        const response = await api.post(
+          "/documents/doctor-with-rdv",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+        return response.data;
+      } catch (error) {
+        console.error(
+          "Erreur lors de la création du document (médecin + RDV):",
+          error
+        );
+        throw error;
+      }
+    },
+
+    /**
+     * Récupère tous les documents liés à un rendez-vous
+     */
+    getDocumentsByRendezVous: async (rendezVousId) => {
+      try {
+        const response = await api.get(
+          `/documents/by-rendezvous/${rendezVousId}`
+        );
+        return response.data;
+      } catch (error) {
+        console.error(
+          "Erreur lors de la récupération des documents du rendez-vous:",
+          error
+        );
+        throw error;
+      }
+    },
   };
 };
 

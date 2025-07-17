@@ -20,6 +20,111 @@ import {
   FaArrowLeft,
 } from "react-icons/fa";
 import { useDoctorAppointmentContext } from "../../../context/DoctorAppointmentContext";
+import createDocumentService from "../../../services/api/documentService";
+import { httpService } from "../../../services";
+
+const documentService = createDocumentService(httpService);
+
+// --- Composant de prévisualisation de document (copié de PatientsList.jsx) ---
+const PreviewDocumentModal = ({ doc, onClose }) => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [documentUrl, setDocumentUrl] = useState(null);
+  const [documentType, setDocumentType] = useState(null);
+
+  useEffect(() => {
+    if (!doc) return;
+    const fetchDoc = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await httpService.get(
+          `/documents/${doc.id}/download`,
+          { responseType: "blob" }
+        );
+        const contentType =
+          response.headers["content-type"] || "application/octet-stream";
+        setDocumentType(contentType);
+        const blob = new Blob([response.data], { type: contentType });
+        const blobUrl = window.URL.createObjectURL(blob);
+        setDocumentUrl(blobUrl);
+      } catch {
+        setError("Impossible de charger le document pour la prévisualisation");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDoc();
+    return () => {
+      if (documentUrl) window.URL.revokeObjectURL(documentUrl);
+    };
+    // eslint-disable-next-line
+  }, [doc?.id]);
+
+  const renderContent = () => {
+    if (loading) return <div className="text-center p-8">Chargement...</div>;
+    if (error)
+      return <div className="text-center text-red-500 p-8">{error}</div>;
+    if (!documentUrl || !documentType)
+      return <div className="text-center p-8">Document non disponible</div>;
+    if (documentType.includes("pdf")) {
+      return (
+        <iframe
+          src={documentUrl}
+          className="w-full h-[80vh] border-0 rounded"
+          title={`Document: ${doc.titre}`}
+        >
+          <p>Votre navigateur ne supporte pas l'affichage PDF.</p>
+        </iframe>
+      );
+    }
+    if (documentType.includes("image/")) {
+      return (
+        <div className="flex justify-center">
+          <img
+            src={documentUrl}
+            alt={doc.titre}
+            className="max-w-full max-h-[80vh] object-contain rounded shadow"
+          />
+        </div>
+      );
+    }
+    return (
+      <div className="text-center p-8">
+        Aperçu non disponible pour ce type de fichier
+      </div>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-[90vw] relative animate-fade-in overflow-hidden border border-gray-200">
+        <button
+          className="absolute top-2 right-2 text-gray-500 hover:text-gray-900 text-2xl"
+          onClick={onClose}
+          aria-label="Fermer"
+        >
+          ×
+        </button>
+        <div className="p-6">
+          <h2 className="text-lg font-semibold mb-4">
+            Prévisualisation du document
+          </h2>
+          <div
+            style={{
+              width: "80vw",
+              maxWidth: "80vw",
+              height: "80vh",
+              maxHeight: "80vh",
+            }}
+          >
+            {renderContent()}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const AppointmentModals = ({
   showDetail,
@@ -52,6 +157,13 @@ const AppointmentModals = ({
   const [cancelReason, setCancelReason] = useState("");
   const [showStartModal, setShowStartModal] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
+
+  // Documents liés au rendez-vous
+  const [rdvDocuments, setRdvDocuments] = useState([]);
+  const [showAddDocModal, setShowAddDocModal] = useState(false); // NOUVEAU : contrôle la modale
+  const [docLoading, setDocLoading] = useState(false);
+  const [docNotification, setDocNotification] = useState(null);
+  const [previewDoc, setPreviewDoc] = useState(null); // NOUVEAU : doc à prévisualiser
 
   // Synchroniser l'état local avec l'appointment sélectionné
   useEffect(() => {
@@ -185,6 +297,170 @@ const AppointmentModals = ({
     }
   };
 
+  // Charger les documents liés au RDV
+  const loadRdvDocuments = async () => {
+    if (!localAppointment?.id) return;
+    try {
+      const response = await documentService.getDocumentsByRendezVous(
+        localAppointment.id
+      );
+      setRdvDocuments(response.documents || []);
+    } catch {
+      setDocNotification({
+        type: "error",
+        message: "Erreur lors du chargement des documents du rendez-vous.",
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (showDetail && localAppointment?.id) {
+      loadRdvDocuments();
+    }
+    // eslint-disable-next-line
+  }, [showDetail, localAppointment?.id]);
+
+  // Notification auto-disparition
+  useEffect(() => {
+    if (docNotification) {
+      const timer = setTimeout(() => setDocNotification(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [docNotification]);
+
+  // Soumission du document
+  const handleAddDoc = async (formData) => {
+    try {
+      setDocLoading(true);
+      const data = new FormData();
+      data.append("titre", formData.titre);
+      data.append("type_document", formData.type_document);
+      data.append("date_creation", formData.date_creation);
+      data.append("description", formData.description || "");
+      data.append("patient_id", localAppointment.patient.id);
+      data.append("rendez_vous_id", localAppointment.id);
+      data.append("document", formData.file);
+      await documentService.createDocumentByDoctorWithRdv(data);
+      setDocNotification({
+        type: "success",
+        message: "Document ajouté avec succès.",
+      });
+      setShowAddDocModal(false); // FERMER LA MODALE
+      await loadRdvDocuments();
+    } catch {
+      setDocNotification({
+        type: "error",
+        message: "Erreur lors de l'ajout du document.",
+      });
+    } finally {
+      setDocLoading(false);
+    }
+  };
+
+  // Formulaire d'ajout (même UX que AddDocumentForm patient)
+  const AddRdvDocumentForm = ({ onSubmit, onCancel }) => {
+    const [titre, setTitre] = useState("");
+    const [typeDocument, setTypeDocument] = useState("");
+    const [dateCreation, setDateCreation] = useState("");
+    const [description, setDescription] = useState("");
+    const [file, setFile] = useState(null);
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (!titre || !typeDocument || !file) {
+        return;
+      }
+      onSubmit({
+        titre,
+        type_document: typeDocument,
+        date_creation: dateCreation,
+        description,
+        file,
+      });
+    };
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Titre *</label>
+          <input
+            type="text"
+            className="border rounded px-2 py-1 w-full"
+            value={titre}
+            onChange={(e) => setTitre(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Type de document *
+          </label>
+          <input
+            type="text"
+            className="border rounded px-2 py-1 w-full"
+            value={typeDocument}
+            onChange={(e) => setTypeDocument(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Date de création
+          </label>
+          <input
+            type="date"
+            className="border rounded px-2 py-1 w-full"
+            value={dateCreation}
+            onChange={(e) => setDateCreation(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Description</label>
+          <textarea
+            className="border rounded px-2 py-1 w-full"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Fichier *</label>
+          <div className="flex items-center gap-2">
+            <input
+              id="file-upload"
+              type="file"
+              className="hidden"
+              onChange={(e) => setFile(e.target.files[0])}
+              required
+            />
+            <label
+              htmlFor="file-upload"
+              className="px-4 py-2 bg-blue-100 text-blue-700 rounded cursor-pointer hover:bg-blue-200 border border-blue-200 text-sm font-medium"
+            >
+              Choisir un fichier
+            </label>
+            <span className="text-gray-700 text-sm">
+              {file ? file.name : "Aucun fichier choisi"}
+            </span>
+          </div>
+        </div>
+        <div className="flex gap-2 mt-4">
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            disabled={docLoading}
+          >
+            Ajouter
+          </button>
+          <button
+            type="button"
+            className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+            onClick={onCancel}
+          >
+            Annuler
+          </button>
+        </div>
+      </form>
+    );
+  };
+
   // Effet pour bloquer le scroll quand une modale est ouverte
   useEffect(() => {
     const isModalOpen =
@@ -192,7 +468,9 @@ const AppointmentModals = ({
       showDayDetail ||
       showCancelModal ||
       showStartModal ||
-      showFinishModal;
+      showFinishModal ||
+      showAddDocModal ||
+      previewDoc; // Ajouter showAddDocModal et previewDoc
 
     if (isModalOpen) {
       document.body.style.overflow = "hidden";
@@ -210,6 +488,8 @@ const AppointmentModals = ({
     showCancelModal,
     showStartModal,
     showFinishModal,
+    showAddDocModal, // Ajouter showAddDocModal
+    previewDoc, // Ajouter previewDoc
   ]);
 
   // Si pas d'appointment local, ne rien afficher
@@ -606,14 +886,70 @@ const AppointmentModals = ({
                       <h3 className="font-medium text-[#1E293B] mb-4">
                         Documents du rendez-vous
                       </h3>
-                      <div className="flex flex-col items-center justify-center bg-[#F8FAFC] border border-dashed border-[#CBD5E1] rounded-lg p-6 md:p-8 h-40 md:h-64">
-                        <FaFileAlt className="text-[#CBD5E1] text-3xl md:text-4xl mb-3 md:mb-4" />
-                        <p className="text-[#64748B] mb-2 text-center">
-                          Aucun document associé à ce rendez-vous
-                        </p>
-                        <button className="mt-3 md:mt-4 px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#3A80D2] text-sm flex items-center">
-                          <FaFileMedical className="mr-2" /> Ajouter un document
-                        </button>
+                      {docNotification && (
+                        <div
+                          className={`mb-4 px-4 py-2 rounded text-white ${
+                            docNotification.type === "success"
+                              ? "bg-green-500"
+                              : "bg-red-500"
+                          }`}
+                        >
+                          {docNotification.message}
+                        </div>
+                      )}
+                      {docLoading && (
+                        <div className="mb-4 text-blue-600">
+                          Ajout du document en cours...
+                        </div>
+                      )}
+                      <button
+                        className="mt-3 mb-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm flex items-center"
+                        onClick={() => setShowAddDocModal(true)}
+                      >
+                        <FaFileAlt className="mr-2" /> Ajouter un document
+                      </button>
+                      <div className="mt-4">
+                        {rdvDocuments.length === 0 ? (
+                          <div className="text-center py-8 text-[#6C757D]">
+                            <FaFileAlt className="mx-auto text-4xl text-[#E9ECEF] mb-4" />
+                            <p>Aucun document associé à ce rendez-vous</p>
+                          </div>
+                        ) : (
+                          <ul className="divide-y divide-gray-100">
+                            {rdvDocuments.map((doc) => (
+                              <li
+                                key={doc.id}
+                                className="py-3 flex items-center gap-3"
+                              >
+                                <FaFileAlt className="text-gray-400" />
+                                <span className="font-medium">{doc.titre}</span>
+                                <span className="ml-2 text-gray-700">
+                                  {doc.type_document}
+                                </span>
+                                <span className="ml-2 text-gray-500 text-sm">
+                                  {new Date(
+                                    doc.date_creation
+                                  ).toLocaleDateString("fr-FR")}
+                                </span>
+                                <button
+                                  className="ml-auto px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm flex items-center mr-2"
+                                  onClick={() => setPreviewDoc(doc)}
+                                  title="Prévisualiser le document"
+                                >
+                                  <FaEye className="mr-1" /> Prévisualiser
+                                </button>
+                                <a
+                                  href={`/api/documents/${doc.id}/download`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                                >
+                                  Télécharger
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
                     </div>
                   )}
@@ -834,6 +1170,40 @@ const AppointmentModals = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* MODALE D'AJOUT DE DOCUMENT */}
+      {showAddDocModal && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <div
+            className="bg-white rounded-xl shadow-xl p-6 w-full max-w-lg relative border border-[#E9ECEF]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-[#343A40]">
+                Ajouter un document au rendez-vous
+              </h3>
+              <button
+                onClick={() => setShowAddDocModal(false)}
+                className="text-[#6C757D] hover:text-[#343A40]"
+              >
+                <FaTimesCircle size={22} />
+              </button>
+            </div>
+            <AddRdvDocumentForm
+              onSubmit={handleAddDoc}
+              onCancel={() => setShowAddDocModal(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* MODALE DE PREVISUALISATION DE DOCUMENT */}
+      {previewDoc && (
+        <PreviewDocumentModal
+          doc={previewDoc}
+          onClose={() => setPreviewDoc(null)}
+        />
       )}
     </>
   );
