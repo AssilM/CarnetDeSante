@@ -1,10 +1,14 @@
 import React from "react";
-import { Routes } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 
 // Routes par catégorie d'utilisateur
 import AuthRoutes from "./AuthRoutes";
 import PatientRoutes from "./PatientRoutes";
-import StaffRoutes from "./StaffRoutes";
+import DoctorRoutes from "./DoctorRoutes";
+import AdminRoutes from "./AdminRoutes";
+
+// Pages d'erreur
+import Forbidden from "../pages/Forbidden";
 
 // Layouts
 import AuthLayout from "./layouts/AuthLayout";
@@ -21,7 +25,10 @@ const AppRoutes = () => {
   return (
     <Routes>
       {/* Déployer les tableaux de routes */}
-      {[...AuthRoutes, ...PatientRoutes, ...StaffRoutes]}
+      {[...AuthRoutes, ...PatientRoutes, ...DoctorRoutes, ...AdminRoutes]}
+
+      {/* Routes d'erreur */}
+      <Route path="/403" element={<Forbidden />} />
     </Routes>
   );
 };

@@ -2,7 +2,8 @@ import React from "react";
 import { useAuth } from "../context/AuthContext";
 import BaseProviders from "./core/BaseProviders";
 import PatientProviders from "./patient/PatientProviders";
-import StaffProviders from "./staff/StaffProviders";
+import DoctorProviders from "./staff/DoctorProviders";
+import AdminProviders from "./staff/AdminProviders";
 
 /**
  * Gère le chargement conditionnel des providers selon le rôle de l'utilisateur
@@ -26,10 +27,16 @@ const ConditionalProviders = ({ children }) => {
       );
 
     case "medecin":
+      return (
+        <BaseProviders>
+          <DoctorProviders>{children}</DoctorProviders>
+        </BaseProviders>
+      );
+
     case "admin":
       return (
         <BaseProviders>
-          <StaffProviders>{children}</StaffProviders>
+          <AdminProviders>{children}</AdminProviders>
         </BaseProviders>
       );
 
