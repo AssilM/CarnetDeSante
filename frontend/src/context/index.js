@@ -33,3 +33,4 @@ export {
   DoctorAvailabilityProvider,
   useDoctorAvailability,
 } from "./DoctorAvailabilityContext";
+export { AdminProvider, useAdmin } from "./AdminContext";

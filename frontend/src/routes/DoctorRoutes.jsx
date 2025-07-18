@@ -5,19 +5,17 @@ import { ProtectedRoute } from "../components/ProtectedRoute";
 // Layouts
 import MainLayout from "./layouts/MainLayout";
 
-// Pages pour le personnel médical et administratif
+// Pages pour les médecins
 import HomeDoctor from "../pages/doctor/HomeDoctor";
 import Agenda from "../pages/doctor/Agenda";
-import HomeAdmin from "../pages/admin/HomeAdmin";
 import Availability from "../pages/doctor/Availability";
 import PatientsList from "../pages/doctor/PatientsList";
 
 /**
- * Routes pour le personnel médical et administratif
- * Exporte un tableau de routes pour les médecins et administrateurs
- * À étendre avec les nouvelles fonctionnalités pour ces rôles
+ * Routes spécifiques aux médecins
+ * Contient toutes les routes nécessaires pour les médecins
  */
-const StaffRoutes = [
+const DoctorRoutes = [
   // Routes pour les médecins
   <Route
     key="doctor-home"
@@ -67,18 +65,18 @@ const StaffRoutes = [
     }
   />,
 
-  // Routes pour les administrateurs
+  // Route par défaut pour /doctor (redirige vers /doctor/home)
   <Route
-    key="admin-home"
-    path="/admin/home"
+    key="doctor-default"
+    path="/doctor"
     element={
-      <ProtectedRoute requiredRole="admin">
+      <ProtectedRoute requiredRole="medecin">
         <MainLayout>
-          <HomeAdmin />
+          <HomeDoctor />
         </MainLayout>
       </ProtectedRoute>
     }
   />,
 ];
 
-export default StaffRoutes;
+export default DoctorRoutes;

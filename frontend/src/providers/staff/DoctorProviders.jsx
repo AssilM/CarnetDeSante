@@ -7,10 +7,10 @@ import {
 } from "../../context";
 
 /**
- * Providers spécifiques aux fonctionnalités du personnel médical et administratif
- * Contient les contextes nécessaires pour les médecins et administrateurs
+ * Providers spécifiques aux fonctionnalités des médecins
+ * Contient les contextes nécessaires pour les médecins uniquement
  */
-const StaffProviders = ({ children }) => {
+const DoctorProviders = ({ children }) => {
   return (
     <DoctorProvider>
       <DocumentProvider>
@@ -22,4 +22,4 @@ const StaffProviders = ({ children }) => {
   );
 };
 
-export default StaffProviders;
+export default DoctorProviders;

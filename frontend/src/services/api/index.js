@@ -10,6 +10,7 @@ import createPatientService from "./patientService";
 import createAppointmentService from "./appointmentService";
 import createDocumentService from "./documentService";
 import { getAllSpecialites } from "./specialiteService";
+import * as adminService from "./adminService";
 
 // Pour la compatibilité avec le code existant
 export const authApi = {
@@ -27,4 +28,5 @@ export {
   createAppointmentService,
   createDocumentService,
   getAllSpecialites,
+  adminService,
 };
