@@ -8,6 +8,8 @@ import MainLayout from "./layouts/MainLayout";
 // Pages administrateur
 import HomeAdmin from "../pages/admin/HomeAdmin";
 import Statistics from "../pages/admin/Statistics";
+import Users from "../pages/admin/Users";
+import Documents from "../pages/admin/Documents";
 
 /**
  * Routes spécifiques aux administrateurs
@@ -35,6 +37,32 @@ const AdminRoutes = [
       <ProtectedRoute requiredRole="admin">
         <MainLayout>
           <Statistics />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+
+  // Route de gestion des utilisateurs
+  <Route
+    key="admin-users"
+    path="/admin/users"
+    element={
+      <ProtectedRoute requiredRole="admin">
+        <MainLayout>
+          <Users />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+
+  // Route de gestion des documents
+  <Route
+    key="admin-documents"
+    path="/admin/documents"
+    element={
+      <ProtectedRoute requiredRole="admin">
+        <MainLayout>
+          <Documents />
         </MainLayout>
       </ProtectedRoute>
     }

@@ -5,6 +5,7 @@ import HomeDoctor from "../../pages/doctor/HomeDoctor";
 import Agenda from "../../pages/doctor/Agenda";
 import Availability from "../../pages/doctor/Availability";
 import HomeAdmin from "../../pages/admin/HomeAdmin";
+import Documents from "../../pages/admin/Documents";
 
 // Configuration des routes pour le personnel
 const staffRoutes = [
@@ -35,6 +36,13 @@ const staffRoutes = [
   {
     path: "/admin/home",
     element: <HomeAdmin />,
+    layout: "main",
+    protected: true,
+    role: "admin",
+  },
+  {
+    path: "/admin/documents",
+    element: <Documents />,
     layout: "main",
     protected: true,
     role: "admin",

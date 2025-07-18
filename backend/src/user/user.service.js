@@ -1,9 +1,12 @@
 import {
   findAllUsers,
+  findAllUsersWithDetails,
   findById,
+  findByIdWithDetails,
   findByIdWithPassword,
   isEmailTaken,
   updateUser as updateUserRepo,
+  updateUserWithDetails as updateUserWithDetailsRepo,
   updatePassword as updatePasswordRepo,
   deleteUser as deleteUserRepo,
   findByRole,
@@ -24,12 +27,29 @@ export const getAllUsersService = async () => {
 };
 
 /**
+ * Récupère tous les utilisateurs avec leurs détails spécifiques selon leur rôle
+ * @returns {Promise<Array>} Liste des utilisateurs avec leurs détails
+ */
+export const getAllUsersWithDetailsService = async () => {
+  return await findAllUsersWithDetails();
+};
+
+/**
  * Récupère un utilisateur par ID
  * @param {string|number} userId - ID de l'utilisateur
  * @returns {Promise<Object|null>} Utilisateur trouvé ou null
  */
 export const getUserByIdService = async (userId) => {
   return await findById(userId);
+};
+
+/**
+ * Récupère un utilisateur par ID avec ses détails spécifiques selon son rôle
+ * @param {string|number} userId - ID de l'utilisateur
+ * @returns {Promise<Object|null>} Utilisateur trouvé avec détails ou null
+ */
+export const getUserByIdWithDetailsService = async (userId) => {
+  return await findByIdWithDetails(userId);
 };
 
 /**
@@ -126,6 +146,32 @@ export const updateUserService = async (userId, updateData) => {
   }
 
   return updatedUser;
+};
+
+/**
+ * Met à jour un utilisateur avec ses détails spécifiques selon son rôle
+ * @param {string|number} userId - ID de l'utilisateur
+ * @param {Object} updateData - Données à mettre à jour
+ * @returns {Promise<Object>} Utilisateur mis à jour avec détails
+ */
+export const updateUserWithDetailsService = async (userId, updateData) => {
+  // Séparer les données utilisateur des détails spécifiques
+  const userData = {};
+  const detailsData = {};
+
+  for (const [key, value] of Object.entries(updateData)) {
+    if (
+      key === "patient_details" ||
+      key === "medecin_details" ||
+      key === "admin_details"
+    ) {
+      detailsData[key] = value;
+    } else {
+      userData[key] = value;
+    }
+  }
+
+  return await updateUserWithDetailsRepo(userId, userData, detailsData);
 };
 
 /**

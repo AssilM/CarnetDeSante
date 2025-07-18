@@ -10,12 +10,26 @@ import {
   findDocumentByIdAdmin,
   deleteDocumentAdmin,
   findDocumentsByTypeAdmin,
+  // Fonctions de gestion des liens patient-médecin
+  findAllPatientDoctorRelationships,
+  getPatientsByDoctor,
+  getDoctorsByPatient,
+  createPatientDoctorRelationship,
+  deletePatientDoctorRelationship,
+  // Fonctions de gestion des permissions de documents
+  findAllDocumentPermissions,
+  getDocumentPermissions,
+  createDocumentPermission,
+  deleteDocumentPermission,
 } from "./admin.repository.js";
 import {
   getAllUsersService,
+  getAllUsersWithDetailsService,
   getUserByIdService,
+  getUserByIdWithDetailsService,
   getUsersByRoleService,
   updateUserService,
+  updateUserWithDetailsService,
   deleteUserService,
 } from "../user/user.service.js";
 
@@ -128,12 +142,29 @@ export const getAllUsersAdminService = async () => {
 };
 
 /**
+ * Récupère tous les utilisateurs avec leurs détails spécifiques (pour l'administration)
+ * @returns {Promise<Array>} Liste des utilisateurs avec leurs détails
+ */
+export const getAllUsersWithDetailsAdminService = async () => {
+  return await getAllUsersWithDetailsService();
+};
+
+/**
  * Récupère un utilisateur par ID (pour l'administration)
  * @param {string|number} userId - ID de l'utilisateur
  * @returns {Promise<Object|null>} Utilisateur trouvé ou null
  */
 export const getUserByIdAdminService = async (userId) => {
   return await getUserByIdService(userId);
+};
+
+/**
+ * Récupère un utilisateur par ID avec ses détails spécifiques (pour l'administration)
+ * @param {string|number} userId - ID de l'utilisateur
+ * @returns {Promise<Object|null>} Utilisateur trouvé avec détails ou null
+ */
+export const getUserByIdWithDetailsAdminService = async (userId) => {
+  return await getUserByIdWithDetailsService(userId);
 };
 
 /**
@@ -153,6 +184,16 @@ export const getUsersByRoleAdminService = async (role) => {
  */
 export const updateUserAdminService = async (userId, updateData) => {
   return await updateUserService(userId, updateData);
+};
+
+/**
+ * Met à jour un utilisateur avec ses détails spécifiques (pour l'administration)
+ * @param {string|number} userId - ID de l'utilisateur
+ * @param {Object} updateData - Données à mettre à jour
+ * @returns {Promise<Object>} Utilisateur mis à jour avec détails
+ */
+export const updateUserWithDetailsAdminService = async (userId, updateData) => {
+  return await updateUserWithDetailsService(userId, updateData);
 };
 
 /**
@@ -204,4 +245,104 @@ export const deleteDocumentAdminService = async (documentId) => {
  */
 export const getDocumentsByTypeAdminService = async (typeId) => {
   return await findDocumentsByTypeAdmin(typeId);
+};
+
+// ==================== SERVICES GESTION LIENS PATIENT-MÉDECIN (CÔTÉ ADMIN) ====================
+
+/**
+ * Récupère tous les liens patient-médecin (pour l'administration)
+ * @returns {Promise<Array>} Liste des liens avec informations détaillées
+ */
+export const getAllPatientDoctorRelationshipsService = async () => {
+  return await findAllPatientDoctorRelationships();
+};
+
+/**
+ * Récupère les patients suivis par un médecin (pour l'administration)
+ * @param {string|number} doctorId - ID du médecin
+ * @returns {Promise<Array>} Liste des patients suivis
+ */
+export const getPatientsByDoctorService = async (doctorId) => {
+  return await getPatientsByDoctor(doctorId);
+};
+
+/**
+ * Récupère les médecins suivant un patient (pour l'administration)
+ * @param {string|number} patientId - ID du patient
+ * @returns {Promise<Array>} Liste des médecins suivant le patient
+ */
+export const getDoctorsByPatientService = async (patientId) => {
+  return await getDoctorsByPatient(patientId);
+};
+
+/**
+ * Crée un lien patient-médecin (pour l'administration)
+ * @param {string|number} patientId - ID du patient
+ * @param {string|number} doctorId - ID du médecin
+ * @returns {Promise<Object>} Lien créé
+ */
+export const createPatientDoctorRelationshipService = async (
+  patientId,
+  doctorId
+) => {
+  return await createPatientDoctorRelationship(patientId, doctorId);
+};
+
+/**
+ * Supprime un lien patient-médecin (pour l'administration)
+ * @param {string|number} patientId - ID du patient
+ * @param {string|number} doctorId - ID du médecin
+ * @returns {Promise<boolean>} Succès de l'opération
+ */
+export const deletePatientDoctorRelationshipService = async (
+  patientId,
+  doctorId
+) => {
+  return await deletePatientDoctorRelationship(patientId, doctorId);
+};
+
+// ==================== SERVICES GESTION PERMISSIONS DOCUMENTS (CÔTÉ ADMIN) ====================
+
+/**
+ * Récupère toutes les permissions de documents (pour l'administration)
+ * @returns {Promise<Array>} Liste des permissions avec informations détaillées
+ */
+export const getAllDocumentPermissionsService = async () => {
+  return await findAllDocumentPermissions();
+};
+
+/**
+ * Récupère les permissions d'un document (pour l'administration)
+ * @param {string|number} documentId - ID du document
+ * @returns {Promise<Array>} Liste des permissions du document
+ */
+export const getDocumentPermissionsService = async (documentId) => {
+  return await getDocumentPermissions(documentId);
+};
+
+/**
+ * Crée une permission d'accès à un document (pour l'administration)
+ * @param {string|number} documentId - ID du document
+ * @param {string|number} userId - ID de l'utilisateur
+ * @param {string} role - Rôle de permission (owner, author, shared)
+ * @param {Date} expiresAt - Date d'expiration (optionnel)
+ * @returns {Promise<Object>} Permission créée
+ */
+export const createDocumentPermissionService = async (
+  documentId,
+  userId,
+  role,
+  expiresAt = null
+) => {
+  return await createDocumentPermission(documentId, userId, role, expiresAt);
+};
+
+/**
+ * Supprime une permission d'accès à un document (pour l'administration)
+ * @param {string|number} documentId - ID du document
+ * @param {string|number} userId - ID de l'utilisateur
+ * @returns {Promise<boolean>} Succès de l'opération
+ */
+export const deleteDocumentPermissionService = async (documentId, userId) => {
+  return await deleteDocumentPermission(documentId, userId);
 };

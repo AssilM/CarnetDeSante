@@ -12,7 +12,9 @@ export {
   getDashboardStats,
   // Gestion des utilisateurs côté admin
   getAllUsers,
+  getAllUsersWithDetails,
   getUserById,
+  getUserByIdWithDetails,
   getUsersByRole,
   updateUser,
   deleteUser,
@@ -33,7 +35,9 @@ export {
   getDashboardStatsService,
   // Services de gestion des utilisateurs côté admin
   getAllUsersAdminService,
+  getAllUsersWithDetailsAdminService,
   getUserByIdAdminService,
+  getUserByIdWithDetailsAdminService,
   getUsersByRoleAdminService,
   updateUserAdminService,
   deleteUserAdminService,

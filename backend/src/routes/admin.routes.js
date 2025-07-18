@@ -7,15 +7,29 @@ import {
   getDashboardStats,
   // Gestion des utilisateurs côté admin
   getAllUsers,
+  getAllUsersWithDetails,
   getUserById,
+  getUserByIdWithDetails,
   getUsersByRole,
   updateUser,
+  updateUserWithDetails,
   deleteUser,
   // Gestion des documents côté admin
   getAllDocuments,
   getDocumentById,
   deleteDocument,
   getDocumentsByType,
+  // Controllers de gestion des liens patient-médecin
+  getAllPatientDoctorRelationships,
+  getPatientsByDoctor,
+  getDoctorsByPatient,
+  createPatientDoctorRelationship,
+  deletePatientDoctorRelationship,
+  // Controllers de gestion des permissions de documents
+  getAllDocumentPermissions,
+  getDocumentPermissions,
+  createDocumentPermission,
+  deleteDocumentPermission,
 } from "../admin/admin.controller.js";
 import { authenticate, authorize } from "../middlewares/auth.middleware.js";
 
@@ -30,9 +44,12 @@ router.get("/dashboard/stats", getDashboardStats);
 
 // Routes de gestion des utilisateurs (côté admin)
 router.get("/users", getAllUsers);
+router.get("/users/details", getAllUsersWithDetails);
 router.get("/users/role/:role", getUsersByRole);
 router.get("/users/:id", getUserById);
+router.get("/users/:id/details", getUserByIdWithDetails);
 router.put("/users/:id", updateUser);
+router.put("/users/:id/details", updateUserWithDetails);
 router.delete("/users/:id", deleteUser);
 
 // Routes de gestion des documents (côté admin)
@@ -40,6 +57,22 @@ router.get("/documents", getAllDocuments);
 router.get("/documents/type/:typeId", getDocumentsByType);
 router.get("/documents/:id", getDocumentById);
 router.delete("/documents/:id", deleteDocument);
+
+// Routes de gestion des liens patient-médecin (côté admin)
+router.get("/relationships", getAllPatientDoctorRelationships);
+router.get("/relationships/doctor/:doctorId", getPatientsByDoctor);
+router.get("/relationships/patient/:patientId", getDoctorsByPatient);
+router.post("/relationships", createPatientDoctorRelationship);
+router.delete(
+  "/relationships/:patientId/:doctorId",
+  deletePatientDoctorRelationship
+);
+
+// Routes de gestion des permissions de documents (côté admin)
+router.get("/permissions", getAllDocumentPermissions);
+router.get("/permissions/document/:documentId", getDocumentPermissions);
+router.post("/permissions", createDocumentPermission);
+router.delete("/permissions/:documentId/:userId", deleteDocumentPermission);
 
 // Routes administrateurs (doivent être en dernier pour éviter les conflits)
 router.get("/", getAllAdministrateurs);

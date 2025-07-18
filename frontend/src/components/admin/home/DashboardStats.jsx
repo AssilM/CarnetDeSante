@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
 import StatCard from "./StatCard";
-import RecentAppointment from "./RecentAppointment";
 
 // Icônes pour les statistiques
 const UsersIcon = () => (
@@ -68,22 +67,6 @@ const DocumentsIcon = () => (
 );
 
 const DashboardStats = ({ stats, loading, error, onRetry }) => {
-  const [showAllAppointments, setShowAllAppointments] = useState(false);
-
-  const handleToggleAppointments = () => {
-    setShowAllAppointments(!showAllAppointments);
-  };
-
-  // Limiter l'affichage à 5 rendez-vous par défaut
-  const displayedAppointments = stats?.rendezVousRecents
-    ? showAllAppointments
-      ? stats.rendezVousRecents
-      : stats.rendezVousRecents.slice(0, 5)
-    : [];
-
-  const hasMoreAppointments =
-    stats?.rendezVousRecents && stats.rendezVousRecents.length > 5;
-
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -172,54 +155,6 @@ const DashboardStats = ({ stats, loading, error, onRetry }) => {
           icon={<DocumentsIcon />}
           color="orange"
         />
-      </div>
-
-      {/* Section des rendez-vous récents */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Rendez-vous récents
-            {hasMoreAppointments && !showAllAppointments && (
-              <span className="text-sm font-normal text-gray-500 ml-2">
-                (5 sur {stats.rendezVousRecents.length})
-              </span>
-            )}
-          </h3>
-          {hasMoreAppointments && (
-            <button
-              onClick={handleToggleAppointments}
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-            >
-              {showAllAppointments ? "Voir moins" : "Voir tout"}
-            </button>
-          )}
-        </div>
-        <div className="space-y-3">
-          {displayedAppointments && displayedAppointments.length > 0 ? (
-            displayedAppointments.map((appointment, index) => (
-              <RecentAppointment key={index} appointment={appointment} />
-            ))
-          ) : (
-            <div className="text-center py-8">
-              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg
-                  className="w-6 h-6 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-              <p className="text-gray-500">Aucun rendez-vous récent</p>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Statistiques par statut */}
