@@ -2,8 +2,10 @@ import React from "react";
 import { useAuth } from "../context/AuthContext";
 import BaseProviders from "./core/BaseProviders";
 import PatientProviders from "./patient/PatientProviders";
+
 import AdminProviders from "./staff/AdminProviders";
 import DoctorProviders from "./staff/DoctorProviders";
+
 
 /**
  * Gère le chargement conditionnel des providers selon le rôle de l'utilisateur
