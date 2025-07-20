@@ -148,7 +148,7 @@ CarnetDeSante/
 └── README.md
 ```
 
-## 🔒 Sécurité
+## 🔒 Sécurite
 
 - **Authentification JWT** avec tokens d'accès et de rafraîchissement
 - **Hachage des mots de passe** avec bcrypt
