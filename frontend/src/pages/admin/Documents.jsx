@@ -11,18 +11,15 @@ import {
 import {
   DocumentCard,
   RelationshipCard,
-  PermissionCard,
 } from "../../components/admin/documents";
 import PageWrapper from "../../components/PageWrapper";
 import {
   getAllDocuments,
   getAllPatientDoctorRelationships,
-  getAllDocumentPermissions,
   getAllUsers,
   getPatientsByDoctor,
   getDoctorsByPatient,
   deletePatientDoctorRelationship,
-  deleteDocumentPermission,
 } from "../../services/api/adminService";
 
 const Documents = () => {
@@ -31,7 +28,6 @@ const Documents = () => {
   const [activeTab, setActiveTab] = useState("documents");
   const [documents, setDocuments] = useState([]);
   const [relationships, setRelationships] = useState([]);
-  const [permissions, setPermissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -69,7 +65,6 @@ const Documents = () => {
 
       let docsData = [];
       let relsData = [];
-      let permsData = [];
 
       if (selectedUser.role === "patient") {
         // Pour un patient, on récupère ses documents et les médecins qui le suivent
@@ -83,22 +78,19 @@ const Documents = () => {
         relsData = await getPatientsByDoctor(selectedUser.id);
       } else {
         // Pour un admin, on récupère tout
-        [docsData, relsData, permsData] = await Promise.all([
+        [docsData, relsData] = await Promise.all([
           getAllDocuments(),
           getAllPatientDoctorRelationships(),
-          getAllDocumentPermissions(),
         ]);
       }
 
       console.log("Données chargées:", {
         documents: docsData.length,
         relationships: relsData.length,
-        permissions: permsData.length,
         user: selectedUser,
       });
       setDocuments(docsData);
       setRelationships(relsData);
-      setPermissions(permsData);
     } catch (err) {
       console.error("Erreur lors du chargement des données:", err);
       setError("Erreur lors du chargement des données");
@@ -118,21 +110,6 @@ const Documents = () => {
     } catch (err) {
       console.error("Erreur lors de la suppression du lien:", err);
       setError("Erreur lors de la suppression du lien");
-    }
-  };
-
-  const handleDeletePermission = async (documentId, userId) => {
-    try {
-      await deleteDocumentPermission(documentId, userId);
-      setPermissions((prev) =>
-        prev.filter(
-          (perm) =>
-            !(perm.document_id === documentId && perm.user_id === userId)
-        )
-      );
-    } catch (err) {
-      console.error("Erreur lors de la suppression de la permission:", err);
-      setError("Erreur lors de la suppression de la permission");
     }
   };
 
@@ -156,12 +133,6 @@ const Documents = () => {
             .includes(searchTerm.toLowerCase()) ||
           rel.doctor_nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           rel.doctor_prenom?.toLowerCase().includes(searchTerm.toLowerCase())
-      ),
-      permissions: permissions.filter(
-        (perm) =>
-          perm.document_nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          perm.user_nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          perm.user_prenom?.toLowerCase().includes(searchTerm.toLowerCase())
       ),
     };
 
@@ -215,12 +186,6 @@ const Documents = () => {
       label: "Liens Patient-Médecin",
       icon: <FaLink />,
       count: filteredData.relationships.length,
-    },
-    {
-      id: "permissions",
-      label: "Permissions",
-      icon: <FaShieldAlt />,
-      count: filteredData.permissions.length,
     },
   ];
 
@@ -502,37 +467,6 @@ const Documents = () => {
                         key={`${relationship.patient_id}-${relationship.doctor_id}`}
                         relationship={relationship}
                         onDelete={handleDeleteRelationship}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === "permissions" && (
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Permissions d'accès ({filteredData.permissions.length})
-                  </h2>
-                  <button className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
-                    <FaPlus />
-                    <span>Nouvelle permission</span>
-                  </button>
-                </div>
-
-                {filteredData.permissions.length === 0 ? (
-                  <div className="text-center py-12">
-                    <FaShieldAlt className="mx-auto text-4xl text-gray-400 mb-4" />
-                    <p className="text-gray-600">Aucune permission trouvée</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredData.permissions.map((permission) => (
-                      <PermissionCard
-                        key={`${permission.document_id}-${permission.user_id}`}
-                        permission={permission}
-                        onDelete={handleDeletePermission}
                       />
                     ))}
                   </div>
