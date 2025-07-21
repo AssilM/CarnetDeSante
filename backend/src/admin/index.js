@@ -12,7 +12,9 @@ export {
   getDashboardStats,
   // Gestion des utilisateurs côté admin
   getAllUsers,
+  getAllUsersWithDetails,
   getUserById,
+  getUserByIdWithDetails,
   getUsersByRole,
   updateUser,
   deleteUser,
@@ -21,6 +23,7 @@ export {
   getDocumentById,
   deleteDocument,
   getDocumentsByType,
+  downloadDocument,
 } from "./admin.controller.js";
 
 // Export du service admin
@@ -33,7 +36,9 @@ export {
   getDashboardStatsService,
   // Services de gestion des utilisateurs côté admin
   getAllUsersAdminService,
+  getAllUsersWithDetailsAdminService,
   getUserByIdAdminService,
+  getUserByIdWithDetailsAdminService,
   getUsersByRoleAdminService,
   updateUserAdminService,
   deleteUserAdminService,

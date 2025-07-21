@@ -5,16 +5,32 @@ import {
   deleteAdministrateurService,
   getDashboardStatsService,
   getAllUsersAdminService,
+  getAllUsersWithDetailsAdminService,
   getUserByIdAdminService,
+  getUserByIdWithDetailsAdminService,
   getUsersByRoleAdminService,
   updateUserAdminService,
+  updateUserWithDetailsAdminService,
   deleteUserAdminService,
   // Services de gestion des documents côté admin
   getAllDocumentsAdminService,
   getDocumentByIdAdminService,
   deleteDocumentAdminService,
   getDocumentsByTypeAdminService,
+  // Services de gestion des liens patient-médecin
+  getAllPatientDoctorRelationshipsService,
+  getPatientsByDoctorService,
+  getDoctorsByPatientService,
+  createPatientDoctorRelationshipService,
+  deletePatientDoctorRelationshipService,
+  // Services de gestion des permissions de documents
+  getAllDocumentPermissionsService,
+  getDocumentPermissionsService,
+  createDocumentPermissionService,
+  deleteDocumentPermissionService,
 } from "./admin.service.js";
+import path from "path";
+import fs from "fs";
 
 /**
  * Controller pour la gestion des administrateurs
@@ -140,6 +156,22 @@ export const getAllUsers = async (req, res, next) => {
 };
 
 /**
+ * Récupérer tous les utilisateurs avec leurs détails spécifiques (pour l'administration)
+ */
+export const getAllUsersWithDetails = async (req, res, next) => {
+  try {
+    const users = await getAllUsersWithDetailsAdminService();
+    res.status(200).json({ users });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la récupération des utilisateurs avec détails:",
+      error
+    );
+    next(error);
+  }
+};
+
+/**
  * Récupérer un utilisateur par ID (pour l'administration)
  */
 export const getUserById = async (req, res, next) => {
@@ -154,6 +186,28 @@ export const getUserById = async (req, res, next) => {
     res.status(200).json({ user });
   } catch (error) {
     console.error("Erreur lors de la récupération de l'utilisateur:", error);
+    next(error);
+  }
+};
+
+/**
+ * Récupérer un utilisateur par ID avec ses détails spécifiques (pour l'administration)
+ */
+export const getUserByIdWithDetails = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = await getUserByIdWithDetailsAdminService(id);
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    res.status(200).json({ user });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la récupération de l'utilisateur avec détails:",
+      error
+    );
     next(error);
   }
 };
@@ -192,6 +246,41 @@ export const updateUser = async (req, res, next) => {
     });
   } catch (error) {
     console.error("Erreur lors de la mise à jour de l'utilisateur:", error);
+
+    // Gestion spécifique des erreurs métier
+    if (error.message === "Cet email est déjà utilisé") {
+      return res.status(400).json({ message: error.message });
+    }
+    if (error.message === "Aucune donnée fournie pour la mise à jour") {
+      return res.status(400).json({ message: error.message });
+    }
+    if (error.message === "Utilisateur non trouvé") {
+      return res.status(404).json({ message: error.message });
+    }
+
+    next(error);
+  }
+};
+
+/**
+ * Mettre à jour un utilisateur avec ses détails spécifiques (pour l'administration)
+ */
+export const updateUserWithDetails = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const updatedUser = await updateUserWithDetailsAdminService(id, updateData);
+
+    res.status(200).json({
+      message: "Utilisateur mis à jour avec succès",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la mise à jour de l'utilisateur avec détails:",
+      error
+    );
 
     // Gestion spécifique des erreurs métier
     if (error.message === "Cet email est déjà utilisé") {
@@ -287,6 +376,32 @@ export const deleteDocument = async (req, res, next) => {
 };
 
 /**
+ * Télécharger un document (pour l'administration)
+ */
+export const downloadDocument = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const document = await getDocumentByIdAdminService(id);
+
+    if (!document) {
+      return res.status(404).json({ message: "Document non trouvé" });
+    }
+
+    const filePath = path.resolve(document.chemin_fichier);
+    if (!fs.existsSync(filePath)) {
+      return res
+        .status(404)
+        .json({ message: "Fichier non trouvé sur le serveur" });
+    }
+
+    res.download(filePath, document.nom_fichier);
+  } catch (error) {
+    console.error("Erreur lors du téléchargement du document:", error);
+    next(error);
+  }
+};
+
+/**
  * Récupérer les documents par type (pour l'administration)
  */
 export const getDocumentsByType = async (req, res, next) => {
@@ -298,6 +413,248 @@ export const getDocumentsByType = async (req, res, next) => {
   } catch (error) {
     console.error(
       "Erreur lors de la récupération des documents par type:",
+      error
+    );
+    next(error);
+  }
+};
+
+// ==================== CONTROLLERS GESTION LIENS PATIENT-MÉDECIN (CÔTÉ ADMIN) ====================
+
+/**
+ * Récupérer tous les liens patient-médecin (pour l'administration)
+ */
+export const getAllPatientDoctorRelationships = async (req, res, next) => {
+  try {
+    const relationships = await getAllPatientDoctorRelationshipsService();
+    res.status(200).json({ relationships });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la récupération des liens patient-médecin:",
+      error
+    );
+    next(error);
+  }
+};
+
+/**
+ * Récupérer les patients suivis par un médecin (pour l'administration)
+ */
+export const getPatientsByDoctor = async (req, res, next) => {
+  try {
+    const { doctorId } = req.params;
+    const patients = await getPatientsByDoctorService(doctorId);
+
+    res.status(200).json({ patients });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la récupération des patients du médecin:",
+      error
+    );
+    next(error);
+  }
+};
+
+/**
+ * Récupérer les médecins suivant un patient (pour l'administration)
+ */
+export const getDoctorsByPatient = async (req, res, next) => {
+  try {
+    const { patientId } = req.params;
+    const doctors = await getDoctorsByPatientService(patientId);
+
+    res.status(200).json({ doctors });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la récupération des médecins du patient:",
+      error
+    );
+    next(error);
+  }
+};
+
+/**
+ * Créer un lien patient-médecin (pour l'administration)
+ */
+export const createPatientDoctorRelationship = async (req, res, next) => {
+  try {
+    const { patientId, doctorId } = req.body;
+
+    if (!patientId || !doctorId) {
+      return res.status(400).json({
+        message: "Les IDs du patient et du médecin sont requis",
+      });
+    }
+
+    const relationship = await createPatientDoctorRelationshipService(
+      patientId,
+      doctorId
+    );
+
+    res.status(201).json({
+      message: "Lien patient-médecin créé avec succès",
+      relationship,
+    });
+  } catch (error) {
+    console.error("Erreur lors de la création du lien patient-médecin:", error);
+    next(error);
+  }
+};
+
+/**
+ * Supprimer un lien patient-médecin (pour l'administration)
+ */
+export const deletePatientDoctorRelationship = async (req, res, next) => {
+  try {
+    const { patientId, doctorId } = req.params;
+
+    const success = await deletePatientDoctorRelationshipService(
+      patientId,
+      doctorId
+    );
+
+    if (!success) {
+      return res.status(404).json({
+        message: "Lien patient-médecin non trouvé",
+      });
+    }
+
+    res.status(200).json({
+      message: "Lien patient-médecin supprimé avec succès",
+    });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la suppression du lien patient-médecin:",
+      error
+    );
+    next(error);
+  }
+};
+
+// ==================== CONTROLLERS GESTION PERMISSIONS DOCUMENTS (CÔTÉ ADMIN) ====================
+
+/**
+ * Récupérer toutes les permissions de documents (pour l'administration)
+ */
+export const getAllDocumentPermissions = async (req, res, next) => {
+  try {
+    const permissions = await getAllDocumentPermissionsService();
+    res.status(200).json({ permissions });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la récupération des permissions de documents:",
+      error
+    );
+    next(error);
+  }
+};
+
+/**
+ * Récupérer les permissions d'un document (pour l'administration)
+ */
+export const getDocumentPermissions = async (req, res, next) => {
+  try {
+    const { documentId } = req.params;
+    const permissions = await getDocumentPermissionsService(documentId);
+
+    res.status(200).json({ permissions });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la récupération des permissions du document:",
+      error
+    );
+    next(error);
+  }
+};
+
+/**
+ * Créer une permission d'accès à un document (pour l'administration)
+ */
+export const createDocumentPermission = async (req, res, next) => {
+  try {
+    const { documentId, userId, role, expiresAt } = req.body;
+
+    if (!documentId || !userId || !role) {
+      return res.status(400).json({
+        message:
+          "L'ID du document, l'ID de l'utilisateur et le rôle sont requis",
+      });
+    }
+
+    const permission = await createDocumentPermissionService(
+      documentId,
+      userId,
+      role,
+      expiresAt
+    );
+
+    res.status(201).json({
+      message: "Permission d'accès créée avec succès",
+      permission,
+    });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la création de la permission d'accès:",
+      error
+    );
+    next(error);
+  }
+};
+
+/**
+ * Supprimer une permission d'accès à un document (pour l'administration)
+ */
+export const deleteDocumentPermission = async (req, res, next) => {
+  try {
+    const { documentId, userId } = req.params;
+
+    const success = await deleteDocumentPermissionService(documentId, userId);
+
+    if (!success) {
+      return res.status(404).json({
+        message: "Permission d'accès non trouvée",
+      });
+    }
+
+    res.status(200).json({
+      message: "Permission d'accès supprimée avec succès",
+    });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la suppression de la permission d'accès:",
+      error
+    );
+    next(error);
+  }
+};
+
+/**
+ * Révoquer une permission d'accès à un document (pour l'administration)
+ */
+export const revokeDocumentPermission = async (req, res, next) => {
+  try {
+    const { documentId, doctorId } = req.body;
+
+    if (!documentId || !doctorId) {
+      return res.status(400).json({
+        message: "L'ID du document et l'ID du médecin sont requis",
+      });
+    }
+
+    const success = await deleteDocumentPermissionService(documentId, doctorId);
+
+    if (!success) {
+      return res.status(404).json({
+        message: "Permission d'accès non trouvée",
+      });
+    }
+
+    res.status(200).json({
+      message: "Permission d'accès révoquée avec succès",
+    });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la révocation de la permission d'accès:",
       error
     );
     next(error);

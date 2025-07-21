@@ -298,6 +298,259 @@ export const findDocumentsByTypeAdmin = async (typeId) => {
   }
 };
 
+// ==================== GESTION DES LIENS PATIENT-MÉDECIN ====================
+
+/**
+ * Récupère tous les liens patient-médecin avec informations détaillées
+ * @returns {Promise<Array>} Liste des liens avec informations utilisateurs
+ */
+export const findAllPatientDoctorRelationships = async () => {
+  try {
+    const result = await pool.query(
+      `SELECT pd.*, 
+              p_user.nom as patient_nom, p_user.prenom as patient_prenom, p_user.email as patient_email,
+              d_user.nom as doctor_nom, d_user.prenom as doctor_prenom, d_user.email as doctor_email,
+              m.specialite
+       FROM patient_doctor pd
+       JOIN utilisateur p_user ON pd.patient_id = p_user.id
+       JOIN utilisateur d_user ON pd.doctor_id = d_user.id
+       JOIN medecin m ON pd.doctor_id = m.utilisateur_id
+       ORDER BY pd.created_at DESC`
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(
+      `[REPOSITORY] Erreur lors de la récupération des liens patient-médecin:`,
+      error.message
+    );
+    throw new Error("Erreur lors de la récupération des liens patient-médecin");
+  }
+};
+
+/**
+ * Récupère les patients suivis par un médecin
+ * @param {number} doctorId - ID du médecin
+ * @returns {Promise<Array>} Liste des patients suivis
+ */
+export const getPatientsByDoctor = async (doctorId) => {
+  try {
+    const result = await pool.query(
+      `SELECT pd.*, 
+              u.nom as patient_nom, u.prenom as patient_prenom, u.email as patient_email,
+              p.groupe_sanguin, p.taille, p.poids,
+              d_user.nom as doctor_nom, d_user.prenom as doctor_prenom, d_user.email as doctor_email,
+              m.specialite
+       FROM patient_doctor pd
+       JOIN utilisateur u ON pd.patient_id = u.id
+       JOIN patient p ON pd.patient_id = p.utilisateur_id
+       JOIN utilisateur d_user ON pd.doctor_id = d_user.id
+       JOIN medecin m ON pd.doctor_id = m.utilisateur_id
+       WHERE pd.doctor_id = $1 AND pd.status = 'actif'
+       ORDER BY u.nom, u.prenom`,
+      [doctorId]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(
+      `[REPOSITORY] Erreur lors de la récupération des patients du médecin ${doctorId}:`,
+      error.message
+    );
+    throw new Error("Erreur lors de la récupération des patients");
+  }
+};
+
+/**
+ * Récupère les médecins suivant un patient
+ * @param {number} patientId - ID du patient
+ * @returns {Promise<Array>} Liste des médecins suivant le patient
+ */
+export const getDoctorsByPatient = async (patientId) => {
+  try {
+    const result = await pool.query(
+      `SELECT pd.*, 
+              u.nom as doctor_nom, u.prenom as doctor_prenom, u.email as doctor_email,
+              m.specialite, m.description,
+              p_user.nom as patient_nom, p_user.prenom as patient_prenom, p_user.email as patient_email
+       FROM patient_doctor pd
+       JOIN utilisateur u ON pd.doctor_id = u.id
+       JOIN medecin m ON pd.doctor_id = m.utilisateur_id
+       JOIN utilisateur p_user ON pd.patient_id = p_user.id
+       WHERE pd.patient_id = $1 AND pd.status = 'actif'
+       ORDER BY u.nom, u.prenom`,
+      [patientId]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(
+      `[REPOSITORY] Erreur lors de la récupération des médecins du patient ${patientId}:`,
+      error.message
+    );
+    throw new Error("Erreur lors de la récupération des médecins");
+  }
+};
+
+/**
+ * Crée un lien patient-médecin
+ * @param {number} patientId - ID du patient
+ * @param {number} doctorId - ID du médecin
+ * @returns {Promise<Object>} Lien créé
+ */
+export const createPatientDoctorRelationship = async (patientId, doctorId) => {
+  try {
+    const result = await pool.query(
+      `INSERT INTO patient_doctor (patient_id, doctor_id, status)
+       VALUES ($1, $2, 'actif')
+       ON CONFLICT (patient_id, doctor_id) DO UPDATE SET status = 'actif'
+       RETURNING *`,
+      [patientId, doctorId]
+    );
+    return result.rows[0];
+  } catch (error) {
+    console.error(
+      `[REPOSITORY] Erreur lors de la création du lien patient-médecin:`,
+      error.message
+    );
+    throw new Error("Erreur lors de la création du lien patient-médecin");
+  }
+};
+
+/**
+ * Supprime un lien patient-médecin
+ * @param {number} patientId - ID du patient
+ * @param {number} doctorId - ID du médecin
+ * @returns {Promise<boolean>} Succès de l'opération
+ */
+export const deletePatientDoctorRelationship = async (patientId, doctorId) => {
+  try {
+    const result = await pool.query(
+      `DELETE FROM patient_doctor WHERE patient_id = $1 AND doctor_id = $2`,
+      [patientId, doctorId]
+    );
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error(
+      `[REPOSITORY] Erreur lors de la suppression du lien patient-médecin:`,
+      error.message
+    );
+    throw new Error("Erreur lors de la suppression du lien patient-médecin");
+  }
+};
+
+// ==================== GESTION DES ACCÈS AUX DOCUMENTS ====================
+
+/**
+ * Récupère toutes les permissions de documents avec informations détaillées
+ * @returns {Promise<Array>} Liste des permissions avec informations utilisateurs et documents
+ */
+export const findAllDocumentPermissions = async () => {
+  try {
+    const result = await pool.query(
+      `SELECT dp.*, 
+              d.titre as document_nom, d.type_id, d.patient_id,
+              u.nom as user_nom, u.prenom as user_prenom, u.email as user_email, u.role as user_role,
+              p_user.nom as patient_nom, p_user.prenom as patient_prenom
+       FROM document_permission dp
+       JOIN document d ON dp.document_id = d.id
+       JOIN utilisateur u ON dp.user_id = u.id
+       JOIN utilisateur p_user ON d.patient_id = p_user.id
+       ORDER BY dp.granted_at DESC`
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(
+      `[REPOSITORY] Erreur lors de la récupération des permissions de documents:`,
+      error.message
+    );
+    throw new Error(
+      "Erreur lors de la récupération des permissions de documents"
+    );
+  }
+};
+
+/**
+ * Récupère les permissions d'un document spécifique
+ * @param {number} documentId - ID du document
+ * @returns {Promise<Array>} Liste des permissions du document
+ */
+export const getDocumentPermissions = async (documentId) => {
+  try {
+    const result = await pool.query(
+      `SELECT dp.*, 
+              u.nom, u.prenom, u.email, u.role
+       FROM document_permission dp
+       JOIN utilisateur u ON dp.user_id = u.id
+       WHERE dp.document_id = $1
+       ORDER BY dp.role, u.nom, u.prenom`,
+      [documentId]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(
+      `[REPOSITORY] Erreur lors de la récupération des permissions du document ${documentId}:`,
+      error.message
+    );
+    throw new Error(
+      "Erreur lors de la récupération des permissions du document"
+    );
+  }
+};
+
+/**
+ * Crée une permission d'accès à un document
+ * @param {number} documentId - ID du document
+ * @param {number} userId - ID de l'utilisateur
+ * @param {string} role - Rôle de permission (owner, author, shared)
+ * @param {Date} expiresAt - Date d'expiration (optionnel)
+ * @returns {Promise<Object>} Permission créée
+ */
+export const createDocumentPermission = async (
+  documentId,
+  userId,
+  role,
+  expiresAt = null
+) => {
+  try {
+    const result = await pool.query(
+      `INSERT INTO document_permission (document_id, user_id, role, expires_at)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (document_id, user_id) DO UPDATE SET role = $3, expires_at = $4
+       RETURNING *`,
+      [documentId, userId, role, expiresAt]
+    );
+    return result.rows[0];
+  } catch (error) {
+    console.error(
+      `[REPOSITORY] Erreur lors de la création de la permission de document:`,
+      error.message
+    );
+    throw new Error("Erreur lors de la création de la permission de document");
+  }
+};
+
+/**
+ * Supprime une permission d'accès à un document
+ * @param {number} documentId - ID du document
+ * @param {number} userId - ID de l'utilisateur
+ * @returns {Promise<boolean>} Succès de l'opération
+ */
+export const deleteDocumentPermission = async (documentId, userId) => {
+  try {
+    const result = await pool.query(
+      `DELETE FROM document_permission WHERE document_id = $1 AND user_id = $2`,
+      [documentId, userId]
+    );
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error(
+      `[REPOSITORY] Erreur lors de la suppression de la permission de document:`,
+      error.message
+    );
+    throw new Error(
+      "Erreur lors de la suppression de la permission de document"
+    );
+  }
+};
+
 // ==================== FONCTIONS GESTION RENDEZ-VOUS (CÔTÉ ADMIN) ====================
 
 /**
