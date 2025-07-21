@@ -16,6 +16,7 @@ const createUserTable = async () => {
       code_postal VARCHAR(10),
       ville VARCHAR(100),
       role VARCHAR(20) NOT NULL CHECK (role IN ('patient', 'medecin', 'admin')),
+      chemin_photo VARCHAR(255),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )

@@ -59,7 +59,7 @@ export const findByIdLite = async (id) => {
     const {
       rows: [row],
     } = await pool.query(
-      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville FROM utilisateur WHERE id = $1",
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, chemin_photo FROM utilisateur WHERE id = $1",
       [id]
     );
     return row;

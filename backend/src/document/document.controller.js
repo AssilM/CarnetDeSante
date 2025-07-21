@@ -8,10 +8,21 @@ import {
   getDocumentDoctorsWithAccessService,
   shareDocumentByPatientService,
   getDocumentsByRendezVousService,
+  getAllDocumentTypesService,
 } from "./document.service.js";
+
 import path from "path";
 import fs from "fs";
 import documentRepository from "../document/document.repository.js";
+
+export const getAllDocumentTypes = async (req, res, next) => {
+  try {
+    const types = await getAllDocumentTypesService();
+    res.status(200).json({ success: true, types });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const createDocument = async (req, res, next) => {
   try {
@@ -157,7 +168,7 @@ export const revokeDocument = async (req, res, next) => {
 export const getSharedDocuments = async (req, res, next) => {
   try {
     const userId = req.userId;
-    const docs = await documentRepository.getUserDocuments(userId);
+     const docs = await documentRepository.getUserDocuments(userId);
     res.status(200).json(docs);
   } catch (error) {
     next(error);

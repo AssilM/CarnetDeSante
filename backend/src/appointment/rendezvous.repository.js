@@ -38,7 +38,7 @@ export const findRendezVousById = async (id) => {
 export const findRendezVousByPatientId = async (patientId) => {
   const query = `
     SELECT rv.id, rv.patient_id, rv.medecin_id, rv.date, rv.heure, rv.duree, rv.statut, rv.motif, rv.adresse,
-           m_user.nom as medecin_nom, m_user.prenom as medecin_prenom, m.specialite
+           m_user.nom as medecin_nom, m_user.prenom as medecin_prenom, m.specialite, m_user.chemin_photo as medecin_chemin_photo
     FROM rendez_vous rv
     INNER JOIN medecin m ON rv.medecin_id = m.utilisateur_id
     INNER JOIN utilisateur m_user ON m.utilisateur_id = m_user.id

@@ -40,12 +40,29 @@ export const createDocumentByPatientService = async (
     error.code = "FORBIDDEN";
     throw error;
   }
-  // 3. Préparer les données
+
+  // 3. Récupérer l'id du type de document à partir du label ou du code reçu (type_document)
+  let resolvedTypeId = type_id;
+  if (!resolvedTypeId && type_document) {
+    // Essayer d'abord par label exact
+    resolvedTypeId = await documentRepository.getTypeIdByLabel(type_document);
+    if (!resolvedTypeId) {
+      // Sinon, essayer par code (insensible à la casse)
+      resolvedTypeId = await documentRepository.getTypeIdByCode(type_document);
+    }
+    if (!resolvedTypeId) {
+      const error = new Error("Type de document inconnu : " + type_document);
+      error.code = "INVALID_TYPE_DOCUMENT";
+      throw error;
+    }
+  }
+
+  // 4. Préparer les données
   const docData = {
     patient_id: parseInt(patient_id),
     medecin_id: medecin_id ? parseInt(medecin_id) : null,
     uploader_id: parseInt(uploader_id),
-    type_id: type_id ? parseInt(type_id) : null,
+    type_id: resolvedTypeId ? parseInt(resolvedTypeId) : null,
     titre: titre.trim(),
     nom_fichier: file.originalname,
     chemin_fichier: file.path,
@@ -54,9 +71,9 @@ export const createDocumentByPatientService = async (
     date_creation: date_creation || new Date().toISOString().split("T")[0],
     description: description ? description.trim() : null,
   };
-  // 4. Insérer le document
+  // 5. Insérer le document
   const insertedDocument = await documentRepository.createDocument(docData);
-  // 5. Créer les permissions ACL
+  // 6. Créer les permissions ACL
   await documentRepository.createDocumentPermission(
     insertedDocument.id,
     userId,
@@ -140,21 +157,31 @@ export const createDocumentByDoctorService = async (
 
 export const getDocumentsService = async (userId, userRole) => {
   // Récupérer tous les documents accessibles à l'utilisateur
-  return await documentRepository.getUserDocuments(userId);
+  const docs = await documentRepository.getUserDocuments(userId);
+  // On renvoie le label du type de document sous le nom type_document (pour le front)
+  return docs.map(doc => {
+    if (doc.type_document_label) {
+      doc.type_document = doc.type_document_label;
+    }
+    return doc;
+  });
 };
 
 export const getDocumentByIdService = async (userId, userRole, documentId) => {
   // Vérifier la permission ACL
-  const permissions = await documentRepository.getDocumentPermissions(
-    documentId
-  );
+  const permissions = await documentRepository.getDocumentPermissions(documentId);
   const perm = permissions.find((p) => p.user_id === userId);
   if (!perm) {
     const error = new Error("Accès non autorisé à ce document");
     error.code = "FORBIDDEN";
     throw error;
   }
-  return await documentRepository.getDocumentById(documentId);
+  const doc = await documentRepository.getDocumentById(documentId);
+  // On renvoie le label du type de document sous le nom type_document (pour le front)
+  if (doc && doc.type_document_label) {
+    doc.type_document = doc.type_document_label;
+  }
+  return doc;
 };
 
 export const deleteDocumentService = async (userId, userRole, documentId) => {
@@ -183,6 +210,10 @@ export const getDocumentsSharedByPatientToDoctorService = async (
 
 export const getDocumentDoctorsWithAccessService = async (documentId) => {
   return await documentRepository.getDocumentDoctorsWithAccess(documentId);
+};
+
+export const getAllDocumentTypesService = async () => {
+  return await documentRepository.getAllDocumentTypes();
 };
 
 export const shareDocumentByPatientService = async (

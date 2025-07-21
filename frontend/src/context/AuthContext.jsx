@@ -316,7 +316,7 @@ export const AuthProvider = ({ children }) => {
   const value = useMemo(
     () => ({
       currentUser,
-      // ✅ Plus de getCurrentToken() automatique pour éviter les re-renders
+      setCurrentUser, // Expose la fonction pour synchronisation externe
       loading,
       error,
       login,
@@ -336,6 +336,7 @@ export const AuthProvider = ({ children }) => {
       sessionExpired,
       testExpireToken,
       forceUnlock,
+      setCurrentUser,
     ]
   );
 

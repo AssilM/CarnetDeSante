@@ -12,7 +12,7 @@ import pool from "../config/db.js";
 export const findAllUsers = async () => {
   try {
     const result = await pool.query(
-      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville FROM utilisateur ORDER BY id"
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, chemin_photo FROM utilisateur ORDER BY id"
     );
     return result.rows;
   } catch (error) {
@@ -32,7 +32,7 @@ export const findAllUsers = async () => {
 export const findById = async (id) => {
   try {
     const result = await pool.query(
-      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville FROM utilisateur WHERE id = $1",
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, chemin_photo FROM utilisateur WHERE id = $1",
       [id]
     );
     return result.rows[0];
@@ -175,5 +175,25 @@ export const findByRole = async (role) => {
       error.message
     );
     throw new Error("Erreur lors de la récupération des utilisateurs par rôle");
+  }
+};
+
+/** * Met à jour la photo de profil d'un utilisateur
+ * @param {number} userId - ID de l'utilisateur
+ * @param {string} photoPath - Chemin de la nouvelle photo
+ * @returns {Promise<void>}
+ */
+export const updateUserPhotoRepo = async (userId, photoPath) => {
+  try {
+    await pool.query(
+      "UPDATE utilisateur SET chemin_photo = $1 WHERE id = $2",
+      [photoPath, userId]
+    );
+  } catch (error) {
+    console.error(
+      `[REPOSITORY] Erreur lors de la mise à jour de la photo de profil pour l'utilisateur ${userId}:`,
+      error.message
+    );
+    throw new Error("Erreur lors de la mise à jour de la photo de profil");
   }
 };

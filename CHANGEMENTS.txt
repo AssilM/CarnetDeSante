@@ -1,0 +1,19 @@
+jeremy : 
+1. Backend : Repository
+getDocumentById
+Ajout d’un LEFT JOIN avec la table document_type pour récupérer le label du type de document (type_document_label) lors de la récupération d’un document par son id.
+getUserDocuments
+Ajout d’un LEFT JOIN avec la table document_type pour récupérer le label du type de document dans la liste des documents accessibles à l’utilisateur.
+2. Backend : Service
+getDocumentByIdService
+Adaptation pour renvoyer le label du type de document sous le nom type_document dans l’objet retourné au frontend.
+getDocumentsService
+Adaptation pour renvoyer le label du type de document sous le nom type_document dans chaque document de la liste retournée au frontend.
+3. Frontend
+Aucune modification nécessaire
+Le frontend utilise déjà le champ type_document pour l’affichage.
+Grâce aux changements backend, le type de document s’affiche désormais correctement dans la liste et la fiche détail.
+
+Photo de profil : 
+Le UserContext recharge désormais systématiquement les informations utilisateur (y compris chemin_photo) depuis l’API lors du chargement, et pas seulement depuis le currentUser du contexte d’authentification.
+Ainsi, même après un refresh, la photo de profil reste affichée si elle existe côté backend.

@@ -11,6 +11,21 @@ import createDocumentService from "../../../services/api/documentService";
 const documentService = createDocumentService(httpService);
 
 const Documents = () => {
+  // État pour les types de documents et l'index sélectionné
+  const [documentTypes, setDocumentTypes] = useState([]);
+  const [selectedTypeIndex, setSelectedTypeIndex] = useState(0);
+  useEffect(() => {
+    const fetchTypes = async () => {
+      const res = await httpService.get("/documents/types");
+      if (res.data && res.data.types) {
+        setDocumentTypes([
+          { id: "all", label: "Tous les documents" },
+          ...res.data.types,
+        ]);
+      }
+    };
+    fetchTypes();
+  }, []);
   const navigate = useNavigate();
   const { currentUser, loading: authLoading } = useAuth();
   const { selectItem, setItems, items, togglePinned } = useDocumentContext();
@@ -113,17 +128,57 @@ const Documents = () => {
       );
     }
 
+    // Filtrer les documents selon le type sélectionné
+    const selectedType = documentTypes[selectedTypeIndex]?.label;
+    const filteredItems =
+      selectedType && selectedType !== "Tous les documents"
+        ? items.filter((doc) => doc.type === selectedType)
+        : items;
+
     return (
-      <ItemsList
-        items={items}
-        type="document"
-        title="Documents"
-        description="Retrouvez et ajoutez vos documents médicaux"
-        onAdd={openForm}
-        onViewDetails={handleViewDetails}
-        onTogglePin={handleTogglePin}
-        addButtonText="Ajouter un document"
-      />
+      <>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Titre, bouton et nombre de documents */}
+          <div className="flex justify-between items-center mt-8 mb-2">
+            <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
+            <button
+              onClick={openForm}
+              className="bg-primary text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Ajouter un document
+            </button>
+          </div>
+          {/* Barre de navigation entre les types de documents */}
+          <div className="bg-gray-50 border-b border-gray-200">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <nav className="flex justify-center">
+                <div className="flex w-full sm:w-auto justify-between sm:justify-center sm:space-x-8 md:space-x-12">
+                  {documentTypes.map((type, idx) => (
+                    <button
+                      key={type.id}
+                      onClick={() => setSelectedTypeIndex(idx)}
+                      className={`py-4 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-normal sm:whitespace-nowrap transition-colors ${
+                        selectedTypeIndex === idx
+                          ? "border-primary text-primary"
+                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                      }`}
+                    >
+                      {type.label}
+                    </button>
+                  ))}
+                </div>
+              </nav>
+            </div>
+          </div>
+        </div>
+        {/* Liste des documents */}
+        <ItemsList
+          items={filteredItems}
+          type="document"
+          onViewDetails={handleViewDetails}
+          onTogglePin={handleTogglePin}
+        />
+      </>
     );
   };
 
@@ -151,8 +206,6 @@ const Documents = () => {
           </button>
         </div>
       )}
-
-      {/* Contenu principal - affiché uniquement si l'utilisateur est chargé */}
       {!authLoading && currentUser && (
         <>
           {/* Notification */}
@@ -215,7 +268,6 @@ const Documents = () => {
               </div>
             </div>
           )}
-
           {/* Loading overlay */}
           {loading && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40">

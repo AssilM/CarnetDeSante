@@ -105,7 +105,9 @@ const DoctorSelection = () => {
                         <div className="w-16 h-16 bg-gray-200 rounded-full overflow-hidden">
                           <img
                             src={
-                              doctor.photo || "https://via.placeholder.com/64"
+                              doctor.chemin_photo
+                                ? `http://localhost:5001${doctor.chemin_photo}`
+                                : "/default-profile.png"
                             }
                             alt={`Dr. ${doctor.prenom} ${doctor.nom}`}
                             className="w-full h-full object-cover"

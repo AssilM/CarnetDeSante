@@ -2,12 +2,14 @@ import express from "express";
 import {
   getAllUsers,
   getUserById,
-  updateUser,
-  deleteUser,
-  updatePassword,
-  getUsersByRole,
   getMe,
-} from "../user/user.controller.js";
+  updateUser,
+  updatePassword,
+  deleteUser,
+  getUsersByRole,
+  updateUserPhotoController,
+} from "../user/index.js";
+import { uploadPhoto } from "../middlewares/upload.middleware.js";
 import { authenticate, authorize } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
@@ -19,6 +21,7 @@ router.use(authenticate);
 router.get("/:id", getUserById);
 router.put("/:id", updateUser);
 router.put("/:id/password", updatePassword);
+router.post("/:id/photo", uploadPhoto, updateUserPhotoController);
 
 // Routes accessibles uniquement aux administrateurs
 router.get("/", authorize("admin"), getAllUsers);
