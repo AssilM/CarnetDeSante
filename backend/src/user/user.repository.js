@@ -12,7 +12,9 @@ import pool from "../config/db.js";
 export const findAllUsers = async () => {
   try {
     const result = await pool.query(
+
       "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, chemin_photo FROM utilisateur ORDER BY id"
+
     );
     return result.rows;
   } catch (error) {
@@ -115,6 +117,97 @@ export const updateUser = async (userId, updateFields, values) => {
 };
 
 /**
+ * Met à jour un utilisateur avec ses détails spécifiques selon son rôle
+ * @param {number} userId - ID de l'utilisateur
+ * @param {Object} userData - Données utilisateur à mettre à jour
+ * @param {Object} detailsData - Détails spécifiques selon le rôle
+ * @returns {Promise<Object|undefined>} L'utilisateur mis à jour avec détails ou undefined
+ */
+export const updateUserWithDetails = async (userId, userData, detailsData) => {
+  try {
+    // Démarrer une transaction
+    const client = await pool.connect();
+
+    try {
+      await client.query("BEGIN");
+
+      // 1. Mettre à jour l'utilisateur de base
+      const userFields = [];
+      const userValues = [];
+      let paramIndex = 1;
+
+      for (const [key, value] of Object.entries(userData)) {
+        if (value !== undefined && value !== null) {
+          userFields.push(`${key} = $${paramIndex}`);
+          userValues.push(value);
+          paramIndex++;
+        }
+      }
+
+      if (userFields.length > 0) {
+        userFields.push(`id = $${paramIndex}`);
+        userValues.push(userId);
+
+        const userQuery = `UPDATE utilisateur SET ${userFields.join(
+          ", "
+        )} WHERE id = $${paramIndex} RETURNING *`;
+        await client.query(userQuery, userValues);
+      }
+
+      // 2. Mettre à jour les détails spécifiques selon le rôle
+      if (detailsData) {
+        const userResult = await client.query(
+          "SELECT role FROM utilisateur WHERE id = $1",
+          [userId]
+        );
+
+        if (userResult.rows.length > 0) {
+          const userRole = userResult.rows[0].role;
+
+          if (userRole === "patient" && detailsData.patient_details) {
+            const { groupe_sanguin, taille, poids } =
+              detailsData.patient_details;
+            await client.query(
+              "UPDATE patient SET groupe_sanguin = $1, taille = $2, poids = $3 WHERE utilisateur_id = $4",
+              [groupe_sanguin, taille, poids, userId]
+            );
+          } else if (userRole === "medecin" && detailsData.medecin_details) {
+            const { specialite, description } = detailsData.medecin_details;
+            await client.query(
+              "UPDATE medecin SET specialite = $1, description = $2 WHERE utilisateur_id = $3",
+              [specialite, description, userId]
+            );
+          } else if (userRole === "admin" && detailsData.admin_details) {
+            const { niveau_acces } = detailsData.admin_details;
+            await client.query(
+              "UPDATE administrateur SET niveau_acces = $1 WHERE utilisateur_id = $2",
+              [niveau_acces, userId]
+            );
+          }
+        }
+      }
+
+      await client.query("COMMIT");
+
+      // 3. Récupérer l'utilisateur mis à jour avec ses détails
+      const updatedUser = await findByIdWithDetails(userId);
+      return updatedUser;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error(
+      `[REPOSITORY] Erreur lors de la mise à jour de l'utilisateur avec détails ${userId}:`,
+      error.message
+    );
+    throw new Error("Erreur lors de la mise à jour de l'utilisateur");
+  }
+};
+
+/**
  * Met à jour le mot de passe d'un utilisateur
  * @param {number} userId - ID de l'utilisateur
  * @param {string} hashedPassword - Mot de passe haché
@@ -178,6 +271,7 @@ export const findByRole = async (role) => {
   }
 };
 
+
 /** * Met à jour la photo de profil d'un utilisateur
  * @param {number} userId - ID de l'utilisateur
  * @param {string} photoPath - Chemin de la nouvelle photo
@@ -195,5 +289,118 @@ export const updateUserPhotoRepo = async (userId, photoPath) => {
       error.message
     );
     throw new Error("Erreur lors de la mise à jour de la photo de profil");
+
+/**
+ * Récupère tous les utilisateurs avec leurs informations spécifiques selon leur rôle
+ * @returns {Promise<Array>} Liste des utilisateurs avec leurs données spécifiques
+ */
+export const findAllUsersWithDetails = async () => {
+  try {
+    // Récupérer tous les utilisateurs de base
+    const usersResult = await pool.query(
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, created_at FROM utilisateur ORDER BY id"
+    );
+
+    const users = usersResult.rows;
+    const usersWithDetails = [];
+
+    for (const user of users) {
+      let userWithDetails = { ...user };
+
+      // Ajouter les informations spécifiques selon le rôle
+      if (user.role === "patient") {
+        const patientResult = await pool.query(
+          "SELECT groupe_sanguin, taille, poids FROM patient WHERE utilisateur_id = $1",
+          [user.id]
+        );
+        if (patientResult.rows[0]) {
+          userWithDetails.patient_details = patientResult.rows[0];
+        }
+      } else if (user.role === "medecin") {
+        const medecinResult = await pool.query(
+          "SELECT specialite, description FROM medecin WHERE utilisateur_id = $1",
+          [user.id]
+        );
+        if (medecinResult.rows[0]) {
+          userWithDetails.medecin_details = medecinResult.rows[0];
+        }
+      } else if (user.role === "admin") {
+        const adminResult = await pool.query(
+          "SELECT niveau_acces FROM administrateur WHERE utilisateur_id = $1",
+          [user.id]
+        );
+        if (adminResult.rows[0]) {
+          userWithDetails.admin_details = adminResult.rows[0];
+        }
+      }
+
+      usersWithDetails.push(userWithDetails);
+    }
+
+    return usersWithDetails;
+  } catch (error) {
+    console.error(
+      `[REPOSITORY] Erreur lors de la récupération des utilisateurs avec détails:`,
+      error.message
+    );
+    throw new Error("Erreur lors de la récupération des utilisateurs");
+  }
+};
+
+/**
+ * Récupère un utilisateur par ID avec ses informations spécifiques selon son rôle
+ * @param {number} id - ID de l'utilisateur
+ * @returns {Promise<Object|undefined>} L'utilisateur avec ses détails ou undefined
+ */
+export const findByIdWithDetails = async (id) => {
+  try {
+    // Récupérer l'utilisateur de base
+    const userResult = await pool.query(
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, created_at FROM utilisateur WHERE id = $1",
+      [id]
+    );
+
+    if (userResult.rows.length === 0) {
+      return undefined;
+    }
+
+    const user = userResult.rows[0];
+    let userWithDetails = { ...user };
+
+    // Ajouter les informations spécifiques selon le rôle
+    if (user.role === "patient") {
+      const patientResult = await pool.query(
+        "SELECT groupe_sanguin, taille, poids FROM patient WHERE utilisateur_id = $1",
+        [user.id]
+      );
+      if (patientResult.rows[0]) {
+        userWithDetails.patient_details = patientResult.rows[0];
+      }
+    } else if (user.role === "medecin") {
+      const medecinResult = await pool.query(
+        "SELECT specialite, description FROM medecin WHERE utilisateur_id = $1",
+        [user.id]
+      );
+      if (medecinResult.rows[0]) {
+        userWithDetails.medecin_details = medecinResult.rows[0];
+      }
+    } else if (user.role === "admin") {
+      const adminResult = await pool.query(
+        "SELECT niveau_acces FROM administrateur WHERE utilisateur_id = $1",
+        [user.id]
+      );
+      if (adminResult.rows[0]) {
+        userWithDetails.admin_details = adminResult.rows[0];
+      }
+    }
+
+    return userWithDetails;
+  } catch (error) {
+    console.error(
+      `[REPOSITORY] Erreur lors de la récupération de l'utilisateur avec détails pour ID ${id}:`,
+      error.message
+    );
+    throw new Error("Erreur lors de la récupération de l'utilisateur");
+
   }
 };
