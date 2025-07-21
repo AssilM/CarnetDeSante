@@ -13,6 +13,7 @@ import {
   RelationshipCard,
 } from "../../components/admin/documents";
 import PageWrapper from "../../components/PageWrapper";
+import DocumentPermissionsModal from "../../components/admin/documents/DocumentPermissionsModal";
 import {
   getAllDocuments,
   getAllPatientDoctorRelationships,
@@ -20,7 +21,10 @@ import {
   getPatientsByDoctor,
   getDoctorsByPatient,
   deletePatientDoctorRelationship,
+  getDocumentDoctorsWithAccess,
+  revokeDocumentPermission,
 } from "../../services/api/adminService";
+import { useNavigate } from "react-router-dom";
 
 const Documents = () => {
   const [selectedUser, setSelectedUser] = useState(null);
@@ -31,6 +35,12 @@ const Documents = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
+  const [permissions, setPermissions] = useState([]);
+  const [loadingRevoke, setLoadingRevoke] = useState(null);
+  const [currentDocumentId, setCurrentDocumentId] = useState(null);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadUsers();
@@ -113,8 +123,34 @@ const Documents = () => {
     }
   };
 
-  const handleViewPermissions = (documentId) => {
-    console.log("Voir les permissions pour le document:", documentId);
+  const handleViewPermissions = async (documentId) => {
+    setPermissionsModalOpen(true);
+    setCurrentDocumentId(documentId);
+    try {
+      const data = await getDocumentDoctorsWithAccess(documentId);
+      console.log("Permissions API response:", data);
+      setPermissions(data.doctors || []);
+    } catch {
+      setPermissions([]);
+    }
+  };
+
+  const handleViewDetails = (documentId) => {
+    navigate(`/admin/documents/${documentId}`);
+  };
+  const handleRevoke = async (doctorId) => {
+    if (!currentDocumentId || !doctorId) return;
+    setLoadingRevoke(doctorId);
+    try {
+      await revokeDocumentPermission(currentDocumentId, doctorId);
+      // Recharger la liste des permissions après révocation
+      const data = await getDocumentDoctorsWithAccess(currentDocumentId);
+      setPermissions(data.doctors || []);
+    } catch (error) {
+      console.error("Erreur lors de la révocation:", error);
+    } finally {
+      setLoadingRevoke(null);
+    }
   };
 
   const getFilteredData = () => {
@@ -426,6 +462,7 @@ const Documents = () => {
                         key={document.id}
                         document={document}
                         onViewPermissions={handleViewPermissions}
+                        onViewDetails={handleViewDetails}
                       />
                     ))}
                   </div>
@@ -476,6 +513,13 @@ const Documents = () => {
           </div>
         </div>
       </div>
+      <DocumentPermissionsModal
+        open={permissionsModalOpen}
+        onClose={() => setPermissionsModalOpen(false)}
+        permissions={permissions}
+        onRevoke={handleRevoke}
+        loadingRevoke={loadingRevoke}
+      />
     </PageWrapper>
   );
 };

@@ -8,7 +8,7 @@ import {
 } from "react-icons/fa";
 import { MdMedicalServices } from "react-icons/md";
 
-const DocumentCard = ({ document, onViewPermissions }) => {
+const DocumentCard = ({ document, onViewPermissions, onViewDetails }) => {
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("fr-FR", {
       day: "2-digit",
@@ -41,15 +41,6 @@ const DocumentCard = ({ document, onViewPermissions }) => {
               Type: {document.type_document_label || "Non spécifié"}
             </p>
           </div>
-        </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => onViewPermissions(document.id)}
-            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            title="Voir les permissions"
-          >
-            <FaEye className="text-lg" />
-          </button>
         </div>
       </div>
 
@@ -111,7 +102,14 @@ const DocumentCard = ({ document, onViewPermissions }) => {
               onClick={() => onViewPermissions(document.id)}
               className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
             >
-              Permissions
+              Voir permissions
+            </button>
+            <button
+              onClick={() => onViewDetails(document.id)}
+              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Voir les détails"
+            >
+              <FaEye className="text-lg" />
             </button>
           </div>
         </div>

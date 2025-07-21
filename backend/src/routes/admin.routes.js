@@ -19,6 +19,7 @@ import {
   getDocumentById,
   deleteDocument,
   getDocumentsByType,
+  downloadDocument,
   // Controllers de gestion des liens patient-médecin
   getAllPatientDoctorRelationships,
   getPatientsByDoctor,
@@ -30,6 +31,7 @@ import {
   getDocumentPermissions,
   createDocumentPermission,
   deleteDocumentPermission,
+  revokeDocumentPermission,
 } from "../admin/admin.controller.js";
 import { authenticate, authorize } from "../middlewares/auth.middleware.js";
 
@@ -56,6 +58,7 @@ router.delete("/users/:id", deleteUser);
 router.get("/documents", getAllDocuments);
 router.get("/documents/type/:typeId", getDocumentsByType);
 router.get("/documents/:id", getDocumentById);
+router.get("/documents/:id/download", downloadDocument);
 router.delete("/documents/:id", deleteDocument);
 
 // Routes de gestion des liens patient-médecin (côté admin)
@@ -73,6 +76,7 @@ router.get("/permissions", getAllDocumentPermissions);
 router.get("/permissions/document/:documentId", getDocumentPermissions);
 router.post("/permissions", createDocumentPermission);
 router.delete("/permissions/:documentId/:userId", deleteDocumentPermission);
+router.post("/permissions/revoke", revokeDocumentPermission);
 
 // Routes administrateurs (doivent être en dernier pour éviter les conflits)
 router.get("/", getAllAdministrateurs);

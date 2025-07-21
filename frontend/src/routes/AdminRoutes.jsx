@@ -10,6 +10,7 @@ import HomeAdmin from "../pages/admin/HomeAdmin";
 import Statistics from "../pages/admin/Statistics";
 import Users from "../pages/admin/Users";
 import Documents from "../pages/admin/Documents";
+import DocumentDetails from "../pages/admin/DocumentDetails";
 
 /**
  * Routes spécifiques aux administrateurs
@@ -63,6 +64,19 @@ const AdminRoutes = [
       <ProtectedRoute requiredRole="admin">
         <MainLayout>
           <Documents />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+
+  // Route de détails d'un document
+  <Route
+    key="admin-document-details"
+    path="/admin/documents/:documentId"
+    element={
+      <ProtectedRoute requiredRole="admin">
+        <MainLayout>
+          <DocumentDetails />
         </MainLayout>
       </ProtectedRoute>
     }

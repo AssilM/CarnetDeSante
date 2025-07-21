@@ -23,6 +23,7 @@ export {
   getDocumentById,
   deleteDocument,
   getDocumentsByType,
+  downloadDocument,
 } from "./admin.controller.js";
 
 // Export du service admin

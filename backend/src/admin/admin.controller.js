@@ -29,6 +29,8 @@ import {
   createDocumentPermissionService,
   deleteDocumentPermissionService,
 } from "./admin.service.js";
+import path from "path";
+import fs from "fs";
 
 /**
  * Controller pour la gestion des administrateurs
@@ -374,6 +376,32 @@ export const deleteDocument = async (req, res, next) => {
 };
 
 /**
+ * Télécharger un document (pour l'administration)
+ */
+export const downloadDocument = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const document = await getDocumentByIdAdminService(id);
+
+    if (!document) {
+      return res.status(404).json({ message: "Document non trouvé" });
+    }
+
+    const filePath = path.resolve(document.chemin_fichier);
+    if (!fs.existsSync(filePath)) {
+      return res
+        .status(404)
+        .json({ message: "Fichier non trouvé sur le serveur" });
+    }
+
+    res.download(filePath, document.nom_fichier);
+  } catch (error) {
+    console.error("Erreur lors du téléchargement du document:", error);
+    next(error);
+  }
+};
+
+/**
  * Récupérer les documents par type (pour l'administration)
  */
 export const getDocumentsByType = async (req, res, next) => {
@@ -594,6 +622,39 @@ export const deleteDocumentPermission = async (req, res, next) => {
   } catch (error) {
     console.error(
       "Erreur lors de la suppression de la permission d'accès:",
+      error
+    );
+    next(error);
+  }
+};
+
+/**
+ * Révoquer une permission d'accès à un document (pour l'administration)
+ */
+export const revokeDocumentPermission = async (req, res, next) => {
+  try {
+    const { documentId, doctorId } = req.body;
+
+    if (!documentId || !doctorId) {
+      return res.status(400).json({
+        message: "L'ID du document et l'ID du médecin sont requis",
+      });
+    }
+
+    const success = await deleteDocumentPermissionService(documentId, doctorId);
+
+    if (!success) {
+      return res.status(404).json({
+        message: "Permission d'accès non trouvée",
+      });
+    }
+
+    res.status(200).json({
+      message: "Permission d'accès révoquée avec succès",
+    });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la révocation de la permission d'accès:",
       error
     );
     next(error);

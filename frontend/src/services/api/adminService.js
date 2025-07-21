@@ -406,6 +406,42 @@ export const deleteDocumentPermission = async (documentId, userId) => {
   }
 };
 
+/**
+ * Récupère les médecins qui ont accès à un document
+ */
+export const getDocumentDoctorsWithAccess = async (documentId) => {
+  try {
+    const response = await httpService.get(
+      `/admin/permissions/document/${documentId}/doctors`
+    );
+    return response.data.doctors;
+  } catch (error) {
+    console.error(
+      "Erreur lors de la récupération des médecins avec accès au document:",
+      error
+    );
+    throw error;
+  }
+};
+
+/**
+ * Révoque l'accès d'un médecin à un document
+ */
+export const revokeDocumentPermission = async (documentId, doctorId) => {
+  try {
+    const response = await httpService.delete(
+      `/admin/permissions/${documentId}/doctor/${doctorId}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Erreur lors de la révocation de l'accès du médecin au document:",
+      error
+    );
+    throw error;
+  }
+};
+
 // ==================== TABLEAU DE BORD ====================
 
 /**
