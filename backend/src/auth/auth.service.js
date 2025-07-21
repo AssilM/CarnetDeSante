@@ -179,6 +179,7 @@ export const createUser = async (userData, role) => {
       nom: user.nom,
       prenom: user.prenom,
       role: user.role,
+      chemin_photo: user.chemin_photo || "",
     };
   } catch (error) {
     await client.query("ROLLBACK");
@@ -231,6 +232,7 @@ export const authenticateUser = async (email, password) => {
       nom: user.nom,
       prenom: user.prenom,
       role: user.role,
+      chemin_photo: user.chemin_photo || "",
     },
     accessToken,
     refreshToken,
@@ -346,6 +348,7 @@ export const getCurrentUser = async (userId) => {
     adresse: user.adresse,
     code_postal: user.code_postal,
     ville: user.ville,
+    chemin_photo: user.chemin_photo || "",
   };
 };
 

@@ -22,6 +22,11 @@ dotenv.config();
 
 const app = express();
 
+
+// Middleware pour servir les fichiers statiques (photos de profil, documents...)
+import path from "path";
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
 // Middleware de base
 app.use(
   cors({
@@ -56,7 +61,7 @@ app.use("/api/admin", adminRoutes);
 app.use(specialiteRoutes);
 app.use("/api/acl", aclRoutes);
 app.use("/api/documents", documentRoutes);
-
+app.use("/api/upload-photo", userRoutes);
 // Routes de test
 app.get("/", (req, res) => {
   res.send("API Carnet de Santé Virtuel");

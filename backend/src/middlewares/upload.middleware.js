@@ -131,4 +131,64 @@ export const uploadDocument = (req, res, next) => {
   });
 };
 
-export default uploadDocument;
+// Middleware d'upload pour les photos de profil
+export const uploadPhoto = (req, res, next) => {
+  console.log('📤 Middleware d\'upload de photo de profil - Début');
+  
+  const uploadDir = "uploads/photos";
+  if (!fs.existsSync("uploads")) {
+    fs.mkdirSync("uploads", { recursive: true });
+  }
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => {
+      const base = path.basename(file.originalname, path.extname(file.originalname)).replace(/\s+/g, "_");
+      cb(null, `${base}.jpeg`);
+    }
+  });
+
+  const fileFilter = (req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (allowedTypes.includes(file.mimetype)) cb(null, true);
+    else cb(new Error("Type de fichier non autorisé. Types acceptés: JPEG, PNG, WEBP"), false);
+  };
+
+  return multer({
+    storage,
+    fileFilter,
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB max
+  }).single("photo")(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({
+        success: false,
+        message: err.message,
+        notification: {
+          type: 'error',
+          title: 'Erreur d\'upload',
+          message: err.message
+        }
+      });
+    }
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Aucun fichier fourni',
+        notification: {
+          type: 'error',
+          title: 'Fichier manquant',
+          message: 'Veuillez sélectionner une photo à uploader'
+        }
+      });
+    }
+    next();
+  });
+};
+
+export default {
+  uploadDocument,
+  uploadPhoto
+};

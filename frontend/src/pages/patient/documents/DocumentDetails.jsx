@@ -5,7 +5,7 @@ import {
   FaArrowLeft,
   FaDownload,
   FaShareAlt,
-  FaUserMd,
+  FaUserMd, 
   FaTimes,
   FaEyeSlash,
 } from "react-icons/fa";

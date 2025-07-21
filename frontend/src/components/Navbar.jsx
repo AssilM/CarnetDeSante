@@ -81,7 +81,7 @@ const Navbar = () => {
           </button>
 
           <Link to={getHomeRoute()} className="flex w-10 h-10">
-            <img src={logo} alt="logo" />
+            <img src={logo} alt="logo" className="w-10 h-10 rounded-full object-cover border" />
           </Link>
           <Link to={getHomeRoute()} className="ml-4 hidden sm:block">
             <span className="text-xl font-semibold">
@@ -96,21 +96,34 @@ const Navbar = () => {
               className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100"
               onClick={handleProfileClick}
             >
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-gray-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-              </div>
+              {currentUser?.chemin_photo && currentUser.chemin_photo.trim() !== "" ? (
+                <img
+                  src={
+                    currentUser.chemin_photo.startsWith("/")
+                      ? `http://localhost:5001${currentUser.chemin_photo}`
+                      : `http://localhost:5001/uploads/photos/${currentUser.chemin_photo}`
+                  }
+                  alt="Photo de profil"
+                  className="w-8 h-8 rounded-full object-cover border"
+                  onError={(e) => { e.target.onerror = null; e.target.src = logo; }}
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                  <svg
+                    className="w-5 h-5 text-gray-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div>
+              )}
               <div className="hidden md:block text-left">
                 <span className="block text-sm font-medium">{displayName}</span>
                 <span className="block text-xs text-gray-500">

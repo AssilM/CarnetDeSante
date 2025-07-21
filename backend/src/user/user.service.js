@@ -10,6 +10,7 @@ import {
   updatePassword as updatePasswordRepo,
   deleteUser as deleteUserRepo,
   findByRole,
+  updateUserPhotoRepo
 } from "./user.repository.js";
 import { hashPassword, comparePassword } from "../utils/auth.utils.js";
 
@@ -226,4 +227,16 @@ export const deleteUserService = async (userId) => {
     throw new Error("Utilisateur non trouvé");
   }
   return true;
+};
+
+/**
+* Met à jour la photo de l'utilisateur
+ * @param {string|number} userId - ID de l'utilisateur
+ * @param {string} photoPath - Chemin de la nouvelle photo
+ * @returns {Promise<Object>} Utilisateur mis à jour avec la nouvelle photo
+ * @throws {Error} Si utilisateur non trouvé ou erreur lors de la mise à jour
+ */
+export const updateUserPhotoService = async (userId, photoPath) => {
+  await updateUserPhotoRepo(userId, photoPath);
+  return await findById(userId);
 };

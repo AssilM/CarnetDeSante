@@ -18,9 +18,13 @@ import {
   getDocumentDoctorsWithAccess,
   createDocumentByDoctorWithRdv,
   getDocumentsByRendezVous,
+  getAllDocumentTypes,
 } from "./document.controller.js";
 
 const router = express.Router();
+
+// Récupérer tous les types de documents
+router.get("/types", getAllDocumentTypes);
 
 router.use(authenticate);
 

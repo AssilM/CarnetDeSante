@@ -1,14 +1,17 @@
 import React, { useState } from "react";
 
-const documentTypes = [
-  { value: "ordonnance", label: "Ordonnance" },
-  { value: "analyse", label: "Analyse" },
-  { value: "radio", label: "Radiographie" },
-  { value: "consultation", label: "Consultation" },
-  { value: "autre", label: "Autre" },
+const documentTypeLabels = [
+  "Ordonnance",
+  "Analyse",
+  "Vaccination",
+  "Imagerie/Radio",
+  "Antécédent",
+  "Autre"
 ];
 
-/**
+const documentTypes = documentTypeLabels.map(label => ({ value: label, label }));
+
+ /**
  * Formulaire d'ajout d'un document médical
  * @param {Function} onSubmit - Fonction appelée à la soumission du formulaire
  * @param {Function} onCancel - Fonction appelée pour annuler l'ajout

@@ -12,6 +12,7 @@ export {
   updatePassword,
   deleteUser,
   getUsersByRole,
+  updateUserPhotoController,
 } from "./user.controller.js";
 
 // Export du service utilisateur
@@ -22,6 +23,7 @@ export {
   updateUserService,
   updatePasswordService,
   deleteUserService,
+  updateUserPhotoService,
 } from "./user.service.js";
 
 // Export du repository utilisateur
@@ -34,4 +36,5 @@ export {
   updatePassword as updatePasswordRepo,
   deleteUser as deleteUserRepo,
   findByRole,
+  updateUserPhotoRepo,
 } from "./user.repository.js";

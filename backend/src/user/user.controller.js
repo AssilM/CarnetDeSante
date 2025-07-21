@@ -5,6 +5,7 @@ import {
   updateUserService,
   updatePasswordService,
   deleteUserService,
+  updateUserPhotoService,
 } from "./user.service.js";
 
 /**
@@ -142,6 +143,18 @@ export const getUsersByRole = async (req, res, next) => {
     res.status(200).json({ users });
   } catch (error) {
     console.error("Erreur lors de la récupération des utilisateurs:", error);
+    next(error);
+  }
+};
+
+// Mettre à jour la photo de l'utilisateur
+export const updateUserPhotoController = async (req, res, next) => {
+  try {
+    const userId = req.params.id;
+    const photoPath = `/uploads/photos/${req.file.filename}`;
+    const updatedUser = await updateUserPhotoService(userId, photoPath);
+    res.status(200).json({ chemin_photo: photoPath, user: updatedUser });
+  } catch (error) {
     next(error);
   }
 };

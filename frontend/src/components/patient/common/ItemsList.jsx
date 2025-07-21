@@ -36,6 +36,7 @@ const ItemsList = ({
   itemSubtitleField = "subtitle",
   countText,
   showPinnedSection = true,
+  slider
 }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("all");
@@ -107,6 +108,10 @@ const ItemsList = ({
             )}
           </div>
         </div>
+
+        {slider && (
+          <div className="w-full">{slider}</div>
+        )}
 
         {/* Filtres de navigation pour épinglés/tous */}
         {showPinnedSection && pinnedItems.length > 0 && (

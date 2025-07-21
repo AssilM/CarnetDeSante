@@ -65,6 +65,16 @@ const SettingsRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/settings/edit-photo"
+        element={
+          <ProtectedRoute requiredRole={["patient", "medecin"]}>
+            <MainLayout>
+              <EditPhoto />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
     </>
   );
 };

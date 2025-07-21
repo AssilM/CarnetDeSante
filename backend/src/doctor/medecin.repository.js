@@ -4,7 +4,7 @@ import pool from "../config/db.js";
 export const findAllMedecins = async () => {
   const query = `
     SELECT m.utilisateur_id, m.specialite, m.description, 
-           u.nom, u.prenom, u.email, u.tel_indicatif, u.tel_numero
+           u.nom, u.prenom, u.email, u.tel_indicatif, u.tel_numero, u.chemin_photo
     FROM medecin m
     INNER JOIN utilisateur u ON m.utilisateur_id = u.id
     ORDER BY u.nom, u.prenom
@@ -18,7 +18,7 @@ export const findMedecinByUserId = async (userId) => {
   const query = `
     SELECT m.utilisateur_id, m.specialite, m.description, 
            u.nom, u.prenom, u.email, u.tel_indicatif, u.tel_numero, u.date_naissance, u.sexe,
-           u.adresse, u.code_postal, u.ville
+           u.adresse, u.code_postal, u.ville, u.chemin_photo
     FROM medecin m
     INNER JOIN utilisateur u ON m.utilisateur_id = u.id
     WHERE m.utilisateur_id = $1
@@ -57,7 +57,7 @@ export const updateMedecin = async (userId, specialite, description) => {
 export const searchMedecins = async (searchTerm) => {
   const query = `
     SELECT m.utilisateur_id, m.specialite, m.description, 
-           u.nom, u.prenom, u.email
+           u.nom, u.prenom, u.email, u.chemin_photo
     FROM medecin m
     INNER JOIN utilisateur u ON m.utilisateur_id = u.id
     WHERE 
@@ -74,7 +74,7 @@ export const searchMedecins = async (searchTerm) => {
 export const findMedecinsBySpecialite = async (specialite) => {
   const query = `
     SELECT m.utilisateur_id as id, m.specialite, m.description, u.nom, u.prenom, u.email, u.ville,
-           u.adresse, u.code_postal, CONCAT(u.tel_indicatif, u.tel_numero) as tel
+           u.adresse, u.code_postal, CONCAT(u.tel_indicatif, u.tel_numero) as tel, u.chemin_photo
     FROM medecin m
     INNER JOIN utilisateur u ON m.utilisateur_id = u.id
     WHERE LOWER(m.specialite) = LOWER($1)

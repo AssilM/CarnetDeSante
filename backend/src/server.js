@@ -32,9 +32,8 @@ const initDatabase = async () => {
 };
 
 // Initialiser la base de données
-//initDatabase();
+initDatabase();
 app.use(cors());
-
 // Démarrer le serveur
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);

@@ -1,6 +1,19 @@
 import pool from "../config/db.js";
 
 class DocumentRepository {
+  async getAllDocumentTypes() {
+    const { rows } = await pool.query(
+      "SELECT id, label, code FROM document_type ORDER BY label ASC"
+    );
+    return rows;
+  }
+  async getTypeIdByCode(code) {
+    const { rows } = await pool.query(
+      "SELECT id FROM document_type WHERE LOWER(code) = LOWER($1)",
+      [code]
+    );
+    return rows.length > 0 ? rows[0].id : null;
+  }
   async createDocument(documentData) {
     const {
       patient_id,
@@ -39,9 +52,13 @@ class DocumentRepository {
   }
 
   async getDocumentById(id) {
-    const result = await pool.query("SELECT * FROM document WHERE id = $1", [
-      id,
-    ]);
+    const result = await pool.query(
+      `SELECT d.*, dt.label AS type_document_label
+       FROM document d
+       LEFT JOIN document_type dt ON d.type_id = dt.id
+       WHERE d.id = $1`,
+      [id]
+    );
     return result.rows[0];
   }
 
@@ -94,9 +111,10 @@ class DocumentRepository {
 
   async getUserDocuments(userId) {
     const { rows } = await pool.query(
-      `SELECT d.*, dp.role as permission_role
+      `SELECT d.*, dp.role as permission_role, dt.label AS type_document_label
        FROM document_permission dp
        JOIN document d ON d.id = dp.document_id
+       LEFT JOIN document_type dt ON d.type_id = dt.id
        WHERE dp.user_id = $1`,
       [userId]
     );
@@ -166,6 +184,21 @@ class DocumentRepository {
       [patientId]
     );
     return rows.length > 0;
+  }
+  
+  async getTypeIdByLabel(label) {
+    const { rows } = await pool.query(
+      "SELECT id FROM document_type WHERE label = $1",
+      [label]
+    );
+    return rows.length > 0 ? rows[0].id : null;
+  }
+  async getTypeIdByCode(code) {
+    const { rows } = await pool.query(
+      "SELECT id FROM document_type WHERE LOWER(code) = LOWER($1)",
+      [code]
+    );
+    return rows.length > 0 ? rows[0].id : null;
   }
 }
 
