@@ -9,7 +9,7 @@ import MainLayout from "./layouts/MainLayout";
 import HomeAdmin from "../pages/admin/HomeAdmin";
 import Statistics from "../pages/admin/Statistics";
 import Users from "../pages/admin/Users";
-import Documents from "../pages/admin/Documents";
+import UserDocuments from "../pages/admin/UserDocuments";
 import DocumentDetails from "../pages/admin/DocumentDetails";
 
 /**
@@ -43,7 +43,7 @@ const AdminRoutes = [
     }
   />,
 
-  // Route de gestion des utilisateurs
+  // Route de gestion des utilisateurs (fusionnée avec Documents)
   <Route
     key="admin-users"
     path="/admin/users"
@@ -56,14 +56,14 @@ const AdminRoutes = [
     }
   />,
 
-  // Route de gestion des documents
+  // Route de gestion des détails d'un utilisateur spécifique
   <Route
-    key="admin-documents"
-    path="/admin/documents"
+    key="admin-user-details"
+    path="/admin/users/details/:userId"
     element={
       <ProtectedRoute requiredRole="admin">
         <MainLayout>
-          <Documents />
+          <UserDocuments />
         </MainLayout>
       </ProtectedRoute>
     }

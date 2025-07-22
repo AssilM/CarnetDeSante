@@ -12,6 +12,7 @@ import {
   FaStethoscope,
   FaShieldAlt,
 } from "react-icons/fa";
+import { getAllSpecialites } from "../../../services/api/specialiteService";
 
 const EditUserModal = ({ user, onClose, onSave, loading = false }) => {
   const [formData, setFormData] = useState({
@@ -39,6 +40,24 @@ const EditUserModal = ({ user, onClose, onSave, loading = false }) => {
   });
 
   const [errors, setErrors] = useState({});
+  const [specialites, setSpecialites] = useState([]);
+
+  // Charger les spécialités au montage du composant
+  useEffect(() => {
+    const loadSpecialites = async () => {
+      try {
+        const specialitesData = await getAllSpecialites();
+        // Les données retournées sont directement un tableau d'objets {id, nom}
+        setSpecialites(specialitesData || []);
+      } catch (error) {
+        console.error("Erreur lors du chargement des spécialités:", error);
+      }
+    };
+
+    if (user?.role === "medecin") {
+      loadSpecialites();
+    }
+  }, [user?.role]);
 
   // Initialiser le formulaire avec les données de l'utilisateur
   useEffect(() => {
@@ -493,8 +512,7 @@ const EditUserModal = ({ user, onClose, onSave, loading = false }) => {
                     <label className="block text-sm font-medium text-[#64748B] mb-2">
                       Spécialité
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={formData.medecin_details.specialite}
                       onChange={(e) =>
                         handleDetailChange(
@@ -504,8 +522,14 @@ const EditUserModal = ({ user, onClose, onSave, loading = false }) => {
                         )
                       }
                       className="w-full px-3 py-2 border border-[#E9ECEF] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4A90E2]"
-                      placeholder="Cardiologie"
-                    />
+                    >
+                      <option value="">Sélectionner une spécialité</option>
+                      {specialites.map((specialite) => (
+                        <option key={specialite.id} value={specialite.nom}>
+                          {specialite.nom}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>

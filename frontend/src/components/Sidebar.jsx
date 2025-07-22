@@ -113,16 +113,6 @@ const Sidebar = () => {
       path: "/admin/users",
     },
     {
-      icon: <MdMedicalServices className="text-2xl" />,
-      label: "Médecins",
-      path: "/admin/doctors",
-    },
-    {
-      icon: <FaFileMedical className="text-2xl" />,
-      label: "Documents",
-      path: "/admin/documents",
-    },
-    {
       icon: <FaChartBar className="text-2xl" />,
       label: "Statistiques",
       path: "/admin/stats",

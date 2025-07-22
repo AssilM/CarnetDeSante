@@ -13,8 +13,9 @@ import { MdMedicalServices } from "react-icons/md";
 import {
   getDocumentById,
   deleteDocument,
+  downloadDocumentForView,
+  downloadDocument,
 } from "../../services/api/adminService";
-import { httpService } from "../../services";
 import PageWrapper from "../../components/PageWrapper";
 
 const DocumentDetails = () => {
@@ -57,12 +58,7 @@ const DocumentDetails = () => {
 
   const loadDocumentForView = async (doc) => {
     try {
-      const response = await httpService.get(
-        `/admin/documents/${doc.id}/download`,
-        {
-          responseType: "blob",
-        }
-      );
+      const response = await downloadDocumentForView(doc.id);
 
       const contentType =
         response.headers["content-type"] || "application/octet-stream";
@@ -99,12 +95,7 @@ const DocumentDetails = () => {
     try {
       setNotification({ type: "info", message: "Téléchargement en cours..." });
 
-      const response = await httpService.get(
-        `/admin/documents/${docData.id}/download`,
-        {
-          responseType: "blob",
-        }
-      );
+      const response = await downloadDocument(docData.id);
 
       const contentType =
         response.headers["content-type"] || "application/octet-stream";

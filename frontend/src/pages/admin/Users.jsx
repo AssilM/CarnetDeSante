@@ -10,6 +10,15 @@ import {
 } from "../../components/admin/users";
 import PageWrapper from "../../components/PageWrapper";
 
+import { useNavigate } from "react-router-dom";
+import {
+  FaFileMedical,
+  FaSearch,
+  FaUser,
+  FaUserMd,
+  FaShieldAlt,
+} from "react-icons/fa";
+
 const Users = () => {
   const { currentUser } = useAuth();
   const [users, setUsers] = useState([]);
@@ -27,11 +36,7 @@ const Users = () => {
     admins: 0,
   });
 
-  // États pour les modales
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [modalLoading, setModalLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Ne charger les données que si l'utilisateur est admin
@@ -44,22 +49,6 @@ const Users = () => {
     // Filtrer les utilisateurs quand les filtres changent
     filterUsers();
   }, [users, filters]);
-
-  // Effet pour bloquer le scroll quand une modale est ouverte
-  useEffect(() => {
-    const isModalOpen = showEditModal || showDeleteModal;
-
-    if (isModalOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-
-    // Cleanup lors du démontage du composant
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [showEditModal, showDeleteModal]);
 
   const loadUsers = async () => {
     // Vérifier que l'utilisateur est admin
@@ -129,49 +118,33 @@ const Users = () => {
     });
   };
 
-  const handleEditUser = (user) => {
-    setSelectedUser(user);
-    setShowEditModal(true);
+  const handleUserSelect = (user) => {
+    navigate(`/admin/users/details/${user.id}`);
   };
 
-  const handleSaveUser = async (userId, userData) => {
-    try {
-      setModalLoading(true);
-      await adminService.updateUserWithDetails(userId, userData);
-
-      // Mettre à jour la liste locale
-      setUsers((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, ...userData } : u))
-      );
-
-      alert("Utilisateur modifié avec succès");
-    } catch (err) {
-      console.error("Erreur lors de la modification:", err);
-      alert("Erreur lors de la modification de l'utilisateur");
-    } finally {
-      setModalLoading(false);
+  const getUserIcon = (role) => {
+    switch (role) {
+      case "patient":
+        return <FaUser className="text-blue-600" />;
+      case "medecin":
+        return <FaUserMd className="text-green-600" />;
+      case "admin":
+        return <FaShieldAlt className="text-purple-600" />;
+      default:
+        return <FaUser className="text-gray-600" />;
     }
   };
 
-  const handleDeleteUser = (user) => {
-    setSelectedUser(user);
-    setShowDeleteModal(true);
-  };
-
-  const handleConfirmDelete = async (userId) => {
-    try {
-      setModalLoading(true);
-      await adminService.deleteUser(userId);
-
-      // Mettre à jour la liste locale
-      setUsers((prev) => prev.filter((u) => u.id !== userId));
-
-      alert("Utilisateur supprimé avec succès");
-    } catch (err) {
-      console.error("Erreur lors de la suppression:", err);
-      alert("Erreur lors de la suppression de l'utilisateur");
-    } finally {
-      setModalLoading(false);
+  const getUserRoleLabel = (role) => {
+    switch (role) {
+      case "patient":
+        return "Patient";
+      case "medecin":
+        return "Médecin";
+      case "admin":
+        return "Administrateur";
+      default:
+        return role;
     }
   };
 
@@ -214,36 +187,9 @@ const Users = () => {
 
   if (loading) {
     return (
-      <PageWrapper className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto p-6">
-          <div className="animate-pulse">
-            <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6">
-              <div className="h-8 bg-gray-200 rounded w-1/3 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm"
-                >
-                  <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
-                  <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm"
-                >
-                  <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
-                  <div className="h-32 bg-gray-200 rounded"></div>
-                </div>
-              ))}
-            </div>
-          </div>
+      <PageWrapper>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       </PageWrapper>
     );
@@ -251,35 +197,16 @@ const Users = () => {
 
   if (error) {
     return (
-      <PageWrapper className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto p-6">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-4 h-4 text-red-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <div>
-                <p className="text-red-800 font-medium">{error}</p>
-                <button
-                  onClick={loadUsers}
-                  className="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-                >
-                  Réessayer
-                </button>
-              </div>
-            </div>
+      <PageWrapper>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="text-red-600 text-xl mb-4">{error}</div>
+            <button
+              onClick={loadUsers}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark"
+            >
+              Réessayer
+            </button>
           </div>
         </div>
       </PageWrapper>
@@ -287,129 +214,93 @@ const Users = () => {
   }
 
   return (
-    <PageWrapper className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-1">
-                  Gestion des Utilisateurs
-                </h1>
-                <p className="text-gray-600">
-                  Gérez tous les utilisateurs de la plateforme
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Statistiques */}
-        <UserStats stats={stats} />
-
-        {/* Filtres */}
-        <UserFilters
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          onReset={handleResetFilters}
-        />
-
-        {/* Liste des utilisateurs */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Utilisateurs ({filteredUsers.length})
-            </h2>
-            <button
-              onClick={loadUsers}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              Actualiser
-            </button>
+    <PageWrapper>
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Gestion des Utilisateurs
+            </h1>
+            <p className="text-gray-600">
+              Gérez tous les utilisateurs de la plateforme
+            </p>
           </div>
 
-          {filteredUsers.length === 0 ? (
-            <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+          {/* Statistiques */}
+          <UserStats stats={stats} />
+
+          {/* Filtres */}
+          <UserFilters
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            onReset={handleResetFilters}
+          />
+
+          {/* Liste des utilisateurs */}
+          <div className="bg-white rounded-lg shadow-sm">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Utilisateurs ({filteredUsers.length})
+                </h2>
+                <button
+                  onClick={loadUsers}
+                  className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                  />
-                </svg>
+                  Actualiser
+                </button>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Aucun utilisateur trouvé
-              </h3>
-              <p className="text-gray-600">
-                {users.length === 0
-                  ? "Aucun utilisateur dans la base de données"
-                  : "Aucun utilisateur ne correspond aux filtres sélectionnés"}
-              </p>
+
+              {filteredUsers.length === 0 ? (
+                <div className="text-center py-12">
+                  <FaUser className="mx-auto text-4xl text-gray-400 mb-4" />
+                  <p className="text-gray-600">
+                    {users.length === 0
+                      ? "Aucun utilisateur dans la base de données"
+                      : "Aucun utilisateur ne correspond aux filtres sélectionnés"}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      onClick={() => handleUserSelect(user)}
+                      className="bg-gray-50 rounded-lg p-4 cursor-pointer hover:bg-gray-100 transition-colors border border-gray-200"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-white rounded-lg">
+                          {getUserIcon(user.role)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 truncate">
+                            {user.nom} {user.prenom}
+                          </h3>
+                          <p className="text-sm text-gray-600 truncate">
+                            {user.email}
+                          </p>
+                          <span
+                            className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${
+                              user.role === "patient"
+                                ? "bg-blue-100 text-blue-800"
+                                : user.role === "medecin"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-purple-100 text-purple-800"
+                            }`}
+                          >
+                            {getUserRoleLabel(user.role)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {filteredUsers.map((user) => (
-                <UserCard
-                  key={user.id}
-                  user={user}
-                  onEdit={handleEditUser}
-                  onDelete={handleDeleteUser}
-                />
-              ))}
-            </div>
-          )}
+          </div>
         </div>
       </div>
-
-      {/* Modale d'édition */}
-      {showEditModal && selectedUser && (
-        <EditUserModal
-          user={selectedUser}
-          onClose={() => {
-            setShowEditModal(false);
-            setSelectedUser(null);
-          }}
-          onSave={handleSaveUser}
-          loading={modalLoading}
-        />
-      )}
-
-      {/* Modale de suppression */}
-      {showDeleteModal && selectedUser && (
-        <DeleteUserModal
-          user={selectedUser}
-          onClose={() => {
-            setShowDeleteModal(false);
-            setSelectedUser(null);
-          }}
-          onConfirm={handleConfirmDelete}
-          loading={modalLoading}
-        />
-      )}
     </PageWrapper>
   );
 };
