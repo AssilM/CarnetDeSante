@@ -25,6 +25,7 @@ const dropAllTables = async () => {
     await dropTable("documents_rendez_vous");
     await dropTable("document");
     await dropTable("document_type");
+    await dropTable("vaccin");
     await dropTable("specialite");
     await dropTable("refresh_token");
     await dropTable("rendez_vous");
@@ -489,11 +490,39 @@ const seedSpecialites = async () => {
   }
 };
 
+// --- TABLE VACCIN ---
+const createVaccinTable = async () => {
+  const queryText = `
+    CREATE TABLE IF NOT EXISTS vaccin (
+      id SERIAL PRIMARY KEY,
+      patient_id INTEGER NOT NULL REFERENCES patient(utilisateur_id) ON DELETE CASCADE,
+      nom_vaccin VARCHAR(255) NOT NULL,
+      nom_medecin VARCHAR(255),
+      lieu_vaccination VARCHAR(255),
+      type_vaccin VARCHAR(100),
+      fabricant VARCHAR(100),
+      date_vaccination DATE NOT NULL,
+      lot_vaccin VARCHAR(100),
+      statut VARCHAR(20) DEFAULT 'effectué' CHECK (statut IN ('a faire', 'effectué')),
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+  try {
+    await pool.query(queryText);
+    console.log("Table vaccin créée avec succès");
+  } catch (error) {
+    console.error("Erreur lors de la création de la table vaccin:", error);
+    throw error;
+  }
+};
+
 // Fonction principale pour initialiser toutes les tables
 const initTables = async () => {
   try {
     // Décommentez la ligne suivante pour supprimer toutes les tables avant de les recréer
-    // await dropAllTables();
+    await dropAllTables();
 
     await createDocRoleEnum();
     await createUserTable();
@@ -511,6 +540,7 @@ const initTables = async () => {
     await createPatientDoctorTable();
     await createDocumentPermissionTable();
     await createDocumentsRendezVousTable();
+    await createVaccinTable();
     await createIndexes();
     await createNewIndexes();
     console.log("Initialisation des tables terminée");
@@ -540,6 +570,7 @@ export {
   createDocumentPermissionTable,
   createSpecialiteTable,
   seedSpecialites,
+  createVaccinTable,
 };
 
 export default initTables;

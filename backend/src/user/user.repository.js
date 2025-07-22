@@ -256,7 +256,7 @@ export const deleteUser = async (userId) => {
 export const findByRole = async (role) => {
   try {
     const result = await pool.query(
-      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville FROM utilisateur WHERE role = $1 ORDER BY nom, prenom",
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, chemin_photo FROM utilisateur WHERE role = $1 ORDER BY nom, prenom",
       [role]
     );
     return result.rows;
@@ -297,7 +297,7 @@ export const findAllUsersWithDetails = async () => {
   try {
     // Récupérer tous les utilisateurs de base
     const usersResult = await pool.query(
-      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, created_at FROM utilisateur ORDER BY id"
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, chemin_photo, created_at FROM utilisateur ORDER BY id"
     );
 
     const users = usersResult.rows;
@@ -355,7 +355,7 @@ export const findByIdWithDetails = async (id) => {
   try {
     // Récupérer l'utilisateur de base
     const userResult = await pool.query(
-      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, created_at FROM utilisateur WHERE id = $1",
+      "SELECT id, email, nom, prenom, role, tel_indicatif, tel_numero, date_naissance, sexe, adresse, code_postal, ville, chemin_photo, created_at FROM utilisateur WHERE id = $1",
       [id]
     );
 

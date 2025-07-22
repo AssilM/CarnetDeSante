@@ -9,8 +9,13 @@ const AddVaccineForm = ({ onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     name: "",
     date: "",
-    lotNumber: "",
     doctor: "",
+    location: "",
+    type: "",
+    manufacturer: "",
+    lotNumber: "",
+    notes: "",
+    statut: "effectué",
   });
 
   const handleChange = (e) => {
@@ -23,7 +28,18 @@ const AddVaccineForm = ({ onSubmit, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    // On envoie les champs attendus par le contexte/serveur
+    onSubmit({
+      name: formData.name,
+      date: formData.date,
+      doctor: formData.doctor,
+      location: formData.location,
+      type: formData.type,
+      manufacturer: formData.manufacturer,
+      lotNumber: formData.lotNumber,
+      notes: formData.notes,
+      statut: formData.statut,
+    });
   };
 
   return (
@@ -32,7 +48,7 @@ const AddVaccineForm = ({ onSubmit, onCancel }) => {
         Ajouter un vaccin
       </h2>
       <p className="text-sm text-gray-500 mb-6">
-        Tous les champs sont obligatoires
+        Les champs marqués d'un * sont obligatoires
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -66,6 +82,58 @@ const AddVaccineForm = ({ onSubmit, onCancel }) => {
 
         <div>
           <label className="block text-sm font-medium text-gray-700">
+            Nom du vaccinateur
+          </label>
+          <input
+            type="text"
+            name="doctor"
+            value={formData.doctor}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Lieu de vaccination
+          </label>
+          <input
+            type="text"
+            name="location"
+            value={formData.location}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Type de vaccin
+          </label>
+          <input
+            type="text"
+            name="type"
+            value={formData.type}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Fabricant
+          </label>
+          <input
+            type="text"
+            name="manufacturer"
+            value={formData.manufacturer}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
             Lot du vaccin
           </label>
           <input
@@ -79,15 +147,31 @@ const AddVaccineForm = ({ onSubmit, onCancel }) => {
 
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            Nom du vaccinateur
+            Notes
           </label>
-          <input
-            type="text"
-            name="doctor"
-            value={formData.doctor}
+          <textarea
+            name="notes"
+            value={formData.notes}
             onChange={handleChange}
+            rows={3}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Statut*
+          </label>
+          <select
+            name="statut"
+            value={formData.statut}
+            onChange={handleChange}
+            required
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          >
+            <option value="effectué">Effectué</option>
+            <option value="a faire">À faire</option>
+          </select>
         </div>
 
         <div className="flex justify-end space-x-4 pt-4">

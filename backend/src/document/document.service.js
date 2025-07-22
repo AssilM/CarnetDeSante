@@ -16,8 +16,14 @@ export const createDocumentByPatientService = async (
     patient_id: bodyPatientId,
     type_id,
   } = documentData;
-  if (!titre || !type_document || !file) {
-    const error = new Error("Titre, type de document et fichier sont requis");
+
+  // Permettre l'absence de fichier uniquement pour Vaccination
+  const isVaccination =
+    (type_document && type_document.toLowerCase() === "vaccination") ||
+    (type_id && (await documentRepository.getTypeIdByLabel("Vaccination")) === parseInt(type_id));
+
+  if (!titre || !type_document || (!file && !isVaccination)) {
+    const error = new Error("Titre, type de document et fichier sont requis (sauf pour la vaccination) ");
     error.code = "MISSING_DATA";
     throw error;
   }
@@ -58,19 +64,40 @@ export const createDocumentByPatientService = async (
   }
 
   // 4. Préparer les données
-  const docData = {
-    patient_id: parseInt(patient_id),
-    medecin_id: medecin_id ? parseInt(medecin_id) : null,
-    uploader_id: parseInt(uploader_id),
-    type_id: resolvedTypeId ? parseInt(resolvedTypeId) : null,
-    titre: titre.trim(),
-    nom_fichier: file.originalname,
-    chemin_fichier: file.path,
-    type_mime: file.mimetype,
-    taille_fichier: file.size,
-    date_creation: date_creation || new Date().toISOString().split("T")[0],
-    description: description ? description.trim() : null,
-  };
+  let docData;
+  if (file) {
+    docData = {
+      patient_id: parseInt(patient_id),
+      medecin_id: medecin_id ? parseInt(medecin_id) : null,
+      uploader_id: parseInt(uploader_id),
+      type_id: resolvedTypeId ? parseInt(resolvedTypeId) : null,
+      titre: titre.trim(),
+      nom_fichier: file.originalname,
+      chemin_fichier: file.path,
+      type_mime: file.mimetype,
+      taille_fichier: file.size,
+      date_creation: date_creation || new Date().toISOString().split("T")[0],
+      description: description ? description.trim() : null,
+    };
+  } else if (isVaccination) {
+    docData = {
+      patient_id: parseInt(patient_id),
+      medecin_id: medecin_id ? parseInt(medecin_id) : null,
+      uploader_id: parseInt(uploader_id),
+      type_id: resolvedTypeId ? parseInt(resolvedTypeId) : null,
+      titre: titre.trim(),
+      nom_fichier: "Aucun document",
+      chemin_fichier: null,
+      type_mime: "none",
+      taille_fichier: 0,
+      date_creation: date_creation || new Date().toISOString().split("T")[0],
+      description: description ? description.trim() : null,
+    };
+  } else {
+    // Cas impossible normalement (déjà géré plus haut)
+    throw new Error("Fichier manquant pour un type non vaccination");
+  }
+
   // 5. Insérer le document
   const insertedDocument = await documentRepository.createDocument(docData);
   // 6. Créer les permissions ACL
@@ -115,26 +142,62 @@ export const createDocumentByDoctorService = async (
     error.code = "PATIENT_NOT_FOUND";
     throw error;
   }
-  // 4. Préparer les données
-  const docData = {
-    ...rest,
-    patient_id: parseInt(patient_id),
-    medecin_id: doctorId,
-    uploader_id: doctorId,
-    titre: documentData.titre?.trim(),
-    nom_fichier: file.originalname,
-    chemin_fichier: file.path,
-    type_mime: file.mimetype,
-    taille_fichier: file.size,
-    date_creation:
-      documentData.date_creation || new Date().toISOString().split("T")[0],
-    description: documentData.description
-      ? documentData.description.trim()
-      : null,
-  };
-  // 5. Insérer le document
+  // 4. Récupérer l'id du type de document à partir du label ou du code reçu (type_document)
+  let resolvedTypeId = rest.type_id;
+  if (!resolvedTypeId && rest.type_document) {
+    resolvedTypeId = await documentRepository.getTypeIdByLabel(rest.type_document);
+    if (!resolvedTypeId) {
+      resolvedTypeId = await documentRepository.getTypeIdByCode(rest.type_document);
+    }
+    if (!resolvedTypeId) {
+      const error = new Error("Type de document inconnu : " + rest.type_document);
+      error.code = "INVALID_TYPE_DOCUMENT";
+      throw error;
+    }
+  }
+  // 5. Préparer les données
+  const isVaccination =
+    (rest.type_document && rest.type_document.toLowerCase() === "vaccination") ||
+    (resolvedTypeId && (await documentRepository.getTypeIdByLabel("Vaccination")) === parseInt(resolvedTypeId));
+  let docData;
+  if (file) {
+    docData = {
+      ...rest,
+      patient_id: parseInt(patient_id),
+      medecin_id: doctorId,
+      uploader_id: doctorId,
+      type_id: resolvedTypeId ? parseInt(resolvedTypeId) : null,
+      titre: rest.titre?.trim(),
+      nom_fichier: file.originalname,
+      chemin_fichier: file.path,
+      type_mime: file.mimetype,
+      taille_fichier: file.size,
+      date_creation:
+        rest.date_creation || new Date().toISOString().split("T")[0],
+      description: rest.description ? rest.description.trim() : null,
+    };
+  } else if (isVaccination) {
+    docData = {
+      ...rest,
+      patient_id: parseInt(patient_id),
+      medecin_id: doctorId,
+      uploader_id: doctorId,
+      type_id: resolvedTypeId ? parseInt(resolvedTypeId) : null,
+      titre: rest.titre?.trim(),
+      nom_fichier: "Aucun document",
+      chemin_fichier: null,
+      type_mime: "none",
+      taille_fichier: 0,
+      date_creation:
+        rest.date_creation || new Date().toISOString().split("T")[0],
+      description: rest.description ? rest.description.trim() : null,
+    };
+  } else {
+    throw new Error("Fichier manquant pour un type non vaccination");
+  }
+  // 6. Insérer le document
   const insertedDocument = await documentRepository.createDocument(docData);
-  // 6. Créer les permissions ACL
+  // 7. Créer les permissions ACL
   await documentRepository.createDocumentPermission(
     insertedDocument.id,
     parseInt(patient_id),
@@ -145,11 +208,11 @@ export const createDocumentByDoctorService = async (
     doctorId,
     "author"
   );
-  // 7. Lier au rendez-vous si besoin
-  if (documentData.rendez_vous_id) {
+  // 8. Lier au rendez-vous si besoin
+  if (rest.rendez_vous_id) {
     await documentRepository.linkDocumentToRendezVous(
       insertedDocument.id,
-      parseInt(documentData.rendez_vous_id)
+      parseInt(rest.rendez_vous_id)
     );
   }
   return insertedDocument;

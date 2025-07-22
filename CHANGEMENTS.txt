@@ -17,3 +17,5 @@ Grâce aux changements backend, le type de document s’affiche désormais corre
 Photo de profil : 
 Le UserContext recharge désormais systématiquement les informations utilisateur (y compris chemin_photo) depuis l’API lors du chargement, et pas seulement depuis le currentUser du contexte d’authentification.
 Ainsi, même après un refresh, la photo de profil reste affichée si elle existe côté backend.
+
+Vaccins : utilisation de jspdf 

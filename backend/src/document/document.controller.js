@@ -326,3 +326,26 @@ export const getDocumentsByRendezVous = async (req, res, next) => {
     next(error);
   }
 };
+
+// Nouvelle fonction pour créer des vaccinations sans fichier
+export const createVaccinationByPatient = async (req, res, next) => {
+  try {
+    const document = await createDocumentByPatientService(
+      req.userId,
+      req.userRole,
+      req.body,
+      null // Pas de fichier pour les vaccinations
+    );
+    res.status(201).json({
+      success: true,
+      document,
+      notification: {
+        type: "success",
+        title: "Vaccination ajoutée",
+        message: `La vaccination a été ajoutée avec succès`,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};

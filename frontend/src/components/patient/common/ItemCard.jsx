@@ -6,6 +6,8 @@ import {
   FaAllergies,
   FaThumbtack,
 } from "react-icons/fa";
+import dayjs from "dayjs";
+import "dayjs/locale/fr";
 
 /**
  * Composant de carte réutilisable pour afficher un élément (document, vaccin, antécédent ou allergie)
@@ -27,6 +29,7 @@ const ItemCard = ({
   detailsText = "Aperçu",
   pinned = false,
   onTogglePin,
+  statut, // <-- Ajouté
 }) => {
   // Détermine l'icône en fonction du type
   const getIcon = () => {
@@ -60,6 +63,22 @@ const ItemCard = ({
       default:
         return { bg: "bg-gray-100", text: "text-gray-600" };
     }
+  };
+
+  // Format date FR
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    return dayjs(dateStr).locale("fr").format("DD/MM/YYYY");
+  };
+
+  // Badge statut vaccin
+  const renderStatutBadge = () => {
+    if (type !== "vaccine" || !statut) return null;
+    const color = statut === "effectué" ? "bg-green-100 text-green-700 border-green-300" : "bg-orange-100 text-orange-700 border-orange-300";
+    const label = statut === "effectué" ? "Effectué" : "À faire";
+    return (
+      <span className={`inline-block border px-2 py-0.5 rounded text-xs font-semibold ml-2 ${color}`}>{label}</span>
+    );
   };
 
   const handleTogglePin = (e) => {
@@ -106,8 +125,9 @@ const ItemCard = ({
               ) : (
                 title
               )}
+              {renderStatutBadge()}
             </h3>
-            <p className="text-sm text-gray-500">{date}</p>
+            <p className="text-sm text-gray-500">{formatDate(date)}</p>
             {subtitle && (
               <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
             )}

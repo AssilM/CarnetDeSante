@@ -12,6 +12,7 @@ import adminRoutes from "./routes/admin.routes.js";
 import specialiteRoutes from "./routes/specialite.routes.js";
 import aclRoutes from "./routes/acl.routes.js";
 import documentRoutes from "./document/index.js";
+import vaccinRoutes from "./vaccin/vaccin.js";
 import {
   errorHandler,
   notFoundHandler,
@@ -61,6 +62,7 @@ app.use("/api/admin", adminRoutes);
 app.use(specialiteRoutes);
 app.use("/api/acl", aclRoutes);
 app.use("/api/documents", documentRoutes);
+app.use("/api/vaccins", vaccinRoutes);
 app.use("/api/upload-photo", userRoutes);
 // Routes de test
 app.get("/", (req, res) => {

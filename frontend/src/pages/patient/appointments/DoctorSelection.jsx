@@ -102,7 +102,7 @@ const DoctorSelection = () => {
                   >
                     <div className="flex items-start">
                       <div className="flex-shrink-0 mr-4">
-                        <div className="w-16 h-16 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="w-16 h-16 bg-white rounded-full overflow-hidden border border-gray-300 flex items-center justify-center">
                           <img
                             src={
                               doctor.chemin_photo
@@ -110,7 +110,7 @@ const DoctorSelection = () => {
                                 : "/default-profile.png"
                             }
                             alt={`Dr. ${doctor.prenom} ${doctor.nom}`}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover object-center"
                           />
                         </div>
                       </div>
