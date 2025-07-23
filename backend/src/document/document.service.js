@@ -159,7 +159,7 @@ export const getDocumentsService = async (userId, userRole) => {
   // Récupérer tous les documents accessibles à l'utilisateur
   const docs = await documentRepository.getUserDocuments(userId);
   // On renvoie le label du type de document sous le nom type_document (pour le front)
-  return docs.map(doc => {
+  return docs.map((doc) => {
     if (doc.type_document_label) {
       doc.type_document = doc.type_document_label;
     }
@@ -169,7 +169,9 @@ export const getDocumentsService = async (userId, userRole) => {
 
 export const getDocumentByIdService = async (userId, userRole, documentId) => {
   // Vérifier la permission ACL
-  const permissions = await documentRepository.getDocumentPermissions(documentId);
+  const permissions = await documentRepository.getDocumentPermissions(
+    documentId
+  );
   const perm = permissions.find((p) => p.user_id === userId);
   if (!perm) {
     const error = new Error("Accès non autorisé à ce document");

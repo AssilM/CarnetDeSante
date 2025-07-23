@@ -11,6 +11,9 @@ import Agenda from "../pages/doctor/Agenda";
 import Availability from "../pages/doctor/Availability";
 import PatientsList from "../pages/doctor/PatientsList";
 
+// Pages - Notifications
+import Notifications from "../pages/Notifications";
+
 /**
  * Routes spécifiques aux médecins
  * Contient toutes les routes nécessaires pour les médecins
@@ -73,6 +76,19 @@ const DoctorRoutes = [
       <ProtectedRoute requiredRole="medecin">
         <MainLayout>
           <HomeDoctor />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+
+  // Route des notifications
+  <Route
+    key="notifications"
+    path="/notifications"
+    element={
+      <ProtectedRoute>
+        <MainLayout>
+          <Notifications />
         </MainLayout>
       </ProtectedRoute>
     }

@@ -3,6 +3,7 @@ import { useAppContext } from "../context/AppContext";
 import logo from "../assets/logo-C.svg";
 import { Link } from "react-router-dom";
 import ProfileDropdown from "./ProfileDropdown";
+import NotificationDropdown from "./NotificationDropdown";
 import { useAuth } from "../context/AuthContext";
 
 const Navbar = () => {
@@ -81,7 +82,11 @@ const Navbar = () => {
           </button>
 
           <Link to={getHomeRoute()} className="flex w-10 h-10">
-            <img src={logo} alt="logo" className="w-10 h-10 rounded-full object-cover border" />
+            <img
+              src={logo}
+              alt="logo"
+              className="w-10 h-10 rounded-full object-cover border"
+            />
           </Link>
           <Link to={getHomeRoute()} className="ml-4 hidden sm:block">
             <span className="text-xl font-semibold">
@@ -91,12 +96,16 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* Menu déroulant de notifications */}
+          <NotificationDropdown />
+
           <div className="relative">
             <button
               className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100"
               onClick={handleProfileClick}
             >
-              {currentUser?.chemin_photo && currentUser.chemin_photo.trim() !== "" ? (
+              {currentUser?.chemin_photo &&
+              currentUser.chemin_photo.trim() !== "" ? (
                 <img
                   src={
                     currentUser.chemin_photo.startsWith("/")
@@ -105,7 +114,10 @@ const Navbar = () => {
                   }
                   alt="Photo de profil"
                   className="w-8 h-8 rounded-full object-cover border"
-                  onError={(e) => { e.target.onerror = null; e.target.src = logo; }}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = logo;
+                  }}
                 />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">

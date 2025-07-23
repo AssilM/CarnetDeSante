@@ -12,6 +12,7 @@ import adminRoutes from "./routes/admin.routes.js";
 import specialiteRoutes from "./routes/specialite.routes.js";
 import aclRoutes from "./routes/acl.routes.js";
 import documentRoutes from "./document/index.js";
+import { notificationRoutes } from "./notification/index.js";
 import {
   errorHandler,
   notFoundHandler,
@@ -21,7 +22,6 @@ import { requestLogger } from "./middlewares/logging.middleware.js";
 dotenv.config();
 
 const app = express();
-
 
 // Middleware pour servir les fichiers statiques (photos de profil, documents...)
 import path from "path";
@@ -61,6 +61,7 @@ app.use("/api/admin", adminRoutes);
 app.use(specialiteRoutes);
 app.use("/api/acl", aclRoutes);
 app.use("/api/documents", documentRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use("/api/upload-photo", userRoutes);
 // Routes de test
 app.get("/", (req, res) => {
