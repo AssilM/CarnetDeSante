@@ -9,10 +9,16 @@ import {
   FaCheckCircle,
   FaTimes,
   FaCheck,
+  FaFileAlt,
+  FaDownload,
+  FaEye,
 } from "react-icons/fa";
 import PageWrapper from "../../../components/PageWrapper";
 import { useAppContext } from "../../../context/AppContext";
 import { useAppointmentContext } from "../../../context/AppointmentContext";
+import { useAuth } from "../../../context/AuthContext";
+import createDocumentService from "../../../services/api/documentService";
+import { httpService } from "../../../services/http";
 
 // Composant de modale de confirmation
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, loading }) => {
@@ -59,11 +65,17 @@ const AppointmentDetails = () => {
   const { selectedAppointment, deleteAppointment, getAppointmentById } =
     useAppointmentContext();
   const { showNotification } = useAppContext();
+  const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showConfirmationMessage, setShowConfirmationMessage] = useState(false);
   const [appointment, setAppointment] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [documents, setDocuments] = useState([]);
+  const [loadingDocuments, setLoadingDocuments] = useState(false);
+
+  // Créer le service de documents une seule fois
+  const documentService = React.useMemo(() => createDocumentService(httpService), []);
 
   // Récupérer l'ID du rendez-vous depuis les paramètres d'URL
   const appointmentId = params.id;
@@ -123,6 +135,71 @@ const AppointmentDetails = () => {
     loadAppointmentDetails();
   }, [appointmentId, selectedAppointment, getAppointmentById, navigate]);
 
+  // Charger les documents du rendez-vous
+  useEffect(() => {
+    const loadDocuments = async () => {
+      if (!appointment?.id || !documentService || !currentUser) {
+        console.log("[AppointmentDetails] Conditions non remplies:", {
+          hasAppointmentId: !!appointment?.id,
+          hasDocumentService: !!documentService,
+          hasUser: !!currentUser,
+          appointmentId: appointment?.id,
+          userId: currentUser?.id
+        });
+        return;
+      }
+
+      console.log("[AppointmentDetails] Chargement des documents pour le rendez-vous:", appointment.id);
+      console.log("[AppointmentDetails] Informations utilisateur:", {
+        userId: currentUser.id,
+        userRole: currentUser.role,
+        userName: currentUser.nom
+      });
+      
+      setLoadingDocuments(true);
+      try {
+        const response = await documentService.getDocumentsByRendezVous(appointment.id);
+        console.log("[AppointmentDetails] Réponse complète de l'API documents:", response);
+        
+        // Vérifier si la réponse contient les documents
+        const documentsData = response.documents || response || [];
+        console.log("[AppointmentDetails] Documents extraits:", documentsData);
+        console.log("[AppointmentDetails] Nombre de documents trouvés:", documentsData.length);
+        
+        // Debug: afficher les détails de chaque document
+        documentsData.forEach((doc, index) => {
+          console.log(`[AppointmentDetails] Document ${index + 1}:`, {
+            id: doc.id,
+            titre: doc.titre,
+            nom: doc.nom,
+            type_document: doc.type_document,
+            date_creation: doc.date_creation,
+            patient_id: doc.patient_id,
+            medecin_id: doc.medecin_id
+          });
+        });
+        
+        setDocuments(documentsData);
+      } catch (err) {
+        console.error("[AppointmentDetails] Erreur lors du chargement des documents:", err);
+        console.error("[AppointmentDetails] Détails de l'erreur:", {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status
+        });
+        // Ne pas afficher d'erreur si aucun document n'est trouvé
+        setDocuments([]);
+      } finally {
+        setLoadingDocuments(false);
+      }
+    };
+
+    // Éviter les appels répétés si on est déjà en train de charger
+    if (!loadingDocuments) {
+      loadDocuments();
+    }
+  }, [appointment?.id, currentUser]); // ✅ Ajout de currentUser dans les dépendances
+
   // Si aucun rendez-vous n'est disponible et en cours de chargement, afficher un indicateur
   if (loading && !appointment) {
     return (
@@ -172,15 +249,114 @@ const AppointmentDetails = () => {
     }
   };
 
+  // Télécharger un document
+  const handleDownloadDocument = async (documentId, fileName) => {
+    try {
+      const blob = await documentService.downloadDocument(documentId);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName || 'document.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      showNotification({
+        type: "success",
+        message: "Document téléchargé avec succès !",
+      });
+    } catch (err) {
+      console.error("Erreur lors du téléchargement:", err);
+      showNotification({
+        type: "error",
+        message: "Impossible de télécharger le document",
+      });
+    }
+  };
+
+  // Visualiser un document
+  const handleViewDocument = async (documentId) => {
+    try {
+      const blob = await documentService.downloadDocument(documentId);
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Erreur lors de la visualisation:", err);
+      showNotification({
+        type: "error",
+        message: "Impossible de visualiser le document",
+      });
+    }
+  };
+
   // Déterminer si le rendez-vous est passé ou à venir
-  const isPast = appointment.timestamp < new Date().getTime();
-  const isCancelled = appointment.status === "annulé";
+  const isPast = () => {
+    if (!appointment) return false;
+    
+    // Debug: afficher les informations de date
+    console.log("[AppointmentDetails] Debug statut:", {
+      appointmentId: appointment.id,
+      date: appointment.date,
+      time: appointment.time,
+      timestamp: appointment.timestamp,
+      status: appointment.status,
+      rawData: appointment.rawData
+    });
+
+    // Si le statut est "terminé" dans la BDD, considérer comme passé
+    if (appointment.status === "terminé") {
+      console.log("[AppointmentDetails] Rendez-vous marqué comme terminé dans la BDD");
+      return true;
+    }
+
+    // Si le statut est "annulé", considérer comme passé
+    if (appointment.status === "annulé") {
+      console.log("[AppointmentDetails] Rendez-vous marqué comme annulé");
+      return true;
+    }
+
+    // Calculer le timestamp si pas disponible
+    let timestamp = appointment.timestamp;
+    if (!timestamp && appointment.date) {
+      try {
+        if (appointment.time) {
+          // Combiner date et heure
+          const dateTimeStr = appointment.date + "T" + appointment.time.substring(0, 5);
+          timestamp = new Date(dateTimeStr).getTime();
+        } else {
+          // Date seule
+          timestamp = new Date(appointment.date).getTime();
+        }
+        console.log("[AppointmentDetails] Timestamp calculé:", timestamp);
+      } catch (err) {
+        console.error("[AppointmentDetails] Erreur calcul timestamp:", err);
+        timestamp = Date.now();
+      }
+    }
+
+    const now = new Date().getTime();
+    const isPast = timestamp < now;
+    
+    console.log("[AppointmentDetails] Comparaison:", {
+      timestamp,
+      now,
+      isPast,
+      diffHours: (now - timestamp) / (1000 * 60 * 60)
+    });
+
+    return isPast;
+  };
+
+  const isPastValue = isPast();
+  const isCancelled = appointment?.status === "annulé";
   let statusClass = "bg-green-100 text-green-800";
   let statusText = "À venir";
   if (isCancelled) {
     statusClass = "bg-red-100 text-red-800";
     statusText = "Annulé";
-  } else if (isPast) {
+  } else if (isPastValue) {
     statusClass = "bg-gray-200 text-gray-700";
     statusText = "Terminé";
   }
@@ -309,7 +485,7 @@ const AppointmentDetails = () => {
             {/* Actions disponibles */}
             <div className="pt-4 border-t border-gray-200">
               <div className="flex flex-wrap gap-3">
-                {!isPast && appointment.status !== "annulé" && (
+                {!isPastValue && appointment.status !== "annulé" && (
                   <>
                     {/* <button
                       onClick={() =>
@@ -328,7 +504,7 @@ const AppointmentDetails = () => {
                     </button>
                   </>
                 )}
-                {isPast && appointment.status !== "annulé" && (
+                {appointment.status !== "annulé" && (
                   <button
                     onClick={() =>
                       navigate(
@@ -344,6 +520,86 @@ const AppointmentDetails = () => {
             </div>
           </div>
         </div>
+
+        {/* Section Documents du rendez-vous */}
+        {appointment.status !== "annulé" && (
+          <div className="mt-6 bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <FaFileAlt className="text-primary text-xl" />
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Documents du rendez-vous
+                </h2>
+                {loadingDocuments && (
+                  <div className="ml-2 text-sm text-gray-500">
+                    Chargement...
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="p-6">
+              {loadingDocuments ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-600">Chargement des documents...</p>
+                </div>
+              ) : documents.length > 0 ? (
+                <div className="space-y-4">
+                  {documents.map((document) => (
+                    <div
+                      key={document.id}
+                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <FaFileAlt className="text-primary text-lg" />
+                        <div>
+                          <h3 className="font-medium text-gray-900">
+                            {document.titre || document.nom || "Document sans titre"}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            {document.type_document || "Type non spécifié"}
+                          </p>
+                          {document.date_creation && (
+                            <p className="text-xs text-gray-500">
+                              Créé le {new Date(document.date_creation).toLocaleDateString("fr-FR")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleViewDocument(document.id)}
+                          className="p-2 text-gray-600 hover:text-primary transition-colors"
+                          title="Visualiser"
+                        >
+                          <FaEye className="text-lg" />
+                        </button>
+                        <button
+                          onClick={() => handleDownloadDocument(document.id, document.titre || document.nom)}
+                          className="p-2 text-gray-600 hover:text-primary transition-colors"
+                          title="Télécharger"
+                        >
+                          <FaDownload className="text-lg" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <FaFileAlt className="text-gray-400 text-4xl mx-auto mb-4" />
+                  <p className="text-gray-600">
+                    Aucun document n'a été partagé pour ce rendez-vous
+                  </p>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Les documents ajoutés par le médecin ou vous-même apparaîtront ici
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Boutons de navigation */}
         <div className="flex flex-wrap gap-3 justify-center mt-8">

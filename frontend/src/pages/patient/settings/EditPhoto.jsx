@@ -4,11 +4,13 @@ import { useUserContext } from "../../../context/UserContext";
 import { useAppContext } from "../../../context/AppContext";
 import { FiArrowLeft, FiCamera } from "react-icons/fi";
 import PageWrapper from "../../../components/PageWrapper";
+import { useUserPhoto } from "../../../hooks";
 
 const EditPhoto = () => {
   const navigate = useNavigate();
   const { user, updateUserPhoto, loading } = useUserContext();
   const { showSuccess, showError } = useAppContext();
+  const { getPhotoUrl, getDefaultPhotoUrl } = useUserPhoto();
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,8 +73,8 @@ const EditPhoto = () => {
                   src={
                     previewUrl ||
                     (user?.chemin_photo
-                      ? `/${user.chemin_photo}`
-                      : "/default-profile.png")
+                      ? getPhotoUrl(user.chemin_photo)
+                      : getDefaultPhotoUrl(user?.prenom && user?.nom ? `${user.prenom} ${user.nom}` : "Utilisateur"))
                   }
                   alt="Aperçu"
                   className="w-32 h-32 rounded-full object-cover border"

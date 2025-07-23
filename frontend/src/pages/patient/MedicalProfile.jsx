@@ -284,7 +284,7 @@ const MedicalProfile = () => {
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
-                Historique de santé
+                Historique des rendez vous
               </button>
             </div>
           </nav>

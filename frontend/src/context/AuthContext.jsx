@@ -105,6 +105,7 @@ export const AuthProvider = ({ children }) => {
       console.log("[AuthContext] Vérification des tokens au chargement", {
         hasAccessToken: !!accessToken,
         isSessionExpired: sessionExpiredRef.current,
+        currentPath: typeof window !== "undefined" ? window.location.pathname : "unknown",
       });
 
       // ✅ Si la session est marquée comme expirée, permettre quand même l'accès aux pages d'auth

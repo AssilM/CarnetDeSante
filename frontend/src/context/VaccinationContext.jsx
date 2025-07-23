@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { httpService } from "../services/http";
+import { createVaccinService } from "../services/api";
 import { useAuth } from "./AuthContext";
 import { useAppContext } from "./AppContext";
 
@@ -13,6 +14,9 @@ export const VaccinationProvider = ({ children }) => {
   const [hasLoaded, setHasLoaded] = useState(false);
   const { currentUser } = useAuth();
   const { showNotification } = useAppContext();
+  
+  // Créer une instance du service de vaccins
+  const vaccinService = createVaccinService(httpService);
 
   // Charger les vaccins depuis le backend
   const fetchVaccines = useCallback(async () => {
@@ -20,8 +24,15 @@ export const VaccinationProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await httpService.get("/vaccins");
-      const vaccins = response.data.vaccins || [];
+      const vaccins = await vaccinService.getMyVaccines();
+      
+      // Vérifier que vaccins est bien un tableau avant d'appeler map
+      if (!Array.isArray(vaccins)) {
+        console.warn("L'API a retourné des données non-array pour les vaccins:", vaccins);
+        setVaccines([]);
+        setHasLoaded(true);
+        return;
+      }
       
       // Adapter le format pour le front
       setVaccines(
@@ -43,10 +54,11 @@ export const VaccinationProvider = ({ children }) => {
     } catch (err) {
       console.error("Erreur lors du chargement des vaccins:", err);
       setError("Erreur lors du chargement des vaccinations");
+      setVaccines([]); // Initialiser avec un tableau vide en cas d'erreur
     } finally {
       setLoading(false);
     }
-  }, [currentUser, hasLoaded]);
+  }, [currentUser, hasLoaded, vaccinService]);
 
   useEffect(() => {
     if (currentUser && !hasLoaded) {
@@ -72,21 +84,17 @@ export const VaccinationProvider = ({ children }) => {
         statut: data.statut || "effectué",
       };
 
-      // Utiliser la nouvelle API vaccin
-      const response = await httpService.post("/vaccins", vaccinData);
+      // Utiliser le service de vaccins
+      await vaccinService.createVaccine(vaccinData);
       
-      if (response.data.success) {
-        setHasLoaded(false); // Permettre le rechargement
-        await fetchVaccines(); // Recharger la liste
-        showNotification({
-          type: "success",
-          message: "Vaccin ajouté avec succès !",
-          autoClose: true,
-        });
-        return true;
-      } else {
-        throw new Error("Erreur lors de l'ajout du vaccin");
-      }
+      setHasLoaded(false); // Permettre le rechargement
+      await fetchVaccines(); // Recharger la liste
+      showNotification({
+        type: "success",
+        message: "Vaccin ajouté avec succès !",
+        autoClose: true,
+      });
+      return true;
     } catch (err) {
       console.error("Erreur lors de l'ajout du vaccin:", err);
       setError("Erreur lors de l'ajout du vaccin");
@@ -101,12 +109,20 @@ export const VaccinationProvider = ({ children }) => {
   const clearSelectedItem = () => setSelectedItem(null);
 
   // Pin/unpin (optionnel, à implémenter si besoin)
-  const togglePinned = (id) => {
-    setVaccines((prev) =>
-      prev.map((v) =>
-        v.id === id ? { ...v, pinned: !v.pinned } : v
-      )
-    );
+  const togglePinned = async (id) => {
+    try {
+      await vaccinService.togglePinned(id);
+      // Recharger les vaccins pour avoir les données à jour
+      setHasLoaded(false);
+      await fetchVaccines();
+    } catch (err) {
+      console.error("Erreur lors du changement de statut épinglé:", err);
+      showNotification({
+        type: "error",
+        message: "Erreur lors du changement de statut épinglé",
+        autoClose: true,
+      });
+    }
   };
 
   return (

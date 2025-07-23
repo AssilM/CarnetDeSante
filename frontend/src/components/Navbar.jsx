@@ -4,11 +4,14 @@ import logo from "../assets/logo-C.svg";
 import { Link } from "react-router-dom";
 import ProfileDropdown from "./ProfileDropdown";
 import { useAuth } from "../context/AuthContext";
+import { useUserPhoto } from "../hooks";
+import UserPhoto from "./common/UserPhoto";
 
 const Navbar = () => {
   const { isMobileMenuOpen, setIsMobileMenuOpen } = useAppContext();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { logout, testExpireToken, currentUser } = useAuth();
+  const { getCurrentUserPhotoUrl } = useUserPhoto();
 
   useEffect(() => {
     const closeDropdown = () => setIsProfileOpen(false);
@@ -96,19 +99,11 @@ const Navbar = () => {
               className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100"
               onClick={handleProfileClick}
             >
-              {currentUser?.chemin_photo && currentUser.chemin_photo.trim() !== "" ? (
-                <img
-                  src={
-                    currentUser.chemin_photo.startsWith("/")
-                      ? `http://localhost:5001${currentUser.chemin_photo}`
-                      : `http://localhost:5001/uploads/photos/${currentUser.chemin_photo}`
-                  }
-                  alt="Photo de profil"
-                  className="w-8 h-8 rounded-full object-cover border"
-                  onError={(e) => { e.target.onerror = null; e.target.src = logo; }}
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+              <UserPhoto 
+                user={currentUser} 
+                size="sm" 
+                className="border"
+                fallbackIcon={
                   <svg
                     className="w-5 h-5 text-gray-500"
                     fill="none"
@@ -122,8 +117,8 @@ const Navbar = () => {
                       d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                     />
                   </svg>
-                </div>
-              )}
+                }
+              />
               <div className="hidden md:block text-left">
                 <span className="block text-sm font-medium">{displayName}</span>
                 <span className="block text-xs text-gray-500">

@@ -7,12 +7,14 @@ import {
   FaPhoneAlt,
 } from "react-icons/fa";
 import { useDoctorContext } from "../../../context";
+import { useUserPhoto } from "../../../hooks";
 import PageWrapper from "../../../components/PageWrapper";
 
 const DoctorSelection = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { getDoctorsBySpecialty, setSelectedDoctor } = useDoctorContext();
+  const { getPhotoUrl, getDefaultPhotoUrl } = useUserPhoto();
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -106,8 +108,8 @@ const DoctorSelection = () => {
                           <img
                             src={
                               doctor.chemin_photo
-                                ? `http://localhost:5001${doctor.chemin_photo}`
-                                : "/default-profile.png"
+                                ? getPhotoUrl(doctor.chemin_photo)
+                                : getDefaultPhotoUrl(`${doctor.prenom} ${doctor.nom}`)
                             }
                             alt={`Dr. ${doctor.prenom} ${doctor.nom}`}
                             className="w-full h-full object-cover object-center"

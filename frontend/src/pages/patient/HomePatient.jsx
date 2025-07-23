@@ -1,6 +1,5 @@
 import React from "react";
 import WelcomeCard from "../../components/patient/home/WelcomeCard";
-import InfoCardSection from "../../components/patient/home/InfoCardSection";
 import HealthHistory from "../../components/patient/home/HealthHistory";
 import DocumentsAndVaccinesWidget from "../../components/patient/home/DocumentsAndVaccinesWidget";
 import PageWrapper from "../../components/PageWrapper";
@@ -24,14 +23,9 @@ const HomePatient = () => {
             </div>
           </div>
 
-          {/* Colonne de droite: InfoCardSection et DocumentsList */}
+          {/* Colonne de droite: DocumentsList */}
           <div className="w-full lg:w-1/2 flex flex-col gap-4 md:gap-6">
-            {/* InfoCardSection en haut à droite - caché sur mobile, visible à partir de md */}
-            <div className="hidden md:block w-full">
-              <InfoCardSection />
-            </div>
-
-            {/* DocumentsAndVaccinesWidget en bas à droite - toujours visible */}
+            {/* DocumentsAndVaccinesWidget - toujours visible */}
             <div className="w-full">
               <DocumentsAndVaccinesWidget />
             </div>

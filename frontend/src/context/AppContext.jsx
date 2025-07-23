@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
 import { useAuth } from "./AuthContext";
 
 const AppContext = createContext();
@@ -14,8 +14,8 @@ export const AppProvider = ({ children }) => {
   const isPatient = currentUser?.role === "patient";
   const isAdmin = currentUser?.role === "admin";
 
-  // Fonction pour afficher une notification
-  const showNotification = ({
+  // Fonction pour afficher une notification - MÉMOISÉE
+  const showNotification = useCallback(({
     type,
     message,
     autoClose = true,
@@ -29,46 +29,59 @@ export const AppProvider = ({ children }) => {
         setNotification(null);
       }, duration);
     }
-  };
+  }, []); // ✅ Dépendances vides pour éviter la recréation
 
-  // Fonction pour fermer la notification
-  const closeNotification = () => {
+  // Fonction pour fermer la notification - MÉMOISÉE
+  const closeNotification = useCallback(() => {
     setNotification(null);
-  };
+  }, []);
 
-  // Fonction pour afficher une notification de succès avec rafraîchissement optionnel
-  const showSuccess = (message, refresh = false) => {
+  // Fonction pour afficher une notification de succès avec rafraîchissement optionnel - MÉMOISÉE
+  const showSuccess = useCallback((message, refresh = false) => {
     showNotification({ type: "success", message });
     if (refresh) {
       setTimeout(() => {
         window.location.reload();
       }, 2000);
     }
-  };
+  }, [showNotification]);
 
-  // Fonction pour afficher une notification d'erreur
-  const showError = (message) => {
+  // Fonction pour afficher une notification d'erreur - MÉMOISÉE
+  const showError = useCallback((message) => {
     showNotification({ type: "error", message });
-  };
+  }, [showNotification]);
+
+  // Valeur du contexte mémorisée
+  const contextValue = useMemo(() => ({
+    userRole: currentUser?.role,
+    isDoctor,
+    isPatient,
+    isAdmin,
+    isMobileMenuOpen,
+    setIsMobileMenuOpen,
+    isSidebarExpanded,
+    setIsSidebarExpanded,
+    notification,
+    showNotification,
+    closeNotification,
+    showSuccess,
+    showError,
+  }), [
+    currentUser?.role,
+    isDoctor,
+    isPatient,
+    isAdmin,
+    isMobileMenuOpen,
+    isSidebarExpanded,
+    notification,
+    showNotification,
+    closeNotification,
+    showSuccess,
+    showError,
+  ]);
 
   return (
-    <AppContext.Provider
-      value={{
-        userRole: currentUser?.role,
-        isDoctor,
-        isPatient,
-        isAdmin,
-        isMobileMenuOpen,
-        setIsMobileMenuOpen,
-        isSidebarExpanded,
-        setIsSidebarExpanded,
-        notification,
-        showNotification,
-        closeNotification,
-        showSuccess,
-        showError,
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaSyringe, FaArrowLeft } from "react-icons/fa";
 import { useVaccinationContext } from "../../../context/VaccinationContext";
@@ -10,9 +10,15 @@ const VaccineDetails = () => {
   const navigate = useNavigate();
   const { selectedItem, clearSelectedItem } = useVaccinationContext();
 
+  // Utiliser useEffect pour la navigation au lieu de l'appeler directement dans le rendu
+  useEffect(() => {
+    if (!selectedItem) {
+      navigate("/vaccination");
+    }
+  }, [selectedItem, navigate]);
+
   if (!selectedItem) {
-    navigate("/vaccination");
-    return null;
+    return null; // Retourner null au lieu de naviguer directement
   }
 
   const handleBack = () => {

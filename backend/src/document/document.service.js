@@ -15,6 +15,7 @@ export const createDocumentByPatientService = async (
     date_creation,
     patient_id: bodyPatientId,
     type_id,
+    rendez_vous_id, // NOUVEAU: récupérer l'ID du rendez-vous
   } = documentData;
 
   // Permettre l'absence de fichier uniquement pour Vaccination
@@ -100,6 +101,7 @@ export const createDocumentByPatientService = async (
 
   // 5. Insérer le document
   const insertedDocument = await documentRepository.createDocument(docData);
+  
   // 6. Créer les permissions ACL
   await documentRepository.createDocumentPermission(
     insertedDocument.id,
@@ -113,6 +115,16 @@ export const createDocumentByPatientService = async (
       "author"
     );
   }
+
+  // 7. NOUVEAU: Lier au rendez-vous si spécifié
+  if (rendez_vous_id) {
+    console.log(`[DocumentService] Liaison du document ${insertedDocument.id} au rendez-vous ${rendez_vous_id}`);
+    await documentRepository.linkDocumentToRendezVous(
+      insertedDocument.id,
+      parseInt(rendez_vous_id)
+    );
+  }
+
   return insertedDocument;
 };
 
@@ -129,7 +141,7 @@ export const createDocumentByDoctorService = async (
     throw error;
   }
   // 2. Vérifier que patient_id est fourni
-  const { patient_id, ...rest } = documentData;
+  const { patient_id, rendez_vous_id, ...rest } = documentData; // NOUVEAU: récupérer rendez_vous_id
   if (!patient_id) {
     const error = new Error("patient_id requis pour un upload médecin");
     error.code = "MISSING_PATIENT_ID";
@@ -208,11 +220,12 @@ export const createDocumentByDoctorService = async (
     doctorId,
     "author"
   );
-  // 8. Lier au rendez-vous si besoin
-  if (rest.rendez_vous_id) {
+  // 8. NOUVEAU: Lier au rendez-vous si spécifié
+  if (rendez_vous_id) {
+    console.log(`[DocumentService] Liaison du document ${insertedDocument.id} au rendez-vous ${rendez_vous_id}`);
     await documentRepository.linkDocumentToRendezVous(
       insertedDocument.id,
-      parseInt(rest.rendez_vous_id)
+      parseInt(rendez_vous_id)
     );
   }
   return insertedDocument;
@@ -314,4 +327,27 @@ export const shareDocumentByPatientService = async (
 
 export const getDocumentsByRendezVousService = async (rendezVousId) => {
   return await documentRepository.getDocumentsByRendezVous(rendezVousId);
+};
+
+// Service spécifique pour créer un document lié à un rendez-vous
+export const createDocumentByDoctorWithRdvService = async (
+  doctorId,
+  userRole,
+  documentData,
+  file,
+  rendezVousId
+) => {
+  // Ajouter le rendez_vous_id aux données du document
+  const documentDataWithRdv = {
+    ...documentData,
+    rendez_vous_id: rendezVousId
+  };
+  
+  // Utiliser le service existant qui gère déjà la liaison
+  return await createDocumentByDoctorService(
+    doctorId,
+    userRole,
+    documentDataWithRdv,
+    file
+  );
 };

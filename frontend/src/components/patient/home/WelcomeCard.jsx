@@ -2,10 +2,12 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useUserContext } from "../../../context/UserContext";
 import { useAuth } from "../../../context/AuthContext";
+import { useUserPhoto } from "../../../hooks";
 
 const WelcomeCard = () => {
   const { user } = useUserContext();
   const { currentUser } = useAuth();
+  const { getCurrentUserPhotoUrl, getCurrentUserDefaultPhotoUrl } = useUserPhoto();
 
   // Récupérer le prénom et le nom de l'utilisateur
   const firstName = user?.firstName || currentUser?.prenom || "";
@@ -24,15 +26,11 @@ const WelcomeCard = () => {
       <div className="flex items-center justify-center" style={{ minWidth: '6rem', minHeight: '6rem', width: '6rem', height: '6rem', borderRadius: '9999px', background: 'transparent' }}>
         {currentUser?.chemin_photo && currentUser.chemin_photo.trim() !== "" ? (
           <img
-            src={
-              currentUser.chemin_photo.startsWith("/")
-                ? `http://localhost:5001${currentUser.chemin_photo}`
-                : `http://localhost:5001/uploads/photos/${currentUser.chemin_photo}`
-            }
+            src={getCurrentUserPhotoUrl()}
             alt="Photo de profil"
             className="w-full h-full rounded-full object-cover border"
             style={{ minWidth: '6rem', minHeight: '6rem', width: '6rem', height: '6rem', borderRadius: '9999px' }}
-            onError={e => { e.target.onerror = null; e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(fullName) + '&background=7c3aed&color=fff&size=96'; }}
+            onError={e => { e.target.onerror = null; e.target.src = getCurrentUserDefaultPhotoUrl(); }}
           />
         ) : (
           <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-4xl font-bold text-blue-600 shadow-lg"

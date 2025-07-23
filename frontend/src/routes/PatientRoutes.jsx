@@ -12,6 +12,7 @@ import MedicalProfile from "../pages/patient/MedicalProfile";
 // Pages - Documents
 import Documents from "../pages/patient/documents/Documents";
 import DocumentDetails from "../pages/patient/documents/DocumentDetails";
+import AddDocument from "../pages/patient/documents/AddDocument";
 
 // Pages - Vaccination
 import Vaccination from "../pages/patient/vaccination/Vaccination";
@@ -91,6 +92,17 @@ const PatientRoutes = [
       <ProtectedRoute>
         <MainLayout>
           <Documents />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+  <Route
+    key="documents-add"
+    path="/documents/add"
+    element={
+      <ProtectedRoute>
+        <MainLayout>
+          <AddDocument />
         </MainLayout>
       </ProtectedRoute>
     }

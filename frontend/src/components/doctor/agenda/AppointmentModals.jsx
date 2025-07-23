@@ -365,6 +365,37 @@ const AppointmentModals = ({
     const [dateCreation, setDateCreation] = useState("");
     const [description, setDescription] = useState("");
     const [file, setFile] = useState(null);
+    const [documentTypes, setDocumentTypes] = useState([]);
+    const [loadingTypes, setLoadingTypes] = useState(false);
+
+    // Charger les types de documents depuis l'API
+    useEffect(() => {
+      const fetchDocumentTypes = async () => {
+        try {
+          setLoadingTypes(true);
+          const response = await httpService.get("/documents/types");
+          if (response.data && response.data.types) {
+            setDocumentTypes(response.data.types);
+          }
+        } catch (error) {
+          console.error("Erreur lors du chargement des types de documents:", error);
+          // Fallback avec des types par défaut en cas d'erreur
+          setDocumentTypes([
+            { id: 1, label: "Ordonnance", code: "ORDONNANCE" },
+            { id: 2, label: "Analyse", code: "ANALYSE" },
+            { id: 3, label: "Vaccination", code: "VACCINATION" },
+            { id: 4, label: "Imagerie/Radio", code: "IMAGERIE" },
+            { id: 5, label: "Antécédent", code: "ANTECEDENT" },
+            { id: 6, label: "Autre", code: "AUTRE" }
+          ]);
+        } finally {
+          setLoadingTypes(false);
+        }
+      };
+
+      fetchDocumentTypes();
+    }, []);
+
     const handleSubmit = (e) => {
       e.preventDefault();
       if (!titre || !typeDocument || !file) {
@@ -394,13 +425,22 @@ const AppointmentModals = ({
           <label className="block text-sm font-medium mb-1">
             Type de document *
           </label>
-          <input
-            type="text"
+          <select
             className="border rounded px-2 py-1 w-full"
             value={typeDocument}
             onChange={(e) => setTypeDocument(e.target.value)}
             required
-          />
+            disabled={loadingTypes}
+          >
+            <option value="">
+              {loadingTypes ? "Chargement..." : "Sélectionnez un type"}
+            </option>
+            {documentTypes.map((type) => (
+              <option key={type.id} value={type.label}>
+                {type.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">

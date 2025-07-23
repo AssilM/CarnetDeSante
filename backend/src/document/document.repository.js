@@ -166,6 +166,8 @@ class DocumentRepository {
 
   // Récupérer tous les documents liés à un rendez-vous
   async getDocumentsByRendezVous(rendezVousId) {
+    console.log("[DocumentRepository] Recherche des documents pour le rendez-vous:", rendezVousId);
+    
     const { rows } = await pool.query(
       `SELECT d.*
        FROM document d
@@ -174,6 +176,8 @@ class DocumentRepository {
        ORDER BY d.date_creation DESC, d.created_at DESC`,
       [rendezVousId]
     );
+    
+    console.log("[DocumentRepository] Documents trouvés:", rows.length, "documents");
     return rows;
   }
 

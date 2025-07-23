@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaCalendarAlt } from "react-icons/fa";
+import { FaCalendarAlt, FaSyncAlt } from "react-icons/fa";
 import { useAppointmentContext } from "../../../context";
 import PageWrapper from "../../../components/PageWrapper";
 import { ItemsList } from "../../../components/patient/common";
@@ -14,6 +14,7 @@ const Appointments = () => {
     getPastAppointments,
     loading,
     error,
+    refreshAppointments,
   } = useAppointmentContext();
 
   // Lecture du paramètre de requête pour définir l'onglet actif initial
@@ -44,23 +45,54 @@ const Appointments = () => {
     navigate("/book-appointment");
   };
 
+  const handleRefresh = async () => {
+    await refreshAppointments();
+  };
+
+  // Transformer les rendez-vous pour l'affichage
+  const transformAppointmentsForDisplay = (appointments) => {
+    return appointments.map((appointment) => ({
+      id: appointment.id,
+      title: appointment.title,
+      date: appointment.date,
+      subtitle: appointment.doctor?.name || "Médecin non spécifié",
+      statut: appointment.status,
+      type: "appointment",
+      onViewDetails: () => handleViewDetails(appointment),
+    }));
+  };
+
+  const upcomingAppointmentsForDisplay = transformAppointmentsForDisplay(upcomingAppointments);
+  const pastAppointmentsForDisplay = transformAppointmentsForDisplay(pastAppointments);
+
   return (
     <PageWrapper className="bg-gray-50">
       {/* En-tête de la page avec icône et titre */}
       <div className="bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center">
-              <FaCalendarAlt className="text-2xl text-primary" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center">
+                <FaCalendarAlt className="text-2xl text-primary" />
+              </div>
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">
+                  Mes rendez-vous
+                </h1>
+                <p className="text-sm text-gray-600">
+                  Retrouver ici tout vos prochains et anciens rendez-vous
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">
-                Mes rendez-vous
-              </h1>
-              <p className="text-sm text-gray-600">
-                Retrouver ici tout vos prochains et anciens rendez-vous
-              </p>
-            </div>
+            {/* Bouton d'actualisation */}
+            <button
+              onClick={handleRefresh}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <FaSyncAlt className={`${loading ? 'animate-spin' : ''}`} />
+              Actualiser
+            </button>
           </div>
         </div>
       </div>
@@ -80,8 +112,11 @@ const Appointments = () => {
                 }`}
               >
                 Rendez-vous à venir
+                <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                  {upcomingAppointments.length}
+                </span>
               </button>
-              {/* Bouton pour l'onglet Rendez-vous passés */}
+              {/* Bouton pour l'onglet Anciens rendez-vous */}
               <button
                 onClick={() => handleTabChange("past")}
                 className={`py-4 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-normal sm:whitespace-nowrap transition-colors ${
@@ -91,6 +126,9 @@ const Appointments = () => {
                 }`}
               >
                 Anciens rendez-vous
+                <span className="ml-2 bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">
+                  {pastAppointments.length}
+                </span>
               </button>
             </div>
           </nav>
@@ -108,47 +146,29 @@ const Appointments = () => {
 
       {/* Contenu principal - Affichage conditionnel selon l'onglet actif */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {loading ? (
-          <div className="text-center py-8">
-            <p className="text-gray-600">Chargement des rendez-vous...</p>
-          </div>
-        ) : activeTab === "upcoming" ? (
+        {activeTab === "upcoming" ? (
           // Section Rendez-vous à venir
           <ItemsList
-            items={upcomingAppointments}
+            items={upcomingAppointmentsForDisplay}
             type="appointment"
             title="Rendez-vous à venir"
             description="Vos prochains rendez-vous médicaux"
             onAdd={handleAddAppointment}
-            onViewDetails={handleViewDetails}
+            onViewDetails={(item) => item.onViewDetails()}
             addButtonText="Prendre rendez-vous"
-            itemNameField="title"
-            itemSubtitleField="doctor.name"
-            countText={`${upcomingAppointments.length} ${
-              upcomingAppointments.length > 1
-                ? "rendez-vous programmés"
-                : "rendez-vous programmé"
-            }`}
+            countText={`${upcomingAppointments.length} rendez-vous à venir`}
             showPinnedSection={false}
-            emptyMessage="Vous n'avez pas de rendez-vous à venir"
           />
         ) : (
-          // Section Rendez-vous passés
+          // Section Anciens rendez-vous
           <ItemsList
-            items={pastAppointments}
+            items={pastAppointmentsForDisplay}
             type="appointment"
             title="Anciens rendez-vous"
-            description="Historique de vos rendez-vous médicaux"
-            onViewDetails={handleViewDetails}
-            itemNameField="title"
-            itemSubtitleField="doctor.name"
-            countText={`${pastAppointments.length} ${
-              pastAppointments.length > 1
-                ? "rendez-vous passés"
-                : "rendez-vous passé"
-            }`}
+            description="Historique de vos rendez-vous passés"
+            onViewDetails={(item) => item.onViewDetails()}
+            countText={`${pastAppointments.length} anciens rendez-vous`}
             showPinnedSection={false}
-            emptyMessage="Vous n'avez pas d'historique de rendez-vous"
           />
         )}
       </div>

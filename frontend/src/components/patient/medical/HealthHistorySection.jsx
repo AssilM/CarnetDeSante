@@ -39,7 +39,7 @@ const HealthHistorySection = ({
             <FaCalendarAlt className="text-xl text-primary" />
           </div>
           <h2 className="text-lg font-medium text-gray-900">
-            Historique de santé
+            Historique des rendez-vous  
           </h2>
         </div>
 
