@@ -43,6 +43,9 @@ import DoctorSelection from "../pages/patient/appointments/DoctorSelection";
 import SlotSelection from "../pages/patient/appointments/SlotSelection";
 import AppointmentConfirmation from "../pages/patient/appointments/AppointmentConfirmation";
 
+// Pages - Notifications
+import Notifications from "../pages/Notifications";
+
 /**
  * Routes pour les patients
  * Exporte un tableau de routes pour le rôle patient
@@ -354,6 +357,19 @@ const PatientRoutes = [
       <ProtectedRoute requiredRole="patient">
         <MainLayout>
           <AppointmentConfirmation />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+
+  // Route des notifications
+  <Route
+    key="notifications"
+    path="/notifications"
+    element={
+      <ProtectedRoute>
+        <MainLayout>
+          <Notifications />
         </MainLayout>
       </ProtectedRoute>
     }

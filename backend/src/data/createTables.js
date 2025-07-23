@@ -409,6 +409,31 @@ const createDocumentPermissionTable = async () => {
   }
 };
 
+// Table des notifications
+const createNotificationsTable = async () => {
+  const queryText = `
+    CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      utilisateur_id INTEGER NOT NULL REFERENCES utilisateur(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      titre TEXT NOT NULL,
+      contenu TEXT NOT NULL,
+      is_read BOOLEAN DEFAULT false,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+  try {
+    await pool.query(queryText);
+    console.log("Table notifications créée avec succès");
+  } catch (error) {
+    console.error(
+      "Erreur lors de la création de la table notifications:",
+      error
+    );
+    throw error;
+  }
+};
+
 // 5. Index spécifiques pour les nouvelles tables
 const createNewIndexes = async () => {
   const queries = [
@@ -416,6 +441,8 @@ const createNewIndexes = async () => {
     `CREATE INDEX IF NOT EXISTS idx_docperm_role  ON document_permission(role)`,
     `CREATE INDEX IF NOT EXISTS idx_patdoc_patient ON patient_doctor(patient_id)`,
     `CREATE INDEX IF NOT EXISTS idx_patdoc_doctor  ON patient_doctor(doctor_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_notifications_utilisateur_read ON notifications(utilisateur_id, is_read)`,
+    `CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at)`,
   ];
   try {
     for (const query of queries) {
@@ -510,6 +537,7 @@ const initTables = async () => {
     await createDocumentTable();
     await createPatientDoctorTable();
     await createDocumentPermissionTable();
+    await createNotificationsTable();
     await createDocumentsRendezVousTable();
     await createIndexes();
     await createNewIndexes();
@@ -538,6 +566,7 @@ export {
   seedDocumentTypes,
   createPatientDoctorTable,
   createDocumentPermissionTable,
+  createNotificationsTable,
   createSpecialiteTable,
   seedSpecialites,
 };

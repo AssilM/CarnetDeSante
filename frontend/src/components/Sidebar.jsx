@@ -10,6 +10,7 @@ import {
   MdDashboard,
   MdPeople,
   MdSettings,
+  MdNotifications,
 } from "react-icons/md";
 import { BsCalendar2Week } from "react-icons/bs";
 import {
@@ -67,6 +68,11 @@ const Sidebar = () => {
       path: "/book-appointment",
     },
     {
+      icon: <MdNotifications className="text-2xl" />,
+      label: "Notifications",
+      path: "/notifications",
+    },
+    {
       icon: <FaCog className="text-2xl" />,
       label: "Paramètres",
       path: "/settings",
@@ -93,6 +99,11 @@ const Sidebar = () => {
       icon: <BsCalendar2Week className="text-2xl" />,
       label: "Disponibilités",
       path: "/doctor/availability",
+    },
+    {
+      icon: <MdNotifications className="text-2xl" />,
+      label: "Notifications",
+      path: "/notifications",
     },
     {
       icon: <FaCog className="text-2xl" />,
