@@ -146,18 +146,7 @@ const PatientRoutes = [
     }
   />,
 
-  // Routes du profil médical
-  <Route
-    key="medical-profile-edit"
-    path="/medical-profile/edit"
-    element={
-      <ProtectedRoute requiredRole="patient">
-        <MainLayout>
-          <EditMedicalInfo />
-        </MainLayout>
-      </ProtectedRoute>
-    }
-  />,
+
   <Route
     key="medical-profile-history"
     path="/medical-profile/history"

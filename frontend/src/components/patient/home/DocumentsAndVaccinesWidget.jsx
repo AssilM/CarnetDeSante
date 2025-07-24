@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiDownload } from "react-icons/hi";
-import { FaThumbtack, FaSyringe } from "react-icons/fa";
-import { useDocumentContext, useVaccinationContext } from "../../../context";
+import { FaSyringe } from "react-icons/fa";
+import { useDocumentContext, useVaccinationContext, useAuth } from "../../../context";
 import { httpService } from '../../../services/http';
+import createDocumentService from '../../../services/api/documentService';
+
+const documentService = createDocumentService(httpService);
 
 const DocumentItem = ({
   id,
   title,
   name,
   date,
-  pinned,
   onDocumentClick,
-  onTogglePin,
 }) => {
   const handleDownload = async (e) => {
     e.stopPropagation();
@@ -42,11 +43,6 @@ const DocumentItem = ({
     }
   };
 
-  const handleTogglePin = (e) => {
-    e.stopPropagation();
-    onTogglePin(id);
-  };
-
   return (
     <div
       className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
@@ -63,19 +59,6 @@ const DocumentItem = ({
         </div>
       </div>
       <div className="flex items-center">
-        <button
-          onClick={handleTogglePin}
-          className={`p-2 rounded-full ${
-            pinned
-              ? "text-amber-500 hover:text-amber-600"
-              : "text-gray-400 hover:text-gray-600"
-          }`}
-          title={pinned ? "Désépingler" : "Épingler"}
-        >
-          <FaThumbtack
-            className={`text-lg ${pinned ? "rotate-0" : "rotate-45"}`}
-          />
-        </button>
         <button
           onClick={handleDownload}
           className="p-2 rounded-full hover:bg-blue-200 transition-colors text-blue-600"
@@ -94,13 +77,29 @@ const VaccineItem = ({
   date,
   doctor,
   status,
-  pinned,
   onVaccineClick,
-  onTogglePin,
 }) => {
-  const handleTogglePin = (e) => {
-    e.stopPropagation();
-    onTogglePin(id);
+  // Fonction pour formater la date correctement
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    
+    // Si la date est déjà au format français (DD/MM/YYYY), on la retourne telle quelle
+    if (dateString.includes("/")) {
+      return dateString;
+    }
+    
+    // Sinon, on la formate depuis ISO string ou autre format
+    try {
+      const date = new Date(dateString);
+      // Vérifier si la date est valide
+      if (isNaN(date.getTime())) {
+        return dateString; // Retourner la chaîne originale si la date est invalide
+      }
+      return date.toLocaleDateString("fr-FR");
+    } catch (error) {
+      console.error("Erreur de formatage de date:", error);
+      return dateString;
+    }
   };
 
   return (
@@ -115,7 +114,7 @@ const VaccineItem = ({
         <h4 className="font-medium">{name}</h4>
         <div className="flex items-center gap-4">
           <p className="text-sm text-gray-600">{doctor || "Non renseigné"}</p>
-          <span className="text-sm text-gray-500">{date}</span>
+          <span className="text-sm text-gray-500">{formatDate(date)}</span>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -126,19 +125,6 @@ const VaccineItem = ({
         }`}>
           {status === "effectué" ? "Effectué" : "À faire"}
         </span>
-        <button
-          onClick={handleTogglePin}
-          className={`p-2 rounded-full ${
-            pinned
-              ? "text-amber-500 hover:text-amber-600"
-              : "text-gray-400 hover:text-gray-600"
-          }`}
-          title={pinned ? "Désépingler" : "Épingler"}
-        >
-          <FaThumbtack
-            className={`text-lg ${pinned ? "rotate-0" : "rotate-45"}`}
-          />
-        </button>
       </div>
     </div>
   );
@@ -146,39 +132,71 @@ const VaccineItem = ({
 
 const DocumentsAndVaccinesWidget = () => {
   const [activeSection, setActiveSection] = useState("documents");
-  const [activeTab, setActiveTab] = useState("recent");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
   
   // Contextes
   const {
     items: documents,
-    togglePinned: toggleDocumentPin,
     getRecentItems,
-    getPinnedItems,
     selectItem: selectDocument,
     setItems: setDocuments,
   } = useDocumentContext();
 
   const {
     items: vaccines,
-    togglePinned: toggleVaccinePin,
     selectItem: selectVaccine,
     fetchVaccines,
   } = useVaccinationContext();
 
+  const { currentUser } = useAuth();
+
+  // Fonction pour charger les documents depuis l'API
+  const loadDocuments = async () => {
+    if (loading) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await documentService.getMyDocuments();
+      if (response.success) {
+        const documentsFormatted = response.documents.map((doc) => ({
+          id: doc.id,
+          name: doc.titre,
+          date: new Date(doc.date_creation).toLocaleDateString("fr-FR"),
+          type: doc.type_document,
+          description: doc.description,
+          issuedBy: doc.medecin_nom
+            ? `Dr. ${doc.medecin_nom} ${doc.medecin_prenom}`
+            : "Auto-ajouté",
+          subtitle: doc.type_document,
+          url: `/api/documents/${doc.id}/download`,
+          originalFileName: doc.nom_fichier,
+        }));
+        setDocuments(documentsFormatted);
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des documents:", error);
+      setError("Erreur lors du chargement des documents");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Initialisation des données
   useEffect(() => {
-    if (documents.length === 0) {
-      setDocuments([]);
+    if (currentUser) {
+      if (documents.length === 0) {
+        loadDocuments();
+      }
+      fetchVaccines();
     }
-    fetchVaccines();
-  }, [setDocuments, fetchVaccines]);
+  }, [currentUser, documents.length, fetchVaccines]);
 
   // Obtenir les éléments récents
   const recentDocuments = getRecentItems(3);
-  const pinnedDocuments = getPinnedItems();
   const recentVaccines = vaccines.slice(0, 3);
-  const pinnedVaccines = vaccines.filter(v => v.pinned);
 
   const handleDocumentClick = (documentId) => {
     const document = documents.find((doc) => doc.id === documentId);
@@ -195,17 +213,6 @@ const DocumentsAndVaccinesWidget = () => {
       navigate("/vaccination/details");
     }
   };
-
-  const handleToggleDocumentPin = (id) => {
-    toggleDocumentPin(id);
-  };
-
-  const handleToggleVaccinePin = (id) => {
-    toggleVaccinePin(id);
-  };
-
-  const currentDocuments = activeTab === "recent" ? recentDocuments : pinnedDocuments;
-  const currentVaccines = activeTab === "recent" ? recentVaccines : pinnedVaccines;
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -247,52 +254,44 @@ const DocumentsAndVaccinesWidget = () => {
         {activeSection === "documents" ? (
           // Section Documents
           <div>
-            <div className="flex gap-4 mb-4">
-              <button
-                className={`text-sm font-medium ${
-                  activeTab === "recent"
-                    ? "text-blue-600 border-b-2 border-blue-600"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-                onClick={() => setActiveTab("recent")}
-              >
+            <div className="mb-4">
+              <h3 className="text-sm font-medium text-blue-600">
                 Les plus récents
-              </button>
-              <button
-                className={`text-sm font-medium ${
-                  activeTab === "pinned"
-                    ? "text-blue-600 border-b-2 border-blue-600"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-                onClick={() => setActiveTab("pinned")}
-              >
-                Épinglés
-              </button>
+              </h3>
             </div>
-
             <div className="space-y-3">
-              {currentDocuments.length === 0 ? (
+              {loading ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                  <p className="text-gray-500 text-sm">Chargement des documents...</p>
+                </div>
+              ) : error ? (
+                <div className="text-center py-4">
+                  <p className="text-red-500 text-sm mb-2">{error}</p>
+                  <button
+                    onClick={loadDocuments}
+                    className="text-blue-600 hover:text-blue-800 text-sm underline"
+                  >
+                    Réessayer
+                  </button>
+                </div>
+              ) : recentDocuments.length === 0 ? (
                 <div className="text-center py-4 text-gray-500">
-                  {activeTab === "pinned"
-                    ? "Aucun document épinglé"
-                    : "Aucun document récent"}
+                  Aucun document récent
                 </div>
               ) : (
-                currentDocuments.map((doc) => (
+                recentDocuments.map((doc) => (
                   <DocumentItem
                     key={doc.id}
                     id={doc.id}
                     title={doc.name || doc.title}
                     name={doc.issuedBy || doc.name}
                     date={doc.date}
-                    pinned={doc.pinned}
                     onDocumentClick={handleDocumentClick}
-                    onTogglePin={handleToggleDocumentPin}
                   />
                 ))
               )}
             </div>
-
             <button
               onClick={() => navigate("/documents")}
               className="w-full mt-4 text-center text-sm text-gray-600 hover:text-gray-800"
@@ -303,38 +302,18 @@ const DocumentsAndVaccinesWidget = () => {
         ) : (
           // Section Vaccins
           <div>
-            <div className="flex gap-4 mb-4">
-              <button
-                className={`text-sm font-medium ${
-                  activeTab === "recent"
-                    ? "text-purple-600 border-b-2 border-purple-600"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-                onClick={() => setActiveTab("recent")}
-              >
+            <div className="mb-4">
+              <h3 className="text-sm font-medium text-purple-600">
                 Les plus récents
-              </button>
-              <button
-                className={`text-sm font-medium ${
-                  activeTab === "pinned"
-                    ? "text-purple-600 border-b-2 border-purple-600"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-                onClick={() => setActiveTab("pinned")}
-              >
-                Épinglés
-              </button>
+              </h3>
             </div>
-
             <div className="space-y-3">
-              {currentVaccines.length === 0 ? (
+              {recentVaccines.length === 0 ? (
                 <div className="text-center py-4 text-gray-500">
-                  {activeTab === "pinned"
-                    ? "Aucun vaccin épinglé"
-                    : "Aucun vaccin récent"}
+                  Aucun vaccin récent
                 </div>
               ) : (
-                currentVaccines.map((vaccine) => (
+                recentVaccines.map((vaccine) => (
                   <VaccineItem
                     key={vaccine.id}
                     id={vaccine.id}
@@ -342,14 +321,11 @@ const DocumentsAndVaccinesWidget = () => {
                     date={vaccine.date}
                     doctor={vaccine.doctor}
                     status={vaccine.status}
-                    pinned={vaccine.pinned}
                     onVaccineClick={handleVaccineClick}
-                    onTogglePin={handleToggleVaccinePin}
                   />
                 ))
               )}
             </div>
-
             <button
               onClick={() => navigate("/vaccination")}
               className="w-full mt-4 text-center text-sm text-gray-600 hover:text-gray-800"

@@ -20,6 +20,7 @@ import "dayjs/locale/fr";
  * @param {string} detailsText - Texte du bouton de détails (par défaut: "Aperçu")
  * @param {boolean} pinned - Indique si l'élément est épinglé
  * @param {Function} onTogglePin - Fonction appelée pour épingler/désépingler
+ * @param {string} statut - Statut de l'élément (optionnel)
  */
 const ItemCard = ({
   type,
@@ -30,7 +31,7 @@ const ItemCard = ({
   detailsText = "Aperçu",
   pinned = false,
   onTogglePin,
-  statut, // <-- Ajouté
+  statut,
 }) => {
   // Détermine l'icône en fonction du type
   const getIcon = () => {

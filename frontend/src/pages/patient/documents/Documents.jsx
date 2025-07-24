@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FaFileAlt } from "react-icons/fa";
 import { useDocumentContext, useAuth } from "../../../context";
 import PageWrapper from "../../../components/PageWrapper";
 import { ItemsList, ActionButton } from "../../../components/patient/common";
@@ -28,7 +29,7 @@ const Documents = () => {
   }, []);
   const navigate = useNavigate();
   const { currentUser, loading: authLoading } = useAuth();
-  const { selectItem, setItems, items, togglePinned } = useDocumentContext();
+  const { selectItem, setItems, items } = useDocumentContext();
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
 
@@ -90,7 +91,6 @@ const Documents = () => {
           subtitle: doc.type_document,
           url: `/api/documents/${doc.id}/download`,
           originalFileName: doc.nom_fichier,
-          pinned: false,
         }));
         setItems(documentsFormatted);
       }
@@ -115,10 +115,6 @@ const Documents = () => {
     navigate(`/documents/${document.id}`);
   };
 
-  const handleTogglePin = (id) => {
-    togglePinned(id);
-  };
-
   const content = () => {
     if (showAddForm) {
       return (
@@ -137,47 +133,65 @@ const Documents = () => {
 
     return (
       <>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Titre, bouton et nombre de documents */}
-          <div className="flex justify-between items-center mt-8 mb-2">
-            <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
-            <button
-              onClick={openForm}
-              className="bg-primary text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Ajouter un document
-            </button>
-          </div>
-          {/* Barre de navigation entre les types de documents */}
-          <div className="bg-gray-50 border-b border-gray-200">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <nav className="flex justify-center">
-                <div className="flex w-full sm:w-auto justify-between sm:justify-center sm:space-x-8 md:space-x-12">
-                  {documentTypes.map((type, idx) => (
-                    <button
-                      key={type.id}
-                      onClick={() => setSelectedTypeIndex(idx)}
-                      className={`py-4 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-normal sm:whitespace-nowrap transition-colors ${
-                        selectedTypeIndex === idx
-                          ? "border-primary text-primary"
-                          : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                      }`}
-                    >
-                      {type.label}
-                    </button>
-                  ))}
+        {/* En-tête de la page avec icône et titre */}
+        <div className="bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center">
+                  <FaFileAlt className="text-2xl text-primary" />
                 </div>
-              </nav>
+                <div>
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    Mes documents
+                  </h1>
+                  <p className="text-sm text-gray-600">
+                    Retrouvez et gérez tous vos documents médicaux
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={openForm}
+                className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Ajouter un document
+              </button>
             </div>
           </div>
         </div>
+
+        {/* Barre de navigation entre les types de documents */}
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <nav className="flex justify-center">
+              <div className="flex w-full sm:w-auto justify-between sm:justify-center sm:space-x-8 md:space-x-12">
+                {documentTypes.map((type, idx) => (
+                  <button
+                    key={type.id}
+                    onClick={() => setSelectedTypeIndex(idx)}
+                    className={`py-4 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-normal sm:whitespace-nowrap transition-colors ${
+                      selectedTypeIndex === idx
+                        ? "border-primary text-primary"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    }`}
+                  >
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+            </nav>
+          </div>
+        </div>
+
         {/* Liste des documents */}
-        <ItemsList
-          items={filteredItems}
-          type="document"
-          onViewDetails={handleViewDetails}
-          onTogglePin={handleTogglePin}
-        />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <ItemsList
+            items={filteredItems}
+            type="document"
+            onViewDetails={handleViewDetails}
+            showPinnedSection={false}
+          />
+        </div>
       </>
     );
   };
@@ -206,8 +220,10 @@ const Documents = () => {
           </button>
         </div>
       )}
+
       {!authLoading && currentUser && (
         <>
+          {content()}
           {/* Notification */}
           {notification && (
             <div
@@ -279,8 +295,6 @@ const Documents = () => {
               </div>
             </div>
           )}
-
-          {content()}
         </>
       )}
     </PageWrapper>

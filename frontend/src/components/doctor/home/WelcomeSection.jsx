@@ -1,9 +1,14 @@
 import React from "react";
-import { FaCalendarAlt, FaClock, FaUser } from "react-icons/fa";
+import { FaCalendarAlt, FaClock } from "react-icons/fa";
 import { useAuth } from "../../../context";
+import { useUserPhoto } from "../../../hooks/useUserPhoto";
 
 const WelcomeSection = ({ currentDateTime }) => {
   const { currentUser } = useAuth();
+  const { getCurrentUserPhotoUrl, getCurrentUserDefaultPhotoUrl } = useUserPhoto();
+
+  // Récupérer l'URL de la photo de profil
+  const photoUrl = getCurrentUserPhotoUrl() || getCurrentUserDefaultPhotoUrl();
 
   return (
     <div className="bg-gradient-to-r from-[#E8F4FD] to-white rounded-lg relative overflow-hidden p-6 shadow-sm border border-[#E9ECEF] transition-all duration-200 hover:shadow-md">
@@ -39,8 +44,24 @@ const WelcomeSection = ({ currentDateTime }) => {
             </div>
           </div>
         </div>
-        <div className="bg-[#E8F4FD] rounded-full p-4 flex-shrink-0 relative z-10">
-          <FaUser className="text-[#4A90E2] text-2xl" />
+        <div className="bg-[#E8F4FD] rounded-full p-2 flex-shrink-0 relative z-10">
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt={`Photo de profil de Dr. ${currentUser?.prenom} ${currentUser?.nom}`}
+              className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
+              onError={(e) => {
+                // En cas d'erreur de chargement, utiliser l'URL par défaut
+                e.target.src = getCurrentUserDefaultPhotoUrl();
+              }}
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-[#4A90E2] flex items-center justify-center">
+              <span className="text-white font-semibold text-lg">
+                {currentUser?.prenom?.charAt(0)?.toUpperCase() || "D"}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

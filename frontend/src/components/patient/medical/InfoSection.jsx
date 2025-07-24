@@ -1,11 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useCallback } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useUserContext } from "../../../context/UserContext";
 import { usePatientContext } from "../../../context/patient/PatientContext";
 import { authService } from "../../../services/api";
 
-const InfoSection = () => {
+const InfoSection = ({ onModify }) => {
   const { currentUser } = useAuth();
   const { user } = useUserContext();
   const { patientProfile, medicalInfo, refreshMedicalInfo } =
@@ -25,17 +25,26 @@ const InfoSection = () => {
     }
   };
 
+  // Mémoriser la fonction refreshMedicalInfo pour éviter les re-rendus
+  const memoizedRefreshMedicalInfo = useCallback(async () => {
+    if (currentUser?.role !== "patient") return;
+    
+    try {
+      await refreshMedicalInfo();
+    } catch (error) {
+      console.error(
+        "Impossible de charger les informations médicales",
+        error
+      );
+    }
+  }, [currentUser?.role, refreshMedicalInfo]);
+
   // Charger les informations médicales si elles ne sont pas déjà chargées
   useEffect(() => {
     if (!medicalInfo && currentUser?.role === "patient") {
-      refreshMedicalInfo().catch((error) => {
-        console.error(
-          "Impossible de charger les informations médicales",
-          error
-        );
-      });
+      memoizedRefreshMedicalInfo();
     }
-  }, [medicalInfo, currentUser, refreshMedicalInfo]);
+  }, [medicalInfo, memoizedRefreshMedicalInfo]);
 
   // Fonction pour afficher correctement le genre
   const displayGender = (gender) => {
@@ -81,7 +90,11 @@ const InfoSection = () => {
   };
 
   const handleModify = () => {
-    navigate("/medical-profile/edit");
+    if (onModify) {
+      onModify();
+    } else {
+      navigate("/medical-profile/edit");
+    }
   };
 
   // Récupérer les informations médicales
@@ -105,13 +118,6 @@ const InfoSection = () => {
           Informations personnelles
         </h3>
         <div className="flex gap-2">
-          <button
-            onClick={runAuthDiagnostic}
-            className="text-sm bg-yellow-50 text-yellow-600 px-3 py-1 rounded-md hover:bg-yellow-100 transition-colors"
-            title="Exécuter un diagnostic de l'authentification"
-          >
-            Diagnostiquer
-          </button>
           <button
             onClick={handleModify}
             className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded-md hover:bg-blue-100 transition-colors"

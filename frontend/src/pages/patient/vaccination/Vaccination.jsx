@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { FaSyringe } from "react-icons/fa";
 import { useVaccinationContext } from "../../../context";
 import PageWrapper from "../../../components/PageWrapper";
 import { ItemsList, ActionButton } from "../../../components/patient/common";
@@ -18,7 +19,6 @@ const Vaccination = () => {
     setItems,
     items,
     addItem,
-    togglePinned,
     loading,
     error,
     fetchVaccines,
@@ -202,10 +202,6 @@ const Vaccination = () => {
     doc.save(`recap-vaccins-${currentUser?.prenom}-${currentUser?.nom}.pdf`);
   };
 
-  const handleTogglePin = (id) => {
-    togglePinned(id);
-  };
-
   const content = () => {
     if (showAddForm) {
       return (
@@ -222,19 +218,44 @@ const Vaccination = () => {
     );
 
     return (
-      <ItemsList
-        items={items}
-        type="vaccine"
-        title="Vaccination"
-        description="Permet de retrouver et d'ajouter des vaccins"
-        onAdd={openForm}
-        onViewDetails={handleViewDetails}
-        onTogglePin={handleTogglePin}
-        addButtonText="Ajouter un vaccin"
-        rightAction={generateReportButton}
-        loading={loading}
-        error={error}
-      />
+      <>
+        {/* En-tête de la page avec icône et titre */}
+        <div className="bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center">
+                  <FaSyringe className="text-2xl text-primary" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    Vaccination
+                  </h1>
+                  <p className="text-sm text-gray-600">
+                    Permet de retrouver et d'ajouter des vaccins
+                  </p>
+                </div>
+              </div>
+              {generateReportButton}
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <ItemsList
+            items={items}
+            type="vaccine"
+            title="Vaccination"
+            description="Permet de retrouver et d'ajouter des vaccins"
+            onAdd={openForm}
+            onViewDetails={handleViewDetails}
+            addButtonText="Ajouter un vaccin"
+            loading={loading}
+            error={error}
+            showPinnedSection={false}
+          />
+        </div>
+      </>
     );
   };
 
