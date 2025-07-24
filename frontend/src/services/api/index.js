@@ -9,6 +9,8 @@ import createDoctorService from "./doctorService";
 import createPatientService from "./patientService";
 import createAppointmentService from "./appointmentService";
 import createDocumentService from "./documentService";
+import createVaccinService from "./vaccinService";
+import createUserPhotoService from "./userPhotoService";
 import { getAllSpecialites } from "./specialiteService";
 import * as adminService from "./adminService";
 
@@ -27,6 +29,8 @@ export {
   createPatientService,
   createAppointmentService,
   createDocumentService,
+  createVaccinService,
+  createUserPhotoService,
   getAllSpecialites,
   adminService,
 };

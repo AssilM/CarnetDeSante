@@ -1,135 +1,124 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useHealthEventContext } from "../../../context";
+import { useAppointmentContext } from "../../../context";
+import { FaCalendarAlt, FaUserMd, FaMapMarkerAlt } from "react-icons/fa";
 
-const HistoryItem = ({ icon, title, name, date, onClick }) => (
-  <div
-    className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-    onClick={onClick}
-  >
-    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
-      {icon}
+const HistoryItem = ({ appointment, onClick }) => {
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "planifié":
+        return "bg-blue-100 text-blue-800";
+      case "terminé":
+        return "bg-green-100 text-green-800";
+      case "annulé":
+        return "bg-red-100 text-red-800";
+      case "en_cours":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case "planifié":
+        return "Planifié";
+      case "terminé":
+        return "Terminé";
+      case "annulé":
+        return "Annulé";
+      case "en_cours":
+        return "En cours";
+      default:
+        return status || "Inconnu";
+    }
+  };
+
+  return (
+    <div
+      className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+      onClick={onClick}
+    >
+      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+        <FaCalendarAlt className="text-blue-600" />
+      </div>
+      <div className="flex-grow">
+        <div className="flex items-center gap-2 mb-1">
+          <h4 className="font-medium">{appointment.title}</h4>
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
+            {getStatusText(appointment.status)}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+          <FaUserMd className="text-gray-400" />
+          <span>{appointment.doctor.name}</span>
+        </div>
+        {appointment.location && (
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <FaMapMarkerAlt className="text-gray-400" />
+            <span>{appointment.location}</span>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-gray-500">{appointment.date}</span>
+      </div>
     </div>
-    <div className="flex-grow">
-      <h4 className="font-medium">{title}</h4>
-      <p className="text-sm text-gray-600">{name}</p>
-    </div>
-    <div className="flex items-center gap-2">
-      <span className="text-sm text-gray-500">{date}</span>
-    </div>
-  </div>
-);
+  );
+};
 
 const HealthHistory = () => {
   const navigate = useNavigate();
-  const { items, setItems, setSelectedItem } = useHealthEventContext();
+  const { getPastAppointments, getUpcomingAppointments, selectAppointment } = useAppointmentContext();
+  const [recentAppointments, setRecentAppointments] = useState([]);
 
-  // Initialisation des données de test
+  // Récupérer les rendez-vous récents (passés et à venir)
   useEffect(() => {
-    if (items.length === 0) {
-      setItems([
-        {
-          id: "1",
-          title: "Délivrance de médicament",
-          doctor: "Dr. Martin",
-          hospital: "Pharmacie Centrale",
-          date: "01/01/2025",
-          description: "Amoxicilline 1000mg, 3x par jour pendant 7 jours",
-          pinned: false,
-          type: "medication",
-          icon: "💊",
-        },
-        {
-          id: "2",
-          title: "Ordonnance pour allergie",
-          doctor: "Dr. Durand",
-          hospital: "Centre Médical",
-          date: "15/12/2024",
-          description: "Traitement anti-allergique saisonnier",
-          pinned: true,
-          type: "prescription",
-          icon: "🌿",
-        },
-        {
-          id: "3",
-          title: "Vaccination fièvre jaune",
-          doctor: "Dr. Bernard",
-          hospital: "Centre de vaccination",
-          date: "10/12/2024",
-          description: "Vaccination contre la fièvre jaune avant voyage",
-          pinned: false,
-          type: "vaccination",
-          icon: "💉",
-        },
-        {
-          id: "4",
-          title: "Consultation cardiologie",
-          doctor: "Dr. Petit",
-          hospital: "Hôpital Régional",
-          date: "05/12/2024",
-          description: "Contrôle annuel, résultats normaux",
-          pinned: false,
-          type: "consultation",
-          icon: "❤️",
-        },
-        {
-          id: "5",
-          title: "Analyse sanguine",
-          doctor: "Dr. Martin",
-          hospital: "Laboratoire Central",
-          date: "01/12/2024",
-          description: "Bilan sanguin complet, résultats normaux",
-          pinned: false,
-          type: "analysis",
-          icon: "🔬",
-        },
-      ]);
-    }
-  }, [setItems, items.length]);
+    const pastAppointments = getPastAppointments();
+    const upcomingAppointments = getUpcomingAppointments();
+    
+    // Combiner et trier par date (les plus récents en premier)
+    const allAppointments = [...pastAppointments, ...upcomingAppointments]
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 3); // Prendre seulement les 3 plus récents
+    
+    setRecentAppointments(allAppointments);
+  }, [getPastAppointments, getUpcomingAppointments]);
 
-  // Afficher seulement les 3 événements les plus récents
-  const recentEvents = items
-    .sort((a, b) => {
-      // Convertir les dates au format français (DD/MM/YYYY) en objets Date
-      const dateA = a.date.split("/").reverse().join("-");
-      const dateB = b.date.split("/").reverse().join("-");
-      return new Date(dateB) - new Date(dateA);
-    })
-    .slice(0, 3);
+  const handleItemClick = (appointment) => {
+    selectAppointment(appointment);
+    navigate("/appointments/details");
+  };
 
-  const handleItemClick = (item) => {
-    setSelectedItem(item);
-    navigate("/medical-profile/details");
+  const handleViewAll = () => {
+    navigate("/appointments");
   };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Historique santé</h2>
+        <h2 className="text-xl font-semibold">Historique des rendez-vous</h2>
       </div>
       <div className="space-y-3">
-        {recentEvents.length === 0 ? (
+        {recentAppointments.length === 0 ? (
           <div className="text-center py-4 text-gray-500">
-            Aucun événement récent
+            Aucun rendez-vous récent
           </div>
         ) : (
-          recentEvents.map((item) => (
+          recentAppointments.map((appointment) => (
             <HistoryItem
-              key={item.id}
-              icon={item.icon}
-              title={item.title}
-              name={item.doctor}
-              date={item.date}
-              onClick={() => handleItemClick(item)}
+              key={appointment.id}
+              appointment={appointment}
+              onClick={() => handleItemClick(appointment)}
             />
           ))
         )}
       </div>
       <button
-        onClick={() => navigate("/medical-profile")}
+        onClick={handleViewAll}
         className="w-full mt-4 text-center text-sm text-gray-600 hover:text-gray-800"
       >
-        Cliquez ici pour retrouver votre historique complet
+        Voir tous mes rendez-vous
       </button>
     </div>
   );

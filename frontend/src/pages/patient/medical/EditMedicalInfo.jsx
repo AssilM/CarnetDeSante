@@ -45,9 +45,10 @@ const EditMedicalInfo = () => {
       // Afficher une notification de succès et rafraîchir la page
       showSuccess("Vos informations ont été mises à jour avec succès", true);
 
-      // Rediriger vers la page du profil médical
+      // Rediriger vers la page du profil médical avec rafraîchissement
       setTimeout(() => {
-        navigate("/medical-profile");
+        navigate("/medical-profile", { replace: true });
+        window.location.reload();
       }, 2000);
     } catch (err) {
       showError(

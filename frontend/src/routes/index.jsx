@@ -6,6 +6,7 @@ import AuthRoutes from "./AuthRoutes";
 import PatientRoutes from "./PatientRoutes";
 import DoctorRoutes from "./DoctorRoutes";
 import AdminRoutes from "./AdminRoutes";
+import MedicalRoutes from "./MedicalRoutes";
 
 // Pages d'erreur
 import Forbidden from "../pages/Forbidden";
@@ -25,7 +26,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       {/* Déployer les tableaux de routes */}
-      {[...AuthRoutes, ...PatientRoutes, ...DoctorRoutes, ...AdminRoutes]}
+      {[...AuthRoutes, ...PatientRoutes, ...DoctorRoutes, ...AdminRoutes, ...MedicalRoutes]}
 
       {/* Routes d'erreur */}
       <Route path="/403" element={<Forbidden />} />

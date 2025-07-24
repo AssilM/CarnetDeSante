@@ -4,10 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { HiLockClosed } from "react-icons/hi";
 import { FiMail, FiPhone, FiMapPin } from "react-icons/fi";
 import { useUserContext } from "../../../context/UserContext";
+import { useUserPhoto } from "../../../hooks";
 
 const ConnectionInfo = () => {
   const navigate = useNavigate();
   const { user, loading, updateUserPhoto } = useUserContext();
+  const { getPhotoUrl, getDefaultPhotoUrl } = useUserPhoto();
   const [photoLoading, setPhotoLoading] = useState(false);
   const fileInputRef = useRef();
   const [photoError, setPhotoError] = useState("");
@@ -170,7 +172,7 @@ const ConnectionInfo = () => {
           </h3>
           <div className="flex items-center gap-4 mb-6">
             <img
-              src={user?.chemin_photo ? `http://localhost:5001${user.chemin_photo}` : "/default-profile.png"}
+              src={user?.chemin_photo ? getPhotoUrl(user.chemin_photo) : getDefaultPhotoUrl(`${user.prenom} ${user.nom}`)}
               alt="Photo de profil"
               className="w-20 h-20 rounded-full object-cover border"
             />

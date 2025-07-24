@@ -209,6 +209,8 @@ httpService.interceptors.response.use(
 
     // Gestion des autres erreurs (403 = accès interdit)
     if (error.response?.status === 403) {
+      console.log("[HTTP Service] Erreur 403 - Accès interdit détecté");
+      
       if (onForbidden) {
         try {
           onForbidden();
@@ -223,6 +225,25 @@ httpService.interceptors.response.use(
         }
       } else if (typeof window !== "undefined") {
         window.location = "/403";
+      }
+    }
+
+    // Gestion des erreurs 401 non gérées par le refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      console.log("[HTTP Service] Erreur 401 non gérée par le refresh - redirection vers login");
+      
+      // Nettoyer le token invalide
+      setAccessToken(null);
+      
+      if (typeof window !== "undefined") {
+        const isAuthPage =
+          window.location.pathname.includes("/auth/") ||
+          window.location.pathname.includes("/login") ||
+          window.location.pathname.includes("/register");
+
+        if (!isAuthPage) {
+          window.location.href = "/auth/login";
+        }
       }
     }
 

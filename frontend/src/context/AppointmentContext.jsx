@@ -173,7 +173,7 @@ export const AppointmentProvider = ({ children }) => {
               specialty: appointment.specialite || "",
               address: appointment.adresse || "",
             },
-            status: appointment.statut || "confirmé",
+            status: appointment.statut || "planifié",
             location: appointment.adresse || "Cabinet médical",
             description: appointment.motif || "Consultation médicale",
             timestamp,
@@ -197,6 +197,11 @@ export const AppointmentProvider = ({ children }) => {
 
     // Si nous avons déjà le profil patient ou si nous sommes médecin, charger les rendez-vous
     fetchAppointments();
+
+    // Actualisation automatique toutes les 30 secondes
+    const interval = setInterval(fetchAppointments, 30000);
+
+    return () => clearInterval(interval);
   }, [currentUser, patientProfile, isPatient, isDoctor, appointmentService]); // ✅ Suppression d'accessToken des dépendances
 
   // Récupérer un rendez-vous par son ID
@@ -437,17 +442,97 @@ export const AppointmentProvider = ({ children }) => {
 
   // Filtrer les rendez-vous à venir et passés
   const getUpcomingAppointments = () => {
-    const now = new Date().getTime();
     return appointments
-      .filter((app) => app.timestamp > now && app.status !== "annulé")
+      .filter((app) => app.status === "planifié")
       .sort((a, b) => a.timestamp - b.timestamp);
   };
 
   const getPastAppointments = () => {
-    const now = new Date().getTime();
-    return appointments.filter(
-      (app) => app.timestamp <= now || app.status === "annulé"
-    );
+    return appointments
+      .filter((app) => app.status === "terminé")
+      .sort((a, b) => b.timestamp - a.timestamp); // Plus récents en premier
+  };
+
+  // Forcer l'actualisation des rendez-vous
+  const refreshAppointments = async () => {
+    console.log("[AppointmentContext] Actualisation forcée des rendez-vous");
+    if (!currentUser || !appointmentService) {
+      console.log("[AppointmentContext] Impossible d'actualiser - conditions non remplies");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      let response = [];
+
+      // Récupérer les rendez-vous selon le rôle
+      if (isPatient && patientProfile) {
+        const patientId = patientProfile.utilisateur_id;
+        if (!patientId) {
+          console.error("[AppointmentContext] ERREUR: patientProfile.utilisateur_id est manquant !");
+          setError("Impossible de récupérer l'identifiant du patient");
+          return;
+        }
+        console.log(`[AppointmentContext] Actualisation des rendez-vous du patient #${patientId}`);
+        response = await appointmentService.getPatientAppointments(patientId);
+      } else if (isDoctor) {
+        console.log(`[AppointmentContext] Actualisation des rendez-vous du médecin #${currentUser.id}`);
+        response = await appointmentService.getDoctorAppointments(currentUser.id);
+      } else {
+        console.log("[AppointmentContext] Conditions non remplies pour actualiser");
+        return;
+      }
+
+      // Transformer les données (même logique que dans useEffect)
+      const formattedAppointments = response.map((appointment) => {
+        let timestamp = Date.now();
+        if (appointment.date) {
+          if (appointment.date.includes("T")) {
+            const d = new Date(appointment.date);
+            if (!isNaN(d.getTime())) timestamp = d.getTime();
+          } else if (appointment.heure) {
+            const d = new Date(appointment.date + "T" + appointment.heure.substring(0, 5));
+            if (!isNaN(d.getTime())) timestamp = d.getTime();
+          } else {
+            const d = new Date(appointment.date);
+            if (!isNaN(d.getTime())) timestamp = d.getTime();
+          }
+        }
+
+        let doctorName = "Dr. Inconnu";
+        if (appointment.medecin_nom || appointment.medecin_prenom) {
+          doctorName = `Dr. ${appointment.medecin_prenom || ""} ${appointment.medecin_nom || ""}`.trim();
+        }
+
+        return {
+          id: appointment.id?.toString() || "",
+          title: appointment.motif || "Rendez-vous médical",
+          date: appointment.date ? new Date(appointment.date).toLocaleDateString("fr-FR") + (appointment.heure ? " à " + appointment.heure.substring(0, 5) : "") : "",
+          time: typeof appointment.heure === "string" ? appointment.heure.substring(0, 5) : "",
+          doctor: {
+            id: appointment.medecin_id,
+            name: doctorName,
+            specialty: appointment.specialite || "",
+            address: appointment.adresse || "",
+          },
+          status: appointment.statut || "planifié",
+          location: appointment.adresse || "Cabinet médical",
+          description: appointment.motif || "Consultation médicale",
+          timestamp,
+          rawData: appointment,
+        };
+      });
+
+      console.log(`[AppointmentContext] ${formattedAppointments.length} rendez-vous actualisés`);
+      setAppointments(formattedAppointments);
+    } catch (err) {
+      console.error("Erreur lors de l'actualisation des rendez-vous:", err);
+      setError("Impossible d'actualiser vos rendez-vous");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Valeurs exposées par le contexte
@@ -463,6 +548,7 @@ export const AppointmentProvider = ({ children }) => {
     getUpcomingAppointments,
     getPastAppointments,
     getAppointmentById,
+    refreshAppointments, // ✅ Nouvelle fonction d'actualisation
   };
 
   return (

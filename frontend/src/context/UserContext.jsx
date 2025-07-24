@@ -31,6 +31,7 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     const loadUserData = async () => {
       if (!currentUser) {
+        setUserData(null);
         setLoading(false);
         return;
       }
@@ -40,7 +41,7 @@ export const UserProvider = ({ children }) => {
         if (userService) {
           const response = await userService.getUserById(currentUser.id);
           const user = response.user || currentUser;
-          const formattedUserData = {
+          setUserData((prevData) => ({
             id: user.id,
             firstName: user.prenom,
             lastName: user.nom,
@@ -55,12 +56,14 @@ export const UserProvider = ({ children }) => {
             adresse: user.adresse || "",
             codePostal: user.code_postal || "",
             ville: user.ville || "",
-            chemin_photo: user.chemin_photo || "",
-          };
-          setUserData(formattedUserData);
+            chemin_photo:
+              user.chemin_photo !== undefined && user.chemin_photo !== null && user.chemin_photo !== ""
+                ? user.chemin_photo
+                : prevData?.chemin_photo || "",
+          }));
         } else {
           // Fallback si userService pas prêt
-          const formattedUserData = {
+          setUserData((prevData) => ({
             id: currentUser.id,
             firstName: currentUser.prenom,
             lastName: currentUser.nom,
@@ -75,9 +78,11 @@ export const UserProvider = ({ children }) => {
             adresse: currentUser.adresse || "",
             codePostal: currentUser.code_postal || "",
             ville: currentUser.ville || "",
-            chemin_photo: currentUser.chemin_photo || "",
-          };
-          setUserData(formattedUserData);
+            chemin_photo:
+              currentUser.chemin_photo !== undefined && currentUser.chemin_photo !== null && currentUser.chemin_photo !== ""
+                ? currentUser.chemin_photo
+                : prevData?.chemin_photo || "",
+          }));
         }
       } catch (error) {
         console.error(

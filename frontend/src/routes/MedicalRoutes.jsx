@@ -16,91 +16,95 @@ import AddAllergy from "../pages/patient/medical/AddAllergy";
 import HealthEventList from "../pages/patient/medical/HealthEventList";
 import HealthEventDetails from "../pages/patient/medical/HealthEventDetails";
 
-const MedicalRoutes = () => {
-  return (
-    <>
-      <Route
-        path="/medical-profile/edit"
-        element={
-          <ProtectedRoute requiredRole="patient">
-            <MainLayout>
-              <EditMedicalInfo />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/medical-profile/history"
-        element={
-          <ProtectedRoute requiredRole="patient">
-            <MainLayout>
-              <MedicalHistoryList />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/medical-profile/history/add"
-        element={
-          <ProtectedRoute requiredRole="patient">
-            <MainLayout>
-              <AddMedicalHistory />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/medical-profile/history/details"
-        element={
-          <ProtectedRoute requiredRole="patient">
-            <MainLayout>
-              <MedicalHistoryDetails />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/medical-profile/allergies"
-        element={
-          <ProtectedRoute requiredRole="patient">
-            <MainLayout>
-              <AllergyList />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/medical-profile/allergies/add"
-        element={
-          <ProtectedRoute requiredRole="patient">
-            <MainLayout>
-              <AddAllergy />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/medical-profile/allergies/details"
-        element={
-          <ProtectedRoute requiredRole="patient">
-            <MainLayout>
-              <AllergyDetails />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/medical-profile/details"
-        element={
-          <ProtectedRoute requiredRole="patient">
-            <MainLayout>
-              <HealthEventDetails />
-            </MainLayout>
-          </ProtectedRoute>
-        }
-      />
-    </>
-  );
-};
+const MedicalRoutes = [
+  <Route
+    key="medical-profile-edit"
+    path="/medical-profile/edit"
+    element={
+      <ProtectedRoute requiredRole="patient">
+        <MainLayout>
+          <EditMedicalInfo />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+  <Route
+    key="medical-profile-history"
+    path="/medical-profile/history"
+    element={
+      <ProtectedRoute requiredRole="patient">
+        <MainLayout>
+          <MedicalHistoryList />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+  <Route
+    key="medical-profile-history-add"
+    path="/medical-profile/history/add"
+    element={
+      <ProtectedRoute requiredRole="patient">
+        <MainLayout>
+          <AddMedicalHistory />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+  <Route
+    key="medical-profile-history-details"
+    path="/medical-profile/history/details"
+    element={
+      <ProtectedRoute requiredRole="patient">
+        <MainLayout>
+          <MedicalHistoryDetails />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+  <Route
+    key="medical-profile-allergies"
+    path="/medical-profile/allergies"
+    element={
+      <ProtectedRoute requiredRole="patient">
+        <MainLayout>
+          <AllergyList />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+  <Route
+    key="medical-profile-allergies-add"
+    path="/medical-profile/allergies/add"
+    element={
+      <ProtectedRoute requiredRole="patient">
+        <MainLayout>
+          <AddAllergy />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+  <Route
+    key="medical-profile-allergies-details"
+    path="/medical-profile/allergies/details"
+    element={
+      <ProtectedRoute requiredRole="patient">
+        <MainLayout>
+          <AllergyDetails />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+  <Route
+    key="medical-profile-details"
+    path="/medical-profile/details"
+    element={
+      <ProtectedRoute requiredRole="patient">
+        <MainLayout>
+          <HealthEventDetails />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+];
 
 export default MedicalRoutes;

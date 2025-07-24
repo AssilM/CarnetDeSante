@@ -134,7 +134,7 @@ export const getMedecinIdByUserIdService = async (userId) => {
 export const getMedecinsBySpecialiteService = async (specialite) => {
   const query = `
     SELECT m.utilisateur_id as id, m.specialite, m.description, u.nom, u.prenom, u.email, u.ville,
-           u.adresse, u.code_postal, CONCAT(u.tel_indicatif, u.tel_numero) as tel
+           u.adresse, u.code_postal, CONCAT(u.tel_indicatif, u.tel_numero) as tel, u.chemin_photo
     FROM medecin m
     INNER JOIN utilisateur u ON m.utilisateur_id = u.id
     WHERE LOWER(m.specialite) = LOWER($1)

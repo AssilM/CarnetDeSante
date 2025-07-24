@@ -19,6 +19,7 @@ import {
   createDocumentByDoctorWithRdv,
   getDocumentsByRendezVous,
   getAllDocumentTypes,
+  createVaccinationByPatient,
 } from "./document.controller.js";
 
 const router = express.Router();
@@ -34,6 +35,13 @@ router.post(
   authorize(["patient"]),
   uploadDocument,
   createDocumentByPatient
+);
+
+// Upload vaccination (patient) - sans fichier
+router.post(
+  "/vaccination",
+  authorize(["patient"]),
+  createVaccinationByPatient
 );
 
 // Upload document (médecin)

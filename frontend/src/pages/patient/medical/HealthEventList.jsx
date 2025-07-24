@@ -76,7 +76,7 @@ const HealthEventList = () => {
       <ItemsList
         items={filteredEvents}
         type="event"
-        title="Historique de santé"
+        title="Historique des rendez vous"
         description="Tous vos événements de santé"
         onViewDetails={handleDetails}
         onTogglePin={handleTogglePin}

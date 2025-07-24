@@ -9,6 +9,7 @@ import {
   shareDocumentByPatientService,
   getDocumentsByRendezVousService,
   getAllDocumentTypesService,
+  createDocumentByDoctorWithRdvService,
 } from "./document.service.js";
 
 import path from "path";
@@ -26,7 +27,7 @@ export const getAllDocumentTypes = async (req, res, next) => {
 
 export const createDocument = async (req, res, next) => {
   try {
-    const document = await createDocumentService(
+    const document = await createDocumentByPatientService(
       req.userId,
       req.userRole,
       req.body,
@@ -303,14 +304,33 @@ export const createDocumentByDoctorWithRdv = async (req, res, next) => {
     const userRole = req.userRole;
     const documentData = req.body;
     const file = req.file;
-    // Appel du service dédié (gère la liaison au RDV)
-    const doc = await createDocumentByDoctorService(
+    
+    // Récupérer le rendez_vous_id depuis les données
+    const { rendez_vous_id, ...restDocumentData } = documentData;
+    
+    if (!rendez_vous_id) {
+      const error = new Error("rendez_vous_id requis pour lier le document au rendez-vous");
+      error.code = "MISSING_RENDEZ_VOUS_ID";
+      return res.status(400).json({ 
+        success: false, 
+        error: "ID du rendez-vous requis" 
+      });
+    }
+    
+    // Appel du service dédié avec le rendez_vous_id
+    const doc = await createDocumentByDoctorWithRdvService(
       doctorId,
       userRole,
-      documentData,
-      file
+      restDocumentData,
+      file,
+      rendez_vous_id
     );
-    res.status(201).json({ document: doc });
+    
+    res.status(201).json({ 
+      success: true,
+      document: doc,
+      message: "Document créé et lié au rendez-vous avec succès"
+    });
   } catch (error) {
     next(error);
   }
@@ -320,8 +340,36 @@ export const createDocumentByDoctorWithRdv = async (req, res, next) => {
 export const getDocumentsByRendezVous = async (req, res, next) => {
   try {
     const { rendezVousId } = req.params;
+    console.log("[DocumentController] Récupération des documents pour le rendez-vous:", rendezVousId);
+    
     const docs = await getDocumentsByRendezVousService(rendezVousId);
+    console.log("[DocumentController] Documents trouvés:", docs);
+    
     res.status(200).json({ success: true, documents: docs });
+  } catch (error) {
+    console.error("[DocumentController] Erreur lors de la récupération des documents:", error);
+    next(error);
+  }
+};
+
+// Nouvelle fonction pour créer des vaccinations sans fichier
+export const createVaccinationByPatient = async (req, res, next) => {
+  try {
+    const document = await createDocumentByPatientService(
+      req.userId,
+      req.userRole,
+      req.body,
+      null // Pas de fichier pour les vaccinations
+    );
+    res.status(201).json({
+      success: true,
+      document,
+      notification: {
+        type: "success",
+        title: "Vaccination ajoutée",
+        message: `La vaccination a été ajoutée avec succès`,
+      },
+    });
   } catch (error) {
     next(error);
   }

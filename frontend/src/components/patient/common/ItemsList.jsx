@@ -172,6 +172,7 @@ const ItemsList = ({
                   onTogglePin={
                     onTogglePin ? () => onTogglePin(item.id) : undefined
                   }
+                  statut={item.status}
                 />
               ))
             )}

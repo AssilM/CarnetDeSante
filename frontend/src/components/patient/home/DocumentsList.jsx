@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { HiDownload } from "react-icons/hi";
 import { FaThumbtack } from "react-icons/fa";
 import { useDocumentContext } from "../../../context";
+import { httpService } from '../../../services/http';
 
 const DocumentItem = ({
   id,
@@ -13,10 +14,33 @@ const DocumentItem = ({
   onDocumentClick,
   onTogglePin,
 }) => {
-  const handleDownload = (e) => {
-    e.stopPropagation(); // Empêche le déclenchement du onClick du parent
-    // La logique de téléchargement sera implémentée plus tard
-    console.log("Téléchargement du document:", id);
+  const handleDownload = async (e) => {
+    e.stopPropagation();
+    try {
+      // Appel API pour récupérer le document en blob
+      const response = await httpService.get(`/documents/${id}/download`, {
+        responseType: 'blob',
+      });
+      const contentType = response.headers['content-type'] || 'application/octet-stream';
+      let fileName = title || `document-${id}`;
+      const contentDisposition = response.headers['content-disposition'];
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="([^"]+)"/);
+        if (match) fileName = match[1];
+      }
+      const blob = new Blob([response.data], { type: contentType });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert('Erreur lors du téléchargement du document');
+      console.error('Erreur téléchargement document:', error);
+    }
   };
 
   const handleTogglePin = (e) => {
@@ -81,62 +105,7 @@ const DocumentsList = () => {
   useEffect(() => {
     if (items.length === 0) {
       setItems([
-        {
-          id: "1",
-          name: "Ordonnance pour allergie",
-          date: "15/01/2024",
-          type: "Ordonnance",
-          issuedBy: "Dr. Martin",
-          subtitle: "Traitement antihistaminique",
-          description:
-            "Ordonnance pour le traitement des allergies saisonnières",
-          url: "#",
-          pinned: true,
-        },
-        {
-          id: "2",
-          name: "Résultats analyse sang",
-          date: "01/12/2023",
-          type: "Analyse",
-          issuedBy: "Laboratoire Central",
-          subtitle: "Bilan sanguin complet",
-          description: "Résultats du bilan sanguin annuel",
-          url: "#",
-          pinned: false,
-        },
-        {
-          id: "3",
-          name: "Compte rendu radiologie",
-          date: "20/11/2023",
-          type: "Imagerie",
-          issuedBy: "Centre d'Imagerie Médicale",
-          subtitle: "Radio thorax",
-          description: "Compte rendu de la radiographie thoracique",
-          url: "#",
-          pinned: false,
-        },
-        {
-          id: "4",
-          name: "Test rendu radiologie",
-          date: "20/11/2023",
-          type: "Imagerie",
-          issuedBy: "Centre d'Imagerie Médicale",
-          subtitle: "Radio thorax",
-          description: "Compte rendu de la radiographie thoracique",
-          url: "#",
-          pinned: true,
-        },
-        {
-          id: "5",
-          name: "Autre document médical",
-          date: "10/10/2023",
-          type: "Rapport",
-          issuedBy: "Hôpital Régional",
-          subtitle: "Consultation spécialiste",
-          description: "Rapport de consultation chez le spécialiste",
-          url: "#",
-          pinned: false,
-        },
+        
       ]);
     }
   }, [setItems, items.length]);

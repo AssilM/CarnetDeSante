@@ -38,7 +38,7 @@ const initDatabase = async () => {
 };
 
 // Initialiser la base de données
-//initDatabase();
+initDatabase();
 app.use(cors());
 // Démarrer le serveur
 app.listen(port, async () => {

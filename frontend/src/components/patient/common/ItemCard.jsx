@@ -5,11 +5,14 @@ import {
   FaHistory,
   FaAllergies,
   FaThumbtack,
+  FaCalendarAlt,
 } from "react-icons/fa";
+import dayjs from "dayjs";
+import "dayjs/locale/fr";
 
 /**
  * Composant de carte réutilisable pour afficher un élément (document, vaccin, antécédent ou allergie)
- * @param {string} type - Type d'élément ('document', 'vaccine', 'history' ou 'allergy')
+ * @param {string} type - Type d'élément ('document', 'vaccine', 'history', 'allergy' ou 'appointment')
  * @param {string} title - Titre principal
  * @param {string} date - Date de l'élément
  * @param {string} subtitle - Sous-titre ou description
@@ -17,6 +20,7 @@ import {
  * @param {string} detailsText - Texte du bouton de détails (par défaut: "Aperçu")
  * @param {boolean} pinned - Indique si l'élément est épinglé
  * @param {Function} onTogglePin - Fonction appelée pour épingler/désépingler
+ * @param {string} statut - Statut de l'élément (optionnel)
  */
 const ItemCard = ({
   type,
@@ -27,6 +31,7 @@ const ItemCard = ({
   detailsText = "Aperçu",
   pinned = false,
   onTogglePin,
+  statut,
 }) => {
   // Détermine l'icône en fonction du type
   const getIcon = () => {
@@ -39,6 +44,8 @@ const ItemCard = ({
         return FaHistory;
       case "allergy":
         return FaAllergies;
+      case "appointment":
+        return FaCalendarAlt;
       default:
         return FaFileAlt;
     }
@@ -57,9 +64,62 @@ const ItemCard = ({
         return { bg: "bg-red-100", text: "text-red-600" };
       case "event":
         return { bg: "bg-secondary", text: "text-primary" };
+      case "appointment":
+        return { bg: "bg-green-100", text: "text-green-600" };
       default:
         return { bg: "bg-gray-100", text: "text-gray-600" };
     }
+  };
+
+  // Format date FR
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    return dayjs(dateStr).locale("fr").format("DD/MM/YYYY");
+  };
+
+  // Badge statut vaccin ou rendez-vous
+  const renderStatutBadge = () => {
+    if (!statut) return null;
+    
+    // Pour les vaccins
+    if (type === "vaccine") {
+      const color = statut === "effectué" ? "bg-green-100 text-green-700 border-green-300" : "bg-orange-100 text-orange-700 border-orange-300";
+      const label = statut === "effectué" ? "Effectué" : "À faire";
+      return (
+        <span className={`inline-block border px-2 py-0.5 rounded text-xs font-semibold ml-2 ${color}`}>{label}</span>
+      );
+    }
+    
+    // Pour les rendez-vous
+    if (type === "appointment") {
+      let color, label;
+      switch (statut) {
+        case "planifié":
+          color = "bg-blue-100 text-blue-700 border-blue-300";
+          label = "Planifié";
+          break;
+        case "terminé":
+          color = "bg-green-100 text-green-700 border-green-300";
+          label = "Terminé";
+          break;
+        case "annulé":
+          color = "bg-red-100 text-red-700 border-red-300";
+          label = "Annulé";
+          break;
+        case "en_cours":
+          color = "bg-yellow-100 text-yellow-700 border-yellow-300";
+          label = "En cours";
+          break;
+        default:
+          color = "bg-gray-100 text-gray-700 border-gray-300";
+          label = statut;
+      }
+      return (
+        <span className={`inline-block border px-2 py-0.5 rounded text-xs font-semibold ml-2 ${color}`}>{label}</span>
+      );
+    }
+    
+    return null;
   };
 
   const handleTogglePin = (e) => {
@@ -106,8 +166,9 @@ const ItemCard = ({
               ) : (
                 title
               )}
+              {renderStatutBadge()}
             </h3>
-            <p className="text-sm text-gray-500">{date}</p>
+            <p className="text-sm text-gray-500">{formatDate(date)}</p>
             {subtitle && (
               <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
             )}
