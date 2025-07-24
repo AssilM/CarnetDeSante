@@ -3,6 +3,7 @@ import { useAppContext } from "../context/AppContext";
 import logo from "../assets/logo-C.svg";
 import { Link } from "react-router-dom";
 import ProfileDropdown from "./ProfileDropdown";
+import NotificationDropdown from "./NotificationDropdown";
 import { useAuth } from "../context/AuthContext";
 import { useUserPhoto } from "../hooks";
 import UserPhoto from "./common/UserPhoto";
@@ -84,7 +85,11 @@ const Navbar = () => {
           </button>
 
           <Link to={getHomeRoute()} className="flex w-10 h-10">
-            <img src={logo} alt="logo" className="w-10 h-10 rounded-full object-cover border" />
+            <img
+              src={logo}
+              alt="logo"
+              className="w-10 h-10 rounded-full object-cover border"
+            />
           </Link>
           <Link to={getHomeRoute()} className="ml-4 hidden sm:block">
             <span className="text-xl font-semibold">
@@ -94,16 +99,21 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* Menu déroulant de notifications */}
+          <NotificationDropdown />
+
           <div className="relative">
             <button
               className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100"
               onClick={handleProfileClick}
             >
+
               <UserPhoto 
                 user={currentUser} 
                 size="sm" 
                 className="border"
                 fallbackIcon={
+
                   <svg
                     className="w-5 h-5 text-gray-500"
                     fill="none"

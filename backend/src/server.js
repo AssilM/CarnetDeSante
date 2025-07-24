@@ -2,9 +2,11 @@ import app from "./app.js";
 import dotenv from "dotenv";
 import pool from "./config/db.js";
 import initTables, { dropAllTables } from "./data/createTables.js";
+import { createNotificationTriggers } from "./data/notificationTriggers.js";
 import seedDatabase from "./data/seedData.js";
 import cors from "cors";
 import { checkAppointmentsStatus } from "./appointment/rendezvous.service.js";
+import notificationListener from "./notification/notificationListener.js";
 
 dotenv.config();
 
@@ -20,6 +22,10 @@ const initDatabase = async () => {
     await initTables();
     console.log("Base de données initialisée avec succès");
 
+    // Créer les triggers de notifications
+    await createNotificationTriggers();
+    console.log("Triggers de notifications créés avec succès");
+
     // Générer des données de test
     await seedDatabase();
     console.log("Données de test générées avec succès");
@@ -32,11 +38,22 @@ const initDatabase = async () => {
 };
 
 // Initialiser la base de données
-initDatabase();
+//initDatabase();
 app.use(cors());
 // Démarrer le serveur
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`Server is running on port ${port}`);
+
+  // Démarrer le listener de notifications
+  try {
+    await notificationListener.connect();
+    console.log("🔔 NotificationListener démarré avec succès");
+  } catch (error) {
+    console.error(
+      "❌ Erreur lors du démarrage du NotificationListener:",
+      error
+    );
+  }
 
   // Démarrer la vérification périodique des statuts des rendez-vous
   console.log(

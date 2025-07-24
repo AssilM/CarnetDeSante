@@ -210,6 +210,45 @@ export const getDocumentById = async (id) => {
 };
 
 /**
+ * Télécharge un document pour visualisation
+ */
+export const downloadDocumentForView = async (documentId) => {
+  try {
+    const response = await httpService.get(
+      `/admin/documents/${documentId}/download`,
+      {
+        responseType: "blob",
+      }
+    );
+    return response;
+  } catch (error) {
+    console.error(
+      "Erreur lors du téléchargement du document pour visualisation:",
+      error
+    );
+    throw error;
+  }
+};
+
+/**
+ * Télécharge un document
+ */
+export const downloadDocument = async (documentId) => {
+  try {
+    const response = await httpService.get(
+      `/admin/documents/${documentId}/download`,
+      {
+        responseType: "blob",
+      }
+    );
+    return response;
+  } catch (error) {
+    console.error("Erreur lors du téléchargement du document:", error);
+    throw error;
+  }
+};
+
+/**
  * Supprime un document
  */
 export const deleteDocument = async (id) => {
@@ -438,6 +477,155 @@ export const revokeDocumentPermission = async (documentId, doctorId) => {
       "Erreur lors de la révocation de l'accès du médecin au document:",
       error
     );
+    throw error;
+  }
+};
+
+// ==================== GESTION DES RENDEZ-VOUS (CÔTÉ ADMIN) ====================
+
+/**
+ * Récupère tous les rendez-vous (pour l'administration)
+ */
+export const getAllAppointments = async () => {
+  try {
+    const response = await httpService.get("/rendez-vous");
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de la récupération des rendez-vous:", error);
+    throw error;
+  }
+};
+
+/**
+ * Récupère les rendez-vous d'un patient spécifique
+ */
+export const getPatientAppointments = async (patientId) => {
+  try {
+    const response = await httpService.get(`/rendez-vous/patient/${patientId}`);
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Erreur lors de la récupération des rendez-vous du patient:",
+      error
+    );
+    throw error;
+  }
+};
+
+/**
+ * Récupère les rendez-vous d'un médecin spécifique
+ */
+export const getDoctorAppointments = async (doctorId) => {
+  try {
+    const response = await httpService.get(`/rendez-vous/medecin/${doctorId}`);
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Erreur lors de la récupération des rendez-vous du médecin:",
+      error
+    );
+    throw error;
+  }
+};
+
+/**
+ * Récupère un rendez-vous par ID
+ */
+export const getAppointmentById = async (appointmentId) => {
+  try {
+    const response = await httpService.get(`/rendez-vous/${appointmentId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de la récupération du rendez-vous:", error);
+    throw error;
+  }
+};
+
+/**
+ * Met à jour un rendez-vous
+ */
+export const updateAppointment = async (appointmentId, appointmentData) => {
+  try {
+    const response = await httpService.put(
+      `/rendez-vous/${appointmentId}`,
+      appointmentData
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour du rendez-vous:", error);
+    throw error;
+  }
+};
+
+/**
+ * Supprime un rendez-vous
+ */
+export const deleteAppointment = async (appointmentId) => {
+  try {
+    const response = await httpService.delete(`/rendez-vous/${appointmentId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de la suppression du rendez-vous:", error);
+    throw error;
+  }
+};
+
+/**
+ * Confirme un rendez-vous
+ */
+export const confirmAppointment = async (appointmentId) => {
+  try {
+    const response = await httpService.put(
+      `/rendez-vous/${appointmentId}/confirm`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de la confirmation du rendez-vous:", error);
+    throw error;
+  }
+};
+
+/**
+ * Annule un rendez-vous
+ */
+export const cancelAppointment = async (appointmentId) => {
+  try {
+    const response = await httpService.put(
+      `/rendez-vous/${appointmentId}/annuler`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de l'annulation du rendez-vous:", error);
+    throw error;
+  }
+};
+
+/**
+ * Démarre un rendez-vous
+ */
+export const startAppointment = async (appointmentId) => {
+  try {
+    const response = await httpService.put(
+      `/rendez-vous/${appointmentId}/en-cours`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors du démarrage du rendez-vous:", error);
+    throw error;
+  }
+};
+
+/**
+ * Termine un rendez-vous
+ */
+export const finishAppointment = async (appointmentId) => {
+  try {
+    const response = await httpService.put(
+      `/rendez-vous/${appointmentId}/termine`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de la finalisation du rendez-vous:", error);
     throw error;
   }
 };
