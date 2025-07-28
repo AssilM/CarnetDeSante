@@ -75,7 +75,10 @@ const AppointmentDetails = () => {
   const [loadingDocuments, setLoadingDocuments] = useState(false);
 
   // Créer le service de documents une seule fois
-  const documentService = React.useMemo(() => createDocumentService(httpService), []);
+  const documentService = React.useMemo(
+    () => createDocumentService(httpService),
+    []
+  );
 
   // Récupérer l'ID du rendez-vous depuis les paramètres d'URL
   const appointmentId = params.id;
@@ -144,28 +147,39 @@ const AppointmentDetails = () => {
           hasDocumentService: !!documentService,
           hasUser: !!currentUser,
           appointmentId: appointment?.id,
-          userId: currentUser?.id
+          userId: currentUser?.id,
         });
         return;
       }
 
-      console.log("[AppointmentDetails] Chargement des documents pour le rendez-vous:", appointment.id);
+      console.log(
+        "[AppointmentDetails] Chargement des documents pour le rendez-vous:",
+        appointment.id
+      );
       console.log("[AppointmentDetails] Informations utilisateur:", {
         userId: currentUser.id,
         userRole: currentUser.role,
-        userName: currentUser.nom
+        userName: currentUser.nom,
       });
-      
+
       setLoadingDocuments(true);
       try {
-        const response = await documentService.getDocumentsByRendezVous(appointment.id);
-        console.log("[AppointmentDetails] Réponse complète de l'API documents:", response);
-        
+        const response = await documentService.getDocumentsByRendezVous(
+          appointment.id
+        );
+        console.log(
+          "[AppointmentDetails] Réponse complète de l'API documents:",
+          response
+        );
+
         // Vérifier si la réponse contient les documents
         const documentsData = response.documents || response || [];
         console.log("[AppointmentDetails] Documents extraits:", documentsData);
-        console.log("[AppointmentDetails] Nombre de documents trouvés:", documentsData.length);
-        
+        console.log(
+          "[AppointmentDetails] Nombre de documents trouvés:",
+          documentsData.length
+        );
+
         // Debug: afficher les détails de chaque document
         documentsData.forEach((doc, index) => {
           console.log(`[AppointmentDetails] Document ${index + 1}:`, {
@@ -175,17 +189,20 @@ const AppointmentDetails = () => {
             type_document: doc.type_document,
             date_creation: doc.date_creation,
             patient_id: doc.patient_id,
-            medecin_id: doc.medecin_id
+            medecin_id: doc.medecin_id,
           });
         });
-        
+
         setDocuments(documentsData);
       } catch (err) {
-        console.error("[AppointmentDetails] Erreur lors du chargement des documents:", err);
+        console.error(
+          "[AppointmentDetails] Erreur lors du chargement des documents:",
+          err
+        );
         console.error("[AppointmentDetails] Détails de l'erreur:", {
           message: err.message,
           response: err.response?.data,
-          status: err.response?.status
+          status: err.response?.status,
         });
         // Ne pas afficher d'erreur si aucun document n'est trouvé
         setDocuments([]);
@@ -254,14 +271,14 @@ const AppointmentDetails = () => {
     try {
       const blob = await documentService.downloadDocument(documentId);
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = fileName || 'document.pdf';
+      link.download = fileName || "document.pdf";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       showNotification({
         type: "success",
         message: "Document téléchargé avec succès !",
@@ -280,7 +297,7 @@ const AppointmentDetails = () => {
     try {
       const blob = await documentService.downloadDocument(documentId);
       const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      window.open(url, "_blank");
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Erreur lors de la visualisation:", err);
@@ -294,7 +311,7 @@ const AppointmentDetails = () => {
   // Déterminer si le rendez-vous est passé ou à venir
   const isPast = () => {
     if (!appointment) return false;
-    
+
     // Debug: afficher les informations de date
     console.log("[AppointmentDetails] Debug statut:", {
       appointmentId: appointment.id,
@@ -302,12 +319,14 @@ const AppointmentDetails = () => {
       time: appointment.time,
       timestamp: appointment.timestamp,
       status: appointment.status,
-      rawData: appointment.rawData
+      rawData: appointment.rawData,
     });
 
     // Si le statut est "terminé" dans la BDD, considérer comme passé
     if (appointment.status === "terminé") {
-      console.log("[AppointmentDetails] Rendez-vous marqué comme terminé dans la BDD");
+      console.log(
+        "[AppointmentDetails] Rendez-vous marqué comme terminé dans la BDD"
+      );
       return true;
     }
 
@@ -323,7 +342,8 @@ const AppointmentDetails = () => {
       try {
         if (appointment.time) {
           // Combiner date et heure
-          const dateTimeStr = appointment.date + "T" + appointment.time.substring(0, 5);
+          const dateTimeStr =
+            appointment.date + "T" + appointment.time.substring(0, 5);
           timestamp = new Date(dateTimeStr).getTime();
         } else {
           // Date seule
@@ -338,12 +358,12 @@ const AppointmentDetails = () => {
 
     const now = new Date().getTime();
     const isPast = timestamp < now;
-    
+
     console.log("[AppointmentDetails] Comparaison:", {
       timestamp,
       now,
       isPast,
-      diffHours: (now - timestamp) / (1000 * 60 * 60)
+      diffHours: (now - timestamp) / (1000 * 60 * 60),
     });
 
     return isPast;
@@ -537,54 +557,157 @@ const AppointmentDetails = () => {
                 )}
               </div>
             </div>
-            
+
             <div className="p-6">
               {loadingDocuments ? (
                 <div className="text-center py-8">
                   <p className="text-gray-600">Chargement des documents...</p>
                 </div>
               ) : documents.length > 0 ? (
-                <div className="space-y-4">
-                  {documents.map((document) => (
-                    <div
-                      key={document.id}
-                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <FaFileAlt className="text-primary text-lg" />
-                        <div>
-                          <h3 className="font-medium text-gray-900">
-                            {document.titre || document.nom || "Document sans titre"}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {document.type_document || "Type non spécifié"}
-                          </p>
-                          {document.date_creation && (
-                            <p className="text-xs text-gray-500">
-                              Créé le {new Date(document.date_creation).toLocaleDateString("fr-FR")}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleViewDocument(document.id)}
-                          className="p-2 text-gray-600 hover:text-primary transition-colors"
-                          title="Visualiser"
-                        >
-                          <FaEye className="text-lg" />
-                        </button>
-                        <button
-                          onClick={() => handleDownloadDocument(document.id, document.titre || document.nom)}
-                          className="p-2 text-gray-600 hover:text-primary transition-colors"
-                          title="Télécharger"
-                        >
-                          <FaDownload className="text-lg" />
-                        </button>
+                <div className="space-y-6">
+                  {/* Documents ajoutés par le médecin */}
+                  {documents.filter((doc) => doc.uploader_role === "medecin")
+                    .length > 0 && (
+                    <div>
+                      <h3 className="text-md font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <FaUserMd className="text-primary" />
+                        Documents ajoutés par le médecin
+                      </h3>
+                      <div className="space-y-3">
+                        {documents
+                          .filter((doc) => doc.uploader_role === "medecin")
+                          .map((document) => (
+                            <div
+                              key={document.id}
+                              className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors bg-blue-50"
+                            >
+                              <div className="flex items-center gap-3">
+                                <FaFileAlt className="text-primary text-lg" />
+                                <div>
+                                  <h4 className="font-medium text-gray-900">
+                                    {document.titre ||
+                                      document.nom ||
+                                      "Document sans titre"}
+                                  </h4>
+                                  <p className="text-sm text-gray-600">
+                                    {document.type_document ||
+                                      "Type non spécifié"}
+                                  </p>
+                                  {document.uploader_nom &&
+                                    document.uploader_prenom && (
+                                      <p className="text-xs text-gray-500">
+                                        Ajouté par Dr.{" "}
+                                        {document.uploader_prenom}{" "}
+                                        {document.uploader_nom}
+                                      </p>
+                                    )}
+                                  {document.date_creation && (
+                                    <p className="text-xs text-gray-500">
+                                      Créé le{" "}
+                                      {new Date(
+                                        document.date_creation
+                                      ).toLocaleDateString("fr-FR")}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() =>
+                                    handleViewDocument(document.id)
+                                  }
+                                  className="p-2 text-gray-600 hover:text-primary transition-colors"
+                                  title="Visualiser"
+                                >
+                                  <FaEye className="text-lg" />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleDownloadDocument(
+                                      document.id,
+                                      document.titre || document.nom
+                                    )
+                                  }
+                                  className="p-2 text-gray-600 hover:text-primary transition-colors"
+                                  title="Télécharger"
+                                >
+                                  <FaDownload className="text-lg" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
                       </div>
                     </div>
-                  ))}
+                  )}
+
+                  {/* Documents ajoutés par le patient */}
+                  {documents.filter((doc) => doc.uploader_role === "patient")
+                    .length > 0 && (
+                    <div>
+                      <h3 className="text-md font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <FaUserMd className="text-primary" />
+                        Documents ajoutés par vous
+                      </h3>
+                      <div className="space-y-3">
+                        {documents
+                          .filter((doc) => doc.uploader_role === "patient")
+                          .map((document) => (
+                            <div
+                              key={document.id}
+                              className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors bg-green-50"
+                            >
+                              <div className="flex items-center gap-3">
+                                <FaFileAlt className="text-primary text-lg" />
+                                <div>
+                                  <h4 className="font-medium text-gray-900">
+                                    {document.titre ||
+                                      document.nom ||
+                                      "Document sans titre"}
+                                  </h4>
+                                  <p className="text-sm text-gray-600">
+                                    {document.type_document ||
+                                      "Type non spécifié"}
+                                  </p>
+                                  {document.date_creation && (
+                                    <p className="text-xs text-gray-500">
+                                      Créé le{" "}
+                                      {new Date(
+                                        document.date_creation
+                                      ).toLocaleDateString("fr-FR")}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() =>
+                                    handleViewDocument(document.id)
+                                  }
+                                  className="p-2 text-gray-600 hover:text-primary transition-colors"
+                                  title="Visualiser"
+                                >
+                                  <FaEye className="text-lg" />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleDownloadDocument(
+                                      document.id,
+                                      document.titre || document.nom
+                                    )
+                                  }
+                                  className="p-2 text-gray-600 hover:text-primary transition-colors"
+                                  title="Télécharger"
+                                >
+                                  <FaDownload className="text-lg" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -593,7 +716,8 @@ const AppointmentDetails = () => {
                     Aucun document n'a été partagé pour ce rendez-vous
                   </p>
                   <p className="text-sm text-gray-500 mt-2">
-                    Les documents ajoutés par le médecin ou vous-même apparaîtront ici
+                    Les documents ajoutés par le médecin ou vous-même
+                    apparaîtront ici
                   </p>
                 </div>
               )}
