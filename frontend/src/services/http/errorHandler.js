@@ -6,7 +6,7 @@
 // Mapper les codes d'erreur HTTP vers des messages utilisateur
 const ERROR_MESSAGES = {
   400: "Requête incorrecte. Veuillez vérifier les données saisies.",
-  401: "Session expirée. Veuillez vous reconnecter.",
+  401: "Authentification requise. Veuillez vous reconnecter.",
   403: "Accès refusé. Vous n'avez pas les droits nécessaires.",
   404: "Ressource introuvable.",
   409: "Conflit avec l'état actuel de la ressource.",
@@ -39,11 +39,11 @@ export const handleApiError = (error) => {
 };
 
 /**
- * Vérifie si l'erreur est due à une session expirée
+ * Vérifie si l'erreur est due à un problème d'authentification
  * @param {Object} error - L'erreur Axios
- * @returns {Boolean} True si la session est expirée
+ * @returns {Boolean} True si problème d'authentification
  */
-export const isSessionExpired = (error) => {
+export const isAuthError = (error) => {
   return error.response?.status === 401;
 };
 
@@ -58,6 +58,6 @@ export const isNetworkError = (error) => {
 
 export default {
   handleApiError,
-  isSessionExpired,
+  isAuthError,
   isNetworkError,
 };

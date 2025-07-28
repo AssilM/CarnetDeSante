@@ -5,14 +5,12 @@ import { Link } from "react-router-dom";
 import ProfileDropdown from "./ProfileDropdown";
 import NotificationDropdown from "./NotificationDropdown";
 import { useAuth } from "../context/AuthContext";
-import { useUserPhoto } from "../hooks";
 import UserPhoto from "./common/UserPhoto";
 
 const Navbar = () => {
   const { isMobileMenuOpen, setIsMobileMenuOpen } = useAppContext();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const { logout, testExpireToken, currentUser } = useAuth();
-  const { getCurrentUserPhotoUrl } = useUserPhoto();
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     const closeDropdown = () => setIsProfileOpen(false);
@@ -107,13 +105,11 @@ const Navbar = () => {
               className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100"
               onClick={handleProfileClick}
             >
-
-              <UserPhoto 
-                user={currentUser} 
-                size="sm" 
+              <UserPhoto
+                user={currentUser}
+                size="sm"
                 className="border"
                 fallbackIcon={
-
                   <svg
                     className="w-5 h-5 text-gray-500"
                     fill="none"
@@ -147,19 +143,6 @@ const Navbar = () => {
               />
             </div>
           </div>
-          <button
-            onClick={testExpireToken}
-            className="text-sm bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 font-bold"
-            title="Force l'expiration immédiate de la session"
-          >
-            Forcer expiration
-          </button>
-          <button
-            onClick={() => logout()}
-            className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-          >
-            Déconnexion
-          </button>
         </div>
       </div>
     </nav>

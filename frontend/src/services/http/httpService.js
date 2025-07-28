@@ -11,27 +11,10 @@ export const httpService = axios.create({
 
 // ===== GESTION CENTRALISÉE DES TOKENS =====
 // -------------------------------------------------------------
-// Gestion centralisée d'un *callback* optionnel déclenché quand
-// la session de l'utilisateur est définitivement expirée après
-// échec de rafraîchissement.  Cela permet au reste de l'app (par
-// exemple AuthContext) de naviguer proprement via React Router
-// au lieu de forcer un rechargement complet du navigateur. Si
-// aucun callback n'est fourni, on garde le comportement de
-// secours (redirection fenêtre) pour rester rétro-compatible.
+// Gestion centralisée des tokens et des erreurs HTTP
 // -------------------------------------------------------------
 
-let onSessionExpired = null;
-let onForbidden = null; // ✅ Nouveau handler pour les erreurs 403 (accès interdit)
-
-/**
- * Enregistre un gestionnaire appelé UNE SEULE FOIS lorsque la
- * session est considérée comme expirée. Il n'est appelé qu'après
- * l'échec du refresh automatique et avant toute redirection de
- * secours. Passez `null` pour supprimer le gestionnaire.
- */
-export const setSessionExpiredHandler = (handler) => {
-  onSessionExpired = typeof handler === "function" ? handler : null;
-};
+let onForbidden = null; // Handler pour les erreurs 403 (accès interdit)
 
 /**
  * Enregistre un gestionnaire appelé lorsqu'une réponse 403 est reçue
@@ -45,7 +28,6 @@ export const setForbiddenHandler = (handler) => {
 // Variables pour tracker l'état de refresh en cours (évite les appels multiples)
 let isRefreshing = false;
 let failedQueue = [];
-let isSessionExpired = false; // ✅ Nouveau: tracker si la session a déjà été marquée comme expirée
 
 const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {
@@ -106,11 +88,6 @@ httpService.interceptors.response.use(
       message: error.response?.data?.message || error.message,
     });
 
-    // ✅ Si la session est déjà expirée, rejeter immédiatement sans refresh
-    if (isSessionExpired) {
-      return Promise.reject(error);
-    }
-
     // Si c'est une erreur 401 et qu'on n'a pas déjà essayé de refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -159,45 +136,24 @@ httpService.interceptors.response.use(
       } catch (refreshError) {
         console.error("[HTTP Service] Échec du refresh:", refreshError);
 
-        // Marquer la session comme expirée pour éviter les tentatives futures
-        isSessionExpired = true;
-
         // Nettoyer le token invalide
         setAccessToken(null);
 
         // Processer la queue avec l'erreur
         processQueue(refreshError, null);
 
-        // ✅ NE PAS rediriger si on est sur une page d'authentification
+        // Rediriger vers la page de connexion en cas d'échec de refresh
         if (typeof window !== "undefined") {
           const isAuthPage =
             window.location.pathname.includes("/auth/") ||
             window.location.pathname.includes("/login") ||
             window.location.pathname.includes("/register");
-          const isSessionPage =
-            window.location.pathname.includes("/session-expired");
 
-          if (!isSessionPage && !isAuthPage) {
-            console.log("[HTTP Service] Redirection vers session-expired");
-            // Utiliser le callback React Router si disponible pour éviter
-            // un rechargement complet et préserver l'état de l'application.
-            if (onSessionExpired) {
-              try {
-                onSessionExpired();
-              } catch (cbErr) {
-                console.error(
-                  "[HTTP Service] Erreur dans le callback onSessionExpired:",
-                  cbErr
-                );
-                window.location.href = "/session-expired"; // Secours
-              }
-            } else {
-              window.location.href = "/session-expired";
-            }
-          } else {
+          if (!isAuthPage) {
             console.log(
-              "[HTTP Service] Pas de redirection - page auth ou session déjà affichée"
+              "[HTTP Service] Redirection vers login après échec de refresh"
             );
+            window.location.href = "/auth/login";
           }
         }
 
@@ -210,7 +166,7 @@ httpService.interceptors.response.use(
     // Gestion des autres erreurs (403 = accès interdit)
     if (error.response?.status === 403) {
       console.log("[HTTP Service] Erreur 403 - Accès interdit détecté");
-      
+
       if (onForbidden) {
         try {
           onForbidden();
@@ -230,11 +186,13 @@ httpService.interceptors.response.use(
 
     // Gestion des erreurs 401 non gérées par le refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
-      console.log("[HTTP Service] Erreur 401 non gérée par le refresh - redirection vers login");
-      
+      console.log(
+        "[HTTP Service] Erreur 401 non gérée par le refresh - redirection vers login"
+      );
+
       // Nettoyer le token invalide
       setAccessToken(null);
-      
+
       if (typeof window !== "undefined") {
         const isAuthPage =
           window.location.pathname.includes("/auth/") ||
@@ -263,23 +221,14 @@ export const clearAuth = async () => {
   } finally {
     // Nettoyer le token local dans tous les cas
     setAccessToken(null);
-    // ✅ Réinitialiser l'état d'expiration pour permettre une nouvelle connexion
-    isSessionExpired = false;
   }
 };
 
 // Fonction pour récupérer le token actuel (pour les rares cas où c'est nécessaire)
 export const getCurrentToken = getAccessToken;
 
-// ✅ Fonction pour réinitialiser l'état d'expiration (pour les reconnexions)
-export const resetSessionExpired = () => {
-  isSessionExpired = false;
-  console.log("[HTTP Service] État d'expiration réinitialisé");
-};
-
-// ✅ Fonction pour forcer le reset complet (solution de déblocage d'urgence)
+// Fonction pour forcer le reset complet (solution de déblocage d'urgence)
 export const forceResetAuth = () => {
-  isSessionExpired = false;
   isRefreshing = false;
   failedQueue = [];
   console.log("[HTTP Service] Reset complet forcé - état remis à zéro");
