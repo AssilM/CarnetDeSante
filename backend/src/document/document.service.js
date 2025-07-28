@@ -1,5 +1,6 @@
 import documentRepository from "./document.repository.js";
 import aclRepository from "../acl/acl.repository.js";
+import { findRendezVousById } from "../appointment/rendezvous.repository.js";
 
 export const createDocumentByPatientService = async (
   userId,
@@ -21,10 +22,14 @@ export const createDocumentByPatientService = async (
   // Permettre l'absence de fichier uniquement pour Vaccination
   const isVaccination =
     (type_document && type_document.toLowerCase() === "vaccination") ||
-    (type_id && (await documentRepository.getTypeIdByLabel("Vaccination")) === parseInt(type_id));
+    (type_id &&
+      (await documentRepository.getTypeIdByLabel("Vaccination")) ===
+        parseInt(type_id));
 
   if (!titre || !type_document || (!file && !isVaccination)) {
-    const error = new Error("Titre, type de document et fichier sont requis (sauf pour la vaccination) ");
+    const error = new Error(
+      "Titre, type de document et fichier sont requis (sauf pour la vaccination) "
+    );
     error.code = "MISSING_DATA";
     throw error;
   }
@@ -101,7 +106,7 @@ export const createDocumentByPatientService = async (
 
   // 5. Insérer le document
   const insertedDocument = await documentRepository.createDocument(docData);
-  
+
   // 6. Créer les permissions ACL
   await documentRepository.createDocumentPermission(
     insertedDocument.id,
@@ -118,11 +123,34 @@ export const createDocumentByPatientService = async (
 
   // 7. NOUVEAU: Lier au rendez-vous si spécifié
   if (rendez_vous_id) {
-    console.log(`[DocumentService] Liaison du document ${insertedDocument.id} au rendez-vous ${rendez_vous_id}`);
+    console.log(
+      `[DocumentService] Liaison du document ${insertedDocument.id} au rendez-vous ${rendez_vous_id}`
+    );
     await documentRepository.linkDocumentToRendezVous(
       insertedDocument.id,
       parseInt(rendez_vous_id)
     );
+
+    // 8. NOUVEAU: Donner automatiquement une permission "shared" au médecin du rendez-vous
+    try {
+      const rendezVous = await findRendezVousById(parseInt(rendez_vous_id));
+      if (rendezVous && rendezVous.medecin_id) {
+        console.log(
+          `[DocumentService] Attribution de permission shared au médecin ${rendezVous.medecin_id} pour le document ${insertedDocument.id}`
+        );
+        await documentRepository.createDocumentPermission(
+          insertedDocument.id,
+          rendezVous.medecin_id,
+          "shared"
+        );
+      }
+    } catch (error) {
+      console.error(
+        `[DocumentService] Erreur lors de l'attribution de permission au médecin:`,
+        error
+      );
+      // Ne pas faire échouer la création du document si cette étape échoue
+    }
   }
 
   return insertedDocument;
@@ -157,20 +185,29 @@ export const createDocumentByDoctorService = async (
   // 4. Récupérer l'id du type de document à partir du label ou du code reçu (type_document)
   let resolvedTypeId = rest.type_id;
   if (!resolvedTypeId && rest.type_document) {
-    resolvedTypeId = await documentRepository.getTypeIdByLabel(rest.type_document);
+    resolvedTypeId = await documentRepository.getTypeIdByLabel(
+      rest.type_document
+    );
     if (!resolvedTypeId) {
-      resolvedTypeId = await documentRepository.getTypeIdByCode(rest.type_document);
+      resolvedTypeId = await documentRepository.getTypeIdByCode(
+        rest.type_document
+      );
     }
     if (!resolvedTypeId) {
-      const error = new Error("Type de document inconnu : " + rest.type_document);
+      const error = new Error(
+        "Type de document inconnu : " + rest.type_document
+      );
       error.code = "INVALID_TYPE_DOCUMENT";
       throw error;
     }
   }
   // 5. Préparer les données
   const isVaccination =
-    (rest.type_document && rest.type_document.toLowerCase() === "vaccination") ||
-    (resolvedTypeId && (await documentRepository.getTypeIdByLabel("Vaccination")) === parseInt(resolvedTypeId));
+    (rest.type_document &&
+      rest.type_document.toLowerCase() === "vaccination") ||
+    (resolvedTypeId &&
+      (await documentRepository.getTypeIdByLabel("Vaccination")) ===
+        parseInt(resolvedTypeId));
   let docData;
   if (file) {
     docData = {
@@ -222,7 +259,9 @@ export const createDocumentByDoctorService = async (
   );
   // 8. NOUVEAU: Lier au rendez-vous si spécifié
   if (rendez_vous_id) {
-    console.log(`[DocumentService] Liaison du document ${insertedDocument.id} au rendez-vous ${rendez_vous_id}`);
+    console.log(
+      `[DocumentService] Liaison du document ${insertedDocument.id} au rendez-vous ${rendez_vous_id}`
+    );
     await documentRepository.linkDocumentToRendezVous(
       insertedDocument.id,
       parseInt(rendez_vous_id)
@@ -342,9 +381,9 @@ export const createDocumentByDoctorWithRdvService = async (
   // Ajouter le rendez_vous_id aux données du document
   const documentDataWithRdv = {
     ...documentData,
-    rendez_vous_id: rendezVousId
+    rendez_vous_id: rendezVousId,
   };
-  
+
   // Utiliser le service existant qui gère déjà la liaison
   return await createDocumentByDoctorService(
     doctorId,
