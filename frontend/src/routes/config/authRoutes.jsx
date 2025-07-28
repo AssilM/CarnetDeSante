@@ -5,7 +5,6 @@ import LandingPage from "../../pages/auth/LandingPage";
 import RoleSelectPage from "../../pages/auth/RoleSelectPage";
 import LoginPage from "../../pages/auth/LoginPage";
 import RegisterPage from "../../pages/auth/RegisterPage";
-import SessionExpired from "../../pages/SessionExpired";
 
 // Configuration des routes d'authentification
 const authRoutes = [
@@ -27,11 +26,6 @@ const authRoutes = [
   {
     path: "/auth/register",
     element: <RegisterPage />,
-    layout: "auth",
-  },
-  {
-    path: "/session-expired",
-    element: <SessionExpired />,
     layout: "auth",
   },
 ];
