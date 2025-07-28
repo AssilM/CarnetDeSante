@@ -378,7 +378,10 @@ const AppointmentModals = ({
             setDocumentTypes(response.data.types);
           }
         } catch (error) {
-          console.error("Erreur lors du chargement des types de documents:", error);
+          console.error(
+            "Erreur lors du chargement des types de documents:",
+            error
+          );
           // Fallback avec des types par défaut en cas d'erreur
           setDocumentTypes([
             { id: 1, label: "Ordonnance", code: "ORDONNANCE" },
@@ -386,7 +389,7 @@ const AppointmentModals = ({
             { id: 3, label: "Vaccination", code: "VACCINATION" },
             { id: 4, label: "Imagerie/Radio", code: "IMAGERIE" },
             { id: 5, label: "Antécédent", code: "ANTECEDENT" },
-            { id: 6, label: "Autre", code: "AUTRE" }
+            { id: 6, label: "Autre", code: "AUTRE" },
           ]);
         } finally {
           setLoadingTypes(false);
@@ -956,50 +959,127 @@ const AppointmentModals = ({
                             <p>Aucun document associé à ce rendez-vous</p>
                           </div>
                         ) : (
-                          <ul className="divide-y divide-gray-100">
-                            {rdvDocuments.map((doc) => (
-                              <li
-                                key={doc.id}
-                                className="py-3 flex flex-wrap items-center gap-3"
-                              >
-                                <FaFileAlt className="text-gray-400" />
-                                <span
-                                  className="font-medium max-w-xs overflow-hidden text-ellipsis whitespace-nowrap"
-                                  title={doc.titre}
-                                >
-                                  {doc.titre.length > 40
-                                    ? doc.titre.slice(0, 40) + "…"
-                                    : doc.titre}
-                                </span>
-                                <span className="ml-2 text-gray-700">
-                                  {doc.type_document}
-                                </span>
-                                <span className="ml-2 text-gray-500 text-sm">
-                                  {new Date(
-                                    doc.date_creation
-                                  ).toLocaleDateString("fr-FR")}
-                                </span>
-                                <div className="ml-auto flex gap-2">
-                                  <button
-                                    className="p-2 rounded hover:bg-gray-200 text-gray-700"
-                                    onClick={() => setPreviewDoc(doc)}
-                                    title="Prévisualiser"
-                                  >
-                                    <FaEye />
-                                  </button>
-                                  <a
-                                    href={`/api/documents/${doc.id}/download`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-2 rounded hover:bg-blue-100 text-blue-600"
-                                    title="Télécharger"
-                                  >
-                                    <FaDownload />
-                                  </a>
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
+                          <div className="space-y-4">
+                            {/* Documents ajoutés par le médecin */}
+                            {rdvDocuments.filter(
+                              (doc) => doc.uploader_role === "medecin"
+                            ).length > 0 && (
+                              <div>
+                                <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                                  <FaUser className="text-primary" />
+                                  Documents ajoutés par vous
+                                </h4>
+                                <ul className="divide-y divide-gray-100">
+                                  {rdvDocuments
+                                    .filter(
+                                      (doc) => doc.uploader_role === "medecin"
+                                    )
+                                    .map((doc) => (
+                                      <li
+                                        key={doc.id}
+                                        className="py-3 flex flex-wrap items-center gap-3 bg-blue-50 rounded-lg p-3"
+                                      >
+                                        <FaFileAlt className="text-gray-400" />
+                                        <span
+                                          className="font-medium max-w-xs overflow-hidden text-ellipsis whitespace-nowrap"
+                                          title={doc.titre}
+                                        >
+                                          {doc.titre.length > 40
+                                            ? doc.titre.slice(0, 40) + "…"
+                                            : doc.titre}
+                                        </span>
+                                        <span className="ml-2 text-gray-700">
+                                          {doc.type_document}
+                                        </span>
+                                        <span className="ml-2 text-gray-500 text-sm">
+                                          {new Date(
+                                            doc.date_creation
+                                          ).toLocaleDateString("fr-FR")}
+                                        </span>
+                                        <div className="ml-auto flex gap-2">
+                                          <button
+                                            className="p-2 rounded hover:bg-gray-200 text-gray-700"
+                                            onClick={() => setPreviewDoc(doc)}
+                                            title="Prévisualiser"
+                                          >
+                                            <FaEye />
+                                          </button>
+                                          <a
+                                            href={`/api/documents/${doc.id}/download`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-2 rounded hover:bg-blue-100 text-blue-600"
+                                            title="Télécharger"
+                                          >
+                                            <FaDownload />
+                                          </a>
+                                        </div>
+                                      </li>
+                                    ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Documents ajoutés par le patient */}
+                            {rdvDocuments.filter(
+                              (doc) => doc.uploader_role === "patient"
+                            ).length > 0 && (
+                              <div>
+                                <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                                  <FaUser className="text-primary" />
+                                  Documents ajoutés par le patient
+                                </h4>
+                                <ul className="divide-y divide-gray-100">
+                                  {rdvDocuments
+                                    .filter(
+                                      (doc) => doc.uploader_role === "patient"
+                                    )
+                                    .map((doc) => (
+                                      <li
+                                        key={doc.id}
+                                        className="py-3 flex flex-wrap items-center gap-3 bg-green-50 rounded-lg p-3"
+                                      >
+                                        <FaFileAlt className="text-gray-400" />
+                                        <span
+                                          className="font-medium max-w-xs overflow-hidden text-ellipsis whitespace-nowrap"
+                                          title={doc.titre}
+                                        >
+                                          {doc.titre.length > 40
+                                            ? doc.titre.slice(0, 40) + "…"
+                                            : doc.titre}
+                                        </span>
+                                        <span className="ml-2 text-gray-700">
+                                          {doc.type_document}
+                                        </span>
+                                        <span className="ml-2 text-gray-500 text-sm">
+                                          {new Date(
+                                            doc.date_creation
+                                          ).toLocaleDateString("fr-FR")}
+                                        </span>
+                                        <div className="ml-auto flex gap-2">
+                                          <button
+                                            className="p-2 rounded hover:bg-gray-200 text-gray-700"
+                                            onClick={() => setPreviewDoc(doc)}
+                                            title="Prévisualiser"
+                                          >
+                                            <FaEye />
+                                          </button>
+                                          <a
+                                            href={`/api/documents/${doc.id}/download`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-2 rounded hover:bg-blue-100 text-blue-600"
+                                            title="Télécharger"
+                                          >
+                                            <FaDownload />
+                                          </a>
+                                        </div>
+                                      </li>
+                                    ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
