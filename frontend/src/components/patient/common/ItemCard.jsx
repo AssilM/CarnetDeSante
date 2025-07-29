@@ -57,7 +57,7 @@ const ItemCard = ({
       case "document":
         return { bg: "bg-secondary", text: "text-primary" };
       case "vaccine":
-        return { bg: "bg-purple-100", text: "text-purple-600" };
+        return { bg: "bg-blue-100", text: "text-blue-600" };
       case "history":
         return { bg: "bg-blue-100", text: "text-blue-600" };
       case "allergy":
@@ -75,6 +75,7 @@ const ItemCard = ({
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
 
+
     // Si la date est déjà au format français (DD/MM/YYYY), on la retourne telle quelle
     if (dateStr.includes("/")) {
       return dateStr;
@@ -87,11 +88,13 @@ const ItemCard = ({
       console.error("Erreur de formatage de date:", error);
       return dateStr; // Retourner la chaîne originale si le formatage échoue
     }
+
   };
 
   // Badge statut vaccin ou rendez-vous
   const renderStatutBadge = () => {
     if (!statut) return null;
+
 
     // Pour les vaccins
     if (type === "vaccine") {
@@ -108,6 +111,7 @@ const ItemCard = ({
         </span>
       );
     }
+
 
     // Pour les rendez-vous
     if (type === "appointment") {
@@ -134,6 +138,7 @@ const ItemCard = ({
           label = statut;
       }
       return (
+
         <span
           className={`inline-block border px-2 py-0.5 rounded text-xs font-semibold ml-2 ${color}`}
         >

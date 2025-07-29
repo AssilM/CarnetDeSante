@@ -84,22 +84,42 @@ export const deleteDocument = async (req, res, next) => {
 
 export const downloadDocument = async (req, res, next) => {
   try {
+    console.log("[DownloadDocument] Début du téléchargement:", {
+      userId: req.userId,
+      userRole: req.userRole,
+      documentId: req.params.id
+    });
+
     const document = await getDocumentByIdService(
       req.userId,
       req.userRole,
       req.params.id
     );
+    
+    console.log("[DownloadDocument] Document récupéré:", {
+      documentId: document?.id,
+      titre: document?.titre,
+      chemin_fichier: document?.chemin_fichier
+    });
+
     if (!document) {
       return res.status(404).json({ message: "Document non trouvé" });
     }
+    
     const filePath = path.resolve(document.chemin_fichier);
+    console.log("[DownloadDocument] Chemin du fichier:", filePath);
+    
     if (!fs.existsSync(filePath)) {
+      console.log("[DownloadDocument] Fichier non trouvé sur le serveur");
       return res
         .status(404)
         .json({ message: "Fichier non trouvé sur le serveur" });
     }
+    
+    console.log("[DownloadDocument] Envoi du fichier:", document.nom_fichier);
     res.download(filePath, document.nom_fichier);
   } catch (error) {
+    console.error("[DownloadDocument] Erreur:", error);
     next(error);
   }
 };

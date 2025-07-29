@@ -12,7 +12,9 @@ import {
   FaFileAlt,
   FaDownload,
   FaEye,
+
   FaNotesMedical,
+
 } from "react-icons/fa";
 import PageWrapper from "../../../components/PageWrapper";
 import { useAppContext } from "../../../context/AppContext";
@@ -76,10 +78,12 @@ const AppointmentDetails = () => {
   const [loadingDocuments, setLoadingDocuments] = useState(false);
 
   // Créer le service de documents une seule fois
+
   const documentService = React.useMemo(
     () => createDocumentService(httpService),
     []
   );
+
 
   // Récupérer l'ID du rendez-vous depuis les paramètres d'URL
   const appointmentId = params.id;
@@ -148,10 +152,15 @@ const AppointmentDetails = () => {
           hasDocumentService: !!documentService,
           hasUser: !!currentUser,
           appointmentId: appointment?.id,
+
+          
+
           userId: currentUser?.id,
+
         });
         return;
       }
+
 
       console.log(
         "[AppointmentDetails] Chargement des documents pour le rendez-vous:",
@@ -181,6 +190,7 @@ const AppointmentDetails = () => {
           documentsData.length
         );
 
+
         // Debug: afficher les détails de chaque document
         documentsData.forEach((doc, index) => {
           console.log(`[AppointmentDetails] Document ${index + 1}:`, {
@@ -190,6 +200,7 @@ const AppointmentDetails = () => {
             type_document: doc.type_document,
             date_creation: doc.date_creation,
             patient_id: doc.patient_id,
+
             medecin_id: doc.medecin_id,
           });
         });
@@ -204,6 +215,7 @@ const AppointmentDetails = () => {
           message: err.message,
           response: err.response?.data,
           status: err.response?.status,
+
         });
         // Ne pas afficher d'erreur si aucun document n'est trouvé
         setDocuments([]);
@@ -272,13 +284,17 @@ const AppointmentDetails = () => {
     try {
       const blob = await documentService.downloadDocument(documentId);
       const url = window.URL.createObjectURL(blob);
+
       const link = document.createElement("a");
       link.href = url;
       link.download = fileName || "document.pdf";
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+
+
 
       showNotification({
         type: "success",
@@ -298,7 +314,9 @@ const AppointmentDetails = () => {
     try {
       const blob = await documentService.downloadDocument(documentId);
       const url = window.URL.createObjectURL(blob);
+
       window.open(url, "_blank");
+
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Erreur lors de la visualisation:", err);
@@ -313,6 +331,7 @@ const AppointmentDetails = () => {
   const isPast = () => {
     if (!appointment) return false;
 
+
     // Debug: afficher les informations de date
     console.log("[AppointmentDetails] Debug statut:", {
       appointmentId: appointment.id,
@@ -320,14 +339,18 @@ const AppointmentDetails = () => {
       time: appointment.time,
       timestamp: appointment.timestamp,
       status: appointment.status,
+
       rawData: appointment.rawData,
+
     });
 
     // Si le statut est "terminé" dans la BDD, considérer comme passé
     if (appointment.status === "terminé") {
+
       console.log(
         "[AppointmentDetails] Rendez-vous marqué comme terminé dans la BDD"
       );
+
       return true;
     }
 
@@ -343,8 +366,10 @@ const AppointmentDetails = () => {
       try {
         if (appointment.time) {
           // Combiner date et heure
+
           const dateTimeStr =
             appointment.date + "T" + appointment.time.substring(0, 5);
+
           timestamp = new Date(dateTimeStr).getTime();
         } else {
           // Date seule
@@ -360,11 +385,14 @@ const AppointmentDetails = () => {
     const now = new Date().getTime();
     const isPast = timestamp < now;
 
+
     console.log("[AppointmentDetails] Comparaison:", {
       timestamp,
       now,
       isPast,
+
       diffHours: (now - timestamp) / (1000 * 60 * 60),
+
     });
 
     return isPast;
@@ -542,6 +570,7 @@ const AppointmentDetails = () => {
           </div>
         </div>
 
+
         {/* Section Notes de consultation */}
         {appointment.rawData?.notes_medecin && (
           <div className="mt-6 bg-white rounded-lg shadow-sm overflow-hidden">
@@ -586,6 +615,7 @@ const AppointmentDetails = () => {
           </div>
         )}
 
+
         {/* Section Documents du rendez-vous */}
         {appointment.status !== "annulé" && (
           <div className="mt-6 bg-white rounded-lg shadow-sm overflow-hidden">
@@ -603,12 +633,15 @@ const AppointmentDetails = () => {
               </div>
             </div>
 
+            
+
             <div className="p-6">
               {loadingDocuments ? (
                 <div className="text-center py-8">
                   <p className="text-gray-600">Chargement des documents...</p>
                 </div>
               ) : documents.length > 0 ? (
+
                 <div className="space-y-6">
                   {/* Documents ajoutés par le médecin */}
                   {documents.filter((doc) => doc.uploader_role === "medecin")
@@ -753,6 +786,7 @@ const AppointmentDetails = () => {
                       </div>
                     </div>
                   )}
+
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -761,8 +795,10 @@ const AppointmentDetails = () => {
                     Aucun document n'a été partagé pour ce rendez-vous
                   </p>
                   <p className="text-sm text-gray-500 mt-2">
+
                     Les documents ajoutés par le médecin ou vous-même
                     apparaîtront ici
+
                   </p>
                 </div>
               )}

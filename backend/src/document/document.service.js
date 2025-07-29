@@ -22,6 +22,7 @@ export const createDocumentByPatientService = async (
   // Permettre l'absence de fichier uniquement pour Vaccination
   const isVaccination =
     (type_document && type_document.toLowerCase() === "vaccination") ||
+
     (type_id &&
       (await documentRepository.getTypeIdByLabel("Vaccination")) ===
         parseInt(type_id));
@@ -30,6 +31,7 @@ export const createDocumentByPatientService = async (
     const error = new Error(
       "Titre, type de document et fichier sont requis (sauf pour la vaccination) "
     );
+
     error.code = "MISSING_DATA";
     throw error;
   }
@@ -107,29 +109,47 @@ export const createDocumentByPatientService = async (
   // 5. Insérer le document
   const insertedDocument = await documentRepository.createDocument(docData);
 
+  
+  console.log("[CreateDocumentByPatientService] Document créé:", {
+    id: insertedDocument.id,
+    titre: insertedDocument.titre,
+    patient_id: insertedDocument.patient_id,
+    uploader_id: insertedDocument.uploader_id
+  });
+  
+
   // 6. Créer les permissions ACL
+  console.log("[CreateDocumentByPatientService] Création de la permission owner pour l'utilisateur:", userId);
   await documentRepository.createDocumentPermission(
     insertedDocument.id,
     userId,
     "owner"
   );
+  
+  console.log("[CreateDocumentByPatientService] Permission owner créée avec succès");
+  
   if (userRole === "medecin") {
+    console.log("[CreateDocumentByPatientService] Création de la permission author pour le médecin");
     await documentRepository.createDocumentPermission(
       insertedDocument.id,
       userId,
       "author"
     );
+    console.log("[CreateDocumentByPatientService] Permission author créée avec succès");
   }
 
   // 7. NOUVEAU: Lier au rendez-vous si spécifié
   if (rendez_vous_id) {
+
     console.log(
       `[DocumentService] Liaison du document ${insertedDocument.id} au rendez-vous ${rendez_vous_id}`
     );
+
     await documentRepository.linkDocumentToRendezVous(
       insertedDocument.id,
       parseInt(rendez_vous_id)
     );
+
 
     // 8. NOUVEAU: Donner automatiquement une permission "shared" au médecin du rendez-vous
     try {
@@ -138,11 +158,13 @@ export const createDocumentByPatientService = async (
         console.log(
           `[DocumentService] Attribution de permission shared au médecin ${rendezVous.medecin_id} pour le document ${insertedDocument.id}`
         );
+
         await documentRepository.createDocumentPermission(
           insertedDocument.id,
           rendezVous.medecin_id,
           "shared"
         );
+
       }
     } catch (error) {
       console.error(
@@ -152,6 +174,7 @@ export const createDocumentByPatientService = async (
       // Ne pas faire échouer la création du document si cette étape échoue
     }
   }
+
 
   return insertedDocument;
 };
@@ -185,6 +208,7 @@ export const createDocumentByDoctorService = async (
   // 4. Récupérer l'id du type de document à partir du label ou du code reçu (type_document)
   let resolvedTypeId = rest.type_id;
   if (!resolvedTypeId && rest.type_document) {
+
     resolvedTypeId = await documentRepository.getTypeIdByLabel(
       rest.type_document
     );
@@ -197,17 +221,20 @@ export const createDocumentByDoctorService = async (
       const error = new Error(
         "Type de document inconnu : " + rest.type_document
       );
+
       error.code = "INVALID_TYPE_DOCUMENT";
       throw error;
     }
   }
   // 5. Préparer les données
   const isVaccination =
+
     (rest.type_document &&
       rest.type_document.toLowerCase() === "vaccination") ||
     (resolvedTypeId &&
       (await documentRepository.getTypeIdByLabel("Vaccination")) ===
         parseInt(resolvedTypeId));
+
   let docData;
   if (file) {
     docData = {
@@ -259,13 +286,32 @@ export const createDocumentByDoctorService = async (
   );
   // 8. NOUVEAU: Lier au rendez-vous si spécifié
   if (rendez_vous_id) {
+
     console.log(
       `[DocumentService] Liaison du document ${insertedDocument.id} au rendez-vous ${rendez_vous_id}`
     );
+
     await documentRepository.linkDocumentToRendezVous(
       insertedDocument.id,
       parseInt(rendez_vous_id)
     );
+    
+    // 9. NOUVEAU: Donner accès au patient du rendez-vous
+    try {
+      const rendezVous = await documentRepository.getRendezVousById(parseInt(rendez_vous_id));
+      if (rendezVous && rendezVous.patient_id) {
+        console.log(`[DocumentService] Attribution de permission shared au patient ${rendezVous.patient_id} pour le document ${insertedDocument.id}`);
+        await documentRepository.createDocumentPermission(
+          insertedDocument.id,
+          rendezVous.patient_id,
+          "shared"
+        );
+        console.log(`[DocumentService] Permission shared accordée au patient ${rendezVous.patient_id}`);
+      }
+    } catch (error) {
+      console.error(`[DocumentService] Erreur lors de l'attribution de permission au patient:`, error);
+      // Ne pas faire échouer la création du document pour cette erreur
+    }
   }
   return insertedDocument;
 };
@@ -283,17 +329,38 @@ export const getDocumentsService = async (userId, userRole) => {
 };
 
 export const getDocumentByIdService = async (userId, userRole, documentId) => {
+  console.log("[GetDocumentByIdService] Début de la vérification:", {
+    userId,
+    userRole,
+    documentId
+  });
+
   // Vérifier la permission ACL
   const permissions = await documentRepository.getDocumentPermissions(
     documentId
   );
+  
+  console.log("[GetDocumentByIdService] Permissions trouvées:", permissions);
+  
   const perm = permissions.find((p) => p.user_id === userId);
+  
+  console.log("[GetDocumentByIdService] Permission pour l'utilisateur:", perm);
+  
   if (!perm) {
+    console.log("[GetDocumentByIdService] Aucune permission trouvée pour l'utilisateur");
     const error = new Error("Accès non autorisé à ce document");
     error.code = "FORBIDDEN";
     throw error;
   }
+  
   const doc = await documentRepository.getDocumentById(documentId);
+  
+  console.log("[GetDocumentByIdService] Document récupéré:", {
+    id: doc?.id,
+    titre: doc?.titre,
+    patient_id: doc?.patient_id
+  });
+  
   // On renvoie le label du type de document sous le nom type_document (pour le front)
   if (doc && doc.type_document_label) {
     doc.type_document = doc.type_document_label;
@@ -381,8 +448,10 @@ export const createDocumentByDoctorWithRdvService = async (
   // Ajouter le rendez_vous_id aux données du document
   const documentDataWithRdv = {
     ...documentData,
+
     rendez_vous_id: rendezVousId,
   };
+
 
   // Utiliser le service existant qui gère déjà la liaison
   return await createDocumentByDoctorService(

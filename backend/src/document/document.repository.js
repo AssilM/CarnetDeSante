@@ -166,6 +166,7 @@ class DocumentRepository {
 
   // Récupérer tous les documents liés à un rendez-vous avec informations de l'uploader
   async getDocumentsByRendezVous(rendezVousId) {
+
     console.log(
       "[DocumentRepository] Recherche des documents pour le rendez-vous:",
       rendezVousId
@@ -184,11 +185,14 @@ class DocumentRepository {
       [rendezVousId]
     );
 
+
+
     console.log(
       "[DocumentRepository] Documents trouvés:",
       rows.length,
       "documents"
     );
+
     return rows;
   }
 
@@ -214,6 +218,15 @@ class DocumentRepository {
       [code]
     );
     return rows.length > 0 ? rows[0].id : null;
+  }
+
+  // Récupérer un rendez-vous par ID
+  async getRendezVousById(rendezVousId) {
+    const { rows } = await pool.query(
+      "SELECT * FROM rendez_vous WHERE id = $1",
+      [rendezVousId]
+    );
+    return rows.length > 0 ? rows[0] : null;
   }
 }
 

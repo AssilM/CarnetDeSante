@@ -69,7 +69,9 @@ const VaccineDetails = () => {
                   {selectedItem.name}
                   {renderStatutBadge()}
                 </h1>
+
                 <p className="text-gray-500">{formatDate(selectedItem.date)}</p>
+
               </div>
             </div>
           </div>
@@ -93,6 +95,20 @@ const VaccineDetails = () => {
                 <h2 className="text-sm font-medium text-gray-500 mb-1">Lieu de vaccination</h2>
                 <p className="text-gray-900">{selectedItem.location}</p>
               </div>
+
+
+              {selectedItem.nextDose && (
+                <div>
+                  <h2 className="text-sm font-medium text-gray-500 mb-1">
+                    Prochaine dose prévue
+                  </h2>
+                  <p className="text-gray-900">
+                    {dayjs(selectedItem.nextDose).locale("fr").format("DD/MM/YYYY")}
+                  </p>
+                </div>
+              )}
+
+
               <div>
                 <h2 className="text-sm font-medium text-gray-500 mb-1">Type de vaccin</h2>
                 <p className="text-gray-900">{selectedItem.type}</p>

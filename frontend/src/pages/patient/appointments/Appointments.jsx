@@ -54,7 +54,9 @@ const Appointments = () => {
     return appointments.map((appointment) => ({
       id: appointment.id,
       title: appointment.title,
+
       date: appointment.date, // La date est déjà formatée par le contexte
+
       subtitle: appointment.doctor?.name || "Médecin non spécifié",
       statut: appointment.status,
       type: "appointment",
@@ -62,10 +64,12 @@ const Appointments = () => {
     }));
   };
 
+
   const upcomingAppointmentsForDisplay =
     transformAppointmentsForDisplay(upcomingAppointments);
   const pastAppointmentsForDisplay =
     transformAppointmentsForDisplay(pastAppointments);
+
 
   return (
     <PageWrapper className="bg-gray-50">

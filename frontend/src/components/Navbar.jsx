@@ -5,12 +5,18 @@ import { Link } from "react-router-dom";
 import ProfileDropdown from "./ProfileDropdown";
 import NotificationDropdown from "./NotificationDropdown";
 import { useAuth } from "../context/AuthContext";
+
+import { useUserPhoto } from "../hooks";
+
 import UserPhoto from "./common/UserPhoto";
 
 const Navbar = () => {
   const { isMobileMenuOpen, setIsMobileMenuOpen } = useAppContext();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const { currentUser } = useAuth();
+
+  const { logout, testExpireToken, currentUser } = useAuth();
+  const { getCurrentUserPhotoUrl } = useUserPhoto();
+
 
   useEffect(() => {
     const closeDropdown = () => setIsProfileOpen(false);
@@ -105,11 +111,13 @@ const Navbar = () => {
               className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100"
               onClick={handleProfileClick}
             >
+
               <UserPhoto
                 user={currentUser}
                 size="sm"
                 className="border"
                 fallbackIcon={
+
                   <svg
                     className="w-5 h-5 text-gray-500"
                     fill="none"

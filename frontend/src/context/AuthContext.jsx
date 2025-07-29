@@ -60,8 +60,10 @@ export const AuthProvider = ({ children }) => {
       const accessToken = getCurrentToken();
       console.log("[AuthContext] Vérification des tokens au chargement", {
         hasAccessToken: !!accessToken,
+
         currentPath:
           typeof window !== "undefined" ? window.location.pathname : "unknown",
+
       });
 
       // ✅ NOUVELLE LOGIQUE : Gérer les différents cas

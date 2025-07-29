@@ -388,10 +388,12 @@ const AppointmentModals = ({
             setDocumentTypes(response.data.types);
           }
         } catch (error) {
+
           console.error(
             "Erreur lors du chargement des types de documents:",
             error
           );
+
           // Fallback avec des types par défaut en cas d'erreur
           setDocumentTypes([
             { id: 1, label: "Ordonnance", code: "ORDONNANCE" },
@@ -399,7 +401,9 @@ const AppointmentModals = ({
             { id: 3, label: "Vaccination", code: "VACCINATION" },
             { id: 4, label: "Imagerie/Radio", code: "IMAGERIE" },
             { id: 5, label: "Antécédent", code: "ANTECEDENT" },
+
             { id: 6, label: "Autre", code: "AUTRE" },
+
           ]);
         } finally {
           setLoadingTypes(false);
