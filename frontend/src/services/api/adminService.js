@@ -450,10 +450,28 @@ export const deleteDocumentPermission = async (documentId, userId) => {
  */
 export const getDocumentDoctorsWithAccess = async (documentId) => {
   try {
+    console.log(`[adminService] Récupération des permissions pour le document ${documentId}`);
     const response = await httpService.get(
-      `/admin/permissions/document/${documentId}/doctors`
+      `/admin/permissions/document/${documentId}`
     );
-    return response.data.doctors;
+    console.log(`[adminService] Réponse API:`, response.data);
+    
+    // Filtrer seulement les médecins et adapter le format
+    const permissions = response.data.permissions || [];
+    console.log(`[adminService] Permissions trouvées:`, permissions);
+    
+    const doctors = permissions
+      .filter(permission => permission.role === "medecin")
+      .map(permission => ({
+        user_id: permission.user_id,
+        nom: permission.nom,
+        prenom: permission.prenom,
+        email: permission.email,
+        role: permission.role
+      }));
+    
+    console.log(`[adminService] Médecins filtrés:`, doctors);
+    return { doctors };
   } catch (error) {
     console.error(
       "Erreur lors de la récupération des médecins avec accès au document:",
@@ -469,7 +487,7 @@ export const getDocumentDoctorsWithAccess = async (documentId) => {
 export const revokeDocumentPermission = async (documentId, doctorId) => {
   try {
     const response = await httpService.delete(
-      `/admin/permissions/${documentId}/doctor/${doctorId}`
+      `/admin/permissions/${documentId}/${doctorId}`
     );
     return response.data;
   } catch (error) {

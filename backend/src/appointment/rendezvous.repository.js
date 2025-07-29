@@ -37,7 +37,7 @@ export const findRendezVousById = async (id) => {
 // Récupérer les rendez-vous par patient ID
 export const findRendezVousByPatientId = async (patientId) => {
   const query = `
-    SELECT rv.id, rv.patient_id, rv.medecin_id, rv.date, rv.heure, rv.duree, rv.statut, rv.motif, rv.adresse,
+    SELECT rv.id, rv.patient_id, rv.medecin_id, rv.date, rv.heure, rv.duree, rv.statut, rv.motif, rv.adresse, rv.notes_medecin,
            m_user.nom as medecin_nom, m_user.prenom as medecin_prenom, m.specialite, m_user.chemin_photo as medecin_chemin_photo
     FROM rendez_vous rv
     INNER JOIN medecin m ON rv.medecin_id = m.utilisateur_id
@@ -52,7 +52,7 @@ export const findRendezVousByPatientId = async (patientId) => {
 // Récupérer les rendez-vous par médecin ID
 export const findRendezVousByMedecinId = async (medecinId) => {
   const query = `
-    SELECT rv.id, rv.patient_id, rv.medecin_id, rv.date, rv.heure, rv.duree, rv.statut, rv.motif, rv.adresse,
+    SELECT rv.id, rv.patient_id, rv.medecin_id, rv.date, rv.heure, rv.duree, rv.statut, rv.motif, rv.adresse, rv.notes_medecin,
            p_user.nom as patient_nom, p_user.prenom as patient_prenom
     FROM rendez_vous rv
     INNER JOIN patient p ON rv.patient_id = p.utilisateur_id
