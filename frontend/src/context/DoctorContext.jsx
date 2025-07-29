@@ -77,14 +77,6 @@ export const DoctorProvider = ({ children }) => {
   // Charger le profil du médecin si l'utilisateur est connecté en tant que médecin
   useEffect(() => {
     const fetchDoctorProfile = async () => {
-      // ✅ Ne pas charger si on est sur la page session-expired
-      if (
-        typeof window !== "undefined" &&
-        window.location.pathname.includes("/session-expired")
-      ) {
-        return;
-      }
-
       if (!currentUser || currentUser.role !== "medecin" || !doctorService) {
         return;
       }
@@ -111,14 +103,6 @@ export const DoctorProvider = ({ children }) => {
 
   // ✅ Charger la liste des spécialités au démarrage sans dépendance sur loading
   useEffect(() => {
-    // ✅ Ne pas charger si on est sur la page session-expired
-    if (
-      typeof window !== "undefined" &&
-      window.location.pathname.includes("/session-expired")
-    ) {
-      return;
-    }
-
     // Charger les données seulement une fois au démarrage
     if (!hasLoadedInitialData) {
       loadDoctors();

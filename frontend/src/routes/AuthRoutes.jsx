@@ -9,7 +9,6 @@ import LandingPage from "../pages/auth/LandingPage";
 import RoleSelectPage from "../pages/auth/RoleSelectPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
-import SessionExpired from "../pages/SessionExpired";
 import Forbidden from "../pages/Forbidden";
 
 /**
@@ -17,7 +16,7 @@ import Forbidden from "../pages/Forbidden";
  * Exporte un tableau de routes d'authentification
  *
  * Les routes protégées par AuthGuard empêchent l'accès aux utilisateurs déjà connectés
- * Les routes d'erreur (/session-expired, /403) restent accessibles
+ * Les routes d'erreur (/403) restent accessibles
  */
 const AuthRoutes = [
   // Route d'accueil - protégée par AuthGuard
@@ -65,11 +64,6 @@ const AuthRoutes = [
   />,
 
   // Routes d'erreur - NON protégées (toujours accessibles)
-  <Route
-    key="session-expired"
-    path="/session-expired"
-    element={<SessionExpired />}
-  />,
   <Route key="forbidden" path="/403" element={<Forbidden />} />,
 ];
 

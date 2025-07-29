@@ -74,22 +74,45 @@ const ItemCard = ({
   // Format date FR
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
-    return dayjs(dateStr).locale("fr").format("DD/MM/YYYY");
+
+
+    // Si la date est déjà au format français (DD/MM/YYYY), on la retourne telle quelle
+    if (dateStr.includes("/")) {
+      return dateStr;
+    }
+
+    // Sinon, on essaie de la formater avec dayjs
+    try {
+      return dayjs(dateStr).locale("fr").format("DD/MM/YYYY");
+    } catch (error) {
+      console.error("Erreur de formatage de date:", error);
+      return dateStr; // Retourner la chaîne originale si le formatage échoue
+    }
+
   };
 
   // Badge statut vaccin ou rendez-vous
   const renderStatutBadge = () => {
     if (!statut) return null;
-    
+
+
     // Pour les vaccins
     if (type === "vaccine") {
-      const color = statut === "effectué" ? "bg-green-100 text-green-700 border-green-300" : "bg-orange-100 text-orange-700 border-orange-300";
+      const color =
+        statut === "effectué"
+          ? "bg-green-100 text-green-700 border-green-300"
+          : "bg-orange-100 text-orange-700 border-orange-300";
       const label = statut === "effectué" ? "Effectué" : "À faire";
       return (
-        <span className={`inline-block border px-2 py-0.5 rounded text-xs font-semibold ml-2 ${color}`}>{label}</span>
+        <span
+          className={`inline-block border px-2 py-0.5 rounded text-xs font-semibold ml-2 ${color}`}
+        >
+          {label}
+        </span>
       );
     }
-    
+
+
     // Pour les rendez-vous
     if (type === "appointment") {
       let color, label;
@@ -115,10 +138,15 @@ const ItemCard = ({
           label = statut;
       }
       return (
-        <span className={`inline-block border px-2 py-0.5 rounded text-xs font-semibold ml-2 ${color}`}>{label}</span>
+
+        <span
+          className={`inline-block border px-2 py-0.5 rounded text-xs font-semibold ml-2 ${color}`}
+        >
+          {label}
+        </span>
       );
     }
-    
+
     return null;
   };
 

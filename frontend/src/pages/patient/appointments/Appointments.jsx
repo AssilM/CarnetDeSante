@@ -54,7 +54,9 @@ const Appointments = () => {
     return appointments.map((appointment) => ({
       id: appointment.id,
       title: appointment.title,
-      date: appointment.date,
+
+      date: appointment.date, // La date est déjà formatée par le contexte
+
       subtitle: appointment.doctor?.name || "Médecin non spécifié",
       statut: appointment.status,
       type: "appointment",
@@ -62,8 +64,12 @@ const Appointments = () => {
     }));
   };
 
-  const upcomingAppointmentsForDisplay = transformAppointmentsForDisplay(upcomingAppointments);
-  const pastAppointmentsForDisplay = transformAppointmentsForDisplay(pastAppointments);
+
+  const upcomingAppointmentsForDisplay =
+    transformAppointmentsForDisplay(upcomingAppointments);
+  const pastAppointmentsForDisplay =
+    transformAppointmentsForDisplay(pastAppointments);
+
 
   return (
     <PageWrapper className="bg-gray-50">
@@ -84,6 +90,15 @@ const Appointments = () => {
                 </p>
               </div>
             </div>
+            {/* Bouton d'actualisation */}
+            <button
+              onClick={handleRefresh}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <FaSyncAlt className={`${loading ? "animate-spin" : ""}`} />
+              Actualiser
+            </button>
           </div>
         </div>
       </div>

@@ -164,20 +164,35 @@ class DocumentRepository {
     return { success: true };
   }
 
-  // Récupérer tous les documents liés à un rendez-vous
+  // Récupérer tous les documents liés à un rendez-vous avec informations de l'uploader
   async getDocumentsByRendezVous(rendezVousId) {
-    console.log("[DocumentRepository] Recherche des documents pour le rendez-vous:", rendezVousId);
-    
+
+    console.log(
+      "[DocumentRepository] Recherche des documents pour le rendez-vous:",
+      rendezVousId
+    );
+
     const { rows } = await pool.query(
-      `SELECT d.*
+      `SELECT d.*, 
+              u_uploader.nom as uploader_nom, 
+              u_uploader.prenom as uploader_prenom,
+              u_uploader.role as uploader_role
        FROM document d
        JOIN documents_rendez_vous drv ON drv.document_id = d.id
+       LEFT JOIN utilisateur u_uploader ON d.uploader_id = u_uploader.id
        WHERE drv.rendez_vous_id = $1
        ORDER BY d.date_creation DESC, d.created_at DESC`,
       [rendezVousId]
     );
-    
-    console.log("[DocumentRepository] Documents trouvés:", rows.length, "documents");
+
+
+
+    console.log(
+      "[DocumentRepository] Documents trouvés:",
+      rows.length,
+      "documents"
+    );
+
     return rows;
   }
 
@@ -189,7 +204,7 @@ class DocumentRepository {
     );
     return rows.length > 0;
   }
-  
+
   async getTypeIdByLabel(label) {
     const { rows } = await pool.query(
       "SELECT id FROM document_type WHERE label = $1",

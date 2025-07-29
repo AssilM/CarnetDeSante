@@ -255,7 +255,7 @@ const Vaccination = () => {
             showPinnedSection={false}
           />
         </div>
-        
+
       </>
     );
   };

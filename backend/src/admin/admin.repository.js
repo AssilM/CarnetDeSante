@@ -151,6 +151,35 @@ export const getDashboardStats = async () => {
       GROUP BY statut
     `);
 
+    // NOUVEAU: Rendez-vous programmés par jour (30 prochains jours)
+    const rdvByDayResult = await pool.query(`
+      SELECT 
+        date,
+        COUNT(*) as count
+      FROM rendez_vous 
+      WHERE date >= CURRENT_DATE 
+        AND date <= CURRENT_DATE + INTERVAL '30 days'
+      GROUP BY date
+      ORDER BY date ASC
+    `);
+
+    // NOUVEAU: Documents partagés par jour (30 derniers jours)
+    // Un document est partagé s'il a au moins 2 permissions dans document_permission
+    const documentsByDayResult = await pool.query(`
+      SELECT 
+        DATE(d.created_at) as date,
+        COUNT(DISTINCT d.id) as count
+      FROM document d
+      WHERE d.created_at >= CURRENT_DATE - INTERVAL '30 days'
+        AND (
+          SELECT COUNT(*) 
+          FROM document_permission dp 
+          WHERE dp.document_id = d.id
+        ) >= 2
+      GROUP BY DATE(d.created_at)
+      ORDER BY date ASC
+    `);
+
     // Rendez-vous récents (10 derniers)
     const recentRdvResult = await pool.query(`
       SELECT rv.id, rv.date, rv.heure, rv.statut,
@@ -172,6 +201,14 @@ export const getDashboardStats = async () => {
         acc[curr.statut] = parseInt(curr.count);
         return acc;
       }, {}),
+      rendezVousParJour: rdvByDayResult.rows.map((row) => ({
+        date: row.date,
+        count: parseInt(row.count),
+      })),
+      documentsParJour: documentsByDayResult.rows.map((row) => ({
+        date: row.date,
+        count: parseInt(row.count),
+      })),
       rendezVousRecents: recentRdvResult.rows,
     };
   } catch (error) {

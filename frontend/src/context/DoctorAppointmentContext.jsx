@@ -31,14 +31,6 @@ export const DoctorAppointmentProvider = ({ children }) => {
   // Charger les rendez-vous du médecin connecté
   useEffect(() => {
     const fetchDoctorAppointments = async () => {
-      // ✅ Ne pas charger si on est sur la page session-expired
-      if (
-        typeof window !== "undefined" &&
-        window.location.pathname.includes("/session-expired")
-      ) {
-        return;
-      }
-
       if (
         !currentUser ||
         currentUser.role !== "medecin" ||
@@ -169,7 +161,7 @@ export const DoctorAppointmentProvider = ({ children }) => {
         });
 
         if (err.response?.status === 401) {
-          setError("Session expirée. Veuillez vous reconnecter.");
+          setError("Authentification requise. Veuillez vous reconnecter.");
         } else if (err.response?.status === 404) {
           setError("Aucun rendez-vous trouvé pour ce médecin.");
         } else if (err.code === "ECONNREFUSED") {

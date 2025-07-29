@@ -152,6 +152,7 @@ const AppointmentModals = ({
   const [notesLoading, setNotesLoading] = useState(false);
   const [notesSuccess, setNotesSuccess] = useState(false);
   const [notesError, setNotesError] = useState("");
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
 
   // Nouveaux états pour les modales
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -171,17 +172,20 @@ const AppointmentModals = ({
     if (selectedAppointment) {
       setLocalAppointment({ ...selectedAppointment });
     }
-  }, [selectedAppointment]);
+  }, [selectedAppointment, selectedAppointment?.rawData?.notes_medecin]);
 
   // Synchroniser l'état local avec la note du rendez-vous sélectionné
   useEffect(() => {
     if (
-      selectedAppointment &&
-      selectedAppointment.rawData?.notes_medecin !== undefined
+      localAppointment &&
+      localAppointment.rawData?.notes_medecin !== undefined
     ) {
-      setNotesMedecin(selectedAppointment.rawData.notes_medecin || "");
+      const savedNotes = localAppointment.rawData.notes_medecin || "";
+      setNotesMedecin(savedNotes);
+      // Si il y a des notes enregistrées, commencer en mode lecture seule
+      setIsEditingNotes(savedNotes.trim() === "");
     }
-  }, [selectedAppointment]);
+  }, [localAppointment]);
 
   // Mise à jour locale immédiate du statut lors des actions
   const handleLocalStart = (id) => {
@@ -258,12 +262,18 @@ const AppointmentModals = ({
     try {
       await updateDoctorNotes(selectedAppointment.id, notesMedecin);
       setNotesSuccess(true);
+      setIsEditingNotes(false); // Passer en mode lecture seule après enregistrement
     } catch {
       setNotesError("Erreur lors de l'enregistrement des notes.");
     } finally {
       setNotesLoading(false);
       setTimeout(() => setNotesSuccess(false), 2000);
     }
+  };
+
+  // Fonction pour activer le mode d'édition
+  const handleEditNotes = () => {
+    setIsEditingNotes(true);
   };
 
   // Gestion du démarrage du rendez-vous
@@ -378,7 +388,12 @@ const AppointmentModals = ({
             setDocumentTypes(response.data.types);
           }
         } catch (error) {
-          console.error("Erreur lors du chargement des types de documents:", error);
+
+          console.error(
+            "Erreur lors du chargement des types de documents:",
+            error
+          );
+
           // Fallback avec des types par défaut en cas d'erreur
           setDocumentTypes([
             { id: 1, label: "Ordonnance", code: "ORDONNANCE" },
@@ -386,7 +401,9 @@ const AppointmentModals = ({
             { id: 3, label: "Vaccination", code: "VACCINATION" },
             { id: 4, label: "Imagerie/Radio", code: "IMAGERIE" },
             { id: 5, label: "Antécédent", code: "ANTECEDENT" },
-            { id: 6, label: "Autre", code: "AUTRE" }
+
+            { id: 6, label: "Autre", code: "AUTRE" },
+
           ]);
         } finally {
           setLoadingTypes(false);
@@ -884,13 +901,27 @@ const AppointmentModals = ({
                         Notes de consultation
                       </h3>
                       <div className="flex-1">
-                        <textarea
-                          className="w-full border border-[#E9ECEF] rounded-lg p-4 h-40 md:h-64 resize-none focus:outline-none focus:border-[#4A90E2] focus:ring-1 focus:ring-[#4A90E2]"
-                          placeholder="Ajoutez vos notes de consultation ici..."
-                          value={notesMedecin}
-                          onChange={(e) => setNotesMedecin(e.target.value)}
-                          disabled={notesLoading}
-                        ></textarea>
+                        {isEditingNotes ? (
+                          <textarea
+                            className="w-full border border-[#E9ECEF] rounded-lg p-4 h-40 md:h-64 resize-none focus:outline-none focus:border-[#4A90E2] focus:ring-1 focus:ring-[#4A90E2]"
+                            placeholder="Ajoutez vos notes de consultation ici..."
+                            value={notesMedecin}
+                            onChange={(e) => setNotesMedecin(e.target.value)}
+                            disabled={notesLoading}
+                          ></textarea>
+                        ) : (
+                          <div className="w-full border border-[#E9ECEF] rounded-lg p-4 h-40 md:h-64 bg-gray-50 overflow-y-auto">
+                            {notesMedecin ? (
+                              <div className="whitespace-pre-wrap text-[#1E293B]">
+                                {notesMedecin}
+                              </div>
+                            ) : (
+                              <div className="text-[#64748B] italic">
+                                Aucune note enregistrée
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="mt-4 flex justify-end items-center space-x-4">
                         {notesSuccess && (
@@ -903,20 +934,29 @@ const AppointmentModals = ({
                             {notesError}
                           </span>
                         )}
-                        <button
-                          className="px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#3A80D2] text-sm disabled:opacity-50"
-                          onClick={handleSaveNotes}
-                          disabled={
-                            notesLoading ||
-                            notesMedecin ===
-                              (selectedAppointment?.rawData?.notes_medecin ||
-                                "")
-                          }
-                        >
-                          {notesLoading
-                            ? "Enregistrement..."
-                            : "Enregistrer les notes"}
-                        </button>
+                        {isEditingNotes ? (
+                          <button
+                            className="px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#3A80D2] text-sm disabled:opacity-50"
+                            onClick={handleSaveNotes}
+                            disabled={
+                              notesLoading ||
+                              notesMedecin ===
+                                (selectedAppointment?.rawData?.notes_medecin ||
+                                  "")
+                            }
+                          >
+                            {notesLoading
+                              ? "Enregistrement..."
+                              : "Enregistrer les notes"}
+                          </button>
+                        ) : (
+                          <button
+                            className="px-4 py-2 bg-[#4A90E2] text-white rounded-lg hover:bg-[#3A80D2] text-sm"
+                            onClick={handleEditNotes}
+                          >
+                            Modifier
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
@@ -956,50 +996,127 @@ const AppointmentModals = ({
                             <p>Aucun document associé à ce rendez-vous</p>
                           </div>
                         ) : (
-                          <ul className="divide-y divide-gray-100">
-                            {rdvDocuments.map((doc) => (
-                              <li
-                                key={doc.id}
-                                className="py-3 flex flex-wrap items-center gap-3"
-                              >
-                                <FaFileAlt className="text-gray-400" />
-                                <span
-                                  className="font-medium max-w-xs overflow-hidden text-ellipsis whitespace-nowrap"
-                                  title={doc.titre}
-                                >
-                                  {doc.titre.length > 40
-                                    ? doc.titre.slice(0, 40) + "…"
-                                    : doc.titre}
-                                </span>
-                                <span className="ml-2 text-gray-700">
-                                  {doc.type_document}
-                                </span>
-                                <span className="ml-2 text-gray-500 text-sm">
-                                  {new Date(
-                                    doc.date_creation
-                                  ).toLocaleDateString("fr-FR")}
-                                </span>
-                                <div className="ml-auto flex gap-2">
-                                  <button
-                                    className="p-2 rounded hover:bg-gray-200 text-gray-700"
-                                    onClick={() => setPreviewDoc(doc)}
-                                    title="Prévisualiser"
-                                  >
-                                    <FaEye />
-                                  </button>
-                                  <a
-                                    href={`/api/documents/${doc.id}/download`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-2 rounded hover:bg-blue-100 text-blue-600"
-                                    title="Télécharger"
-                                  >
-                                    <FaDownload />
-                                  </a>
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
+                          <div className="space-y-4">
+                            {/* Documents ajoutés par le médecin */}
+                            {rdvDocuments.filter(
+                              (doc) => doc.uploader_role === "medecin"
+                            ).length > 0 && (
+                              <div>
+                                <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                                  <FaUser className="text-primary" />
+                                  Documents ajoutés par vous
+                                </h4>
+                                <ul className="divide-y divide-gray-100">
+                                  {rdvDocuments
+                                    .filter(
+                                      (doc) => doc.uploader_role === "medecin"
+                                    )
+                                    .map((doc) => (
+                                      <li
+                                        key={doc.id}
+                                        className="py-3 flex flex-wrap items-center gap-3 bg-blue-50 rounded-lg p-3"
+                                      >
+                                        <FaFileAlt className="text-gray-400" />
+                                        <span
+                                          className="font-medium max-w-xs overflow-hidden text-ellipsis whitespace-nowrap"
+                                          title={doc.titre}
+                                        >
+                                          {doc.titre.length > 40
+                                            ? doc.titre.slice(0, 40) + "…"
+                                            : doc.titre}
+                                        </span>
+                                        <span className="ml-2 text-gray-700">
+                                          {doc.type_document}
+                                        </span>
+                                        <span className="ml-2 text-gray-500 text-sm">
+                                          {new Date(
+                                            doc.date_creation
+                                          ).toLocaleDateString("fr-FR")}
+                                        </span>
+                                        <div className="ml-auto flex gap-2">
+                                          <button
+                                            className="p-2 rounded hover:bg-gray-200 text-gray-700"
+                                            onClick={() => setPreviewDoc(doc)}
+                                            title="Prévisualiser"
+                                          >
+                                            <FaEye />
+                                          </button>
+                                          <a
+                                            href={`/api/documents/${doc.id}/download`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-2 rounded hover:bg-blue-100 text-blue-600"
+                                            title="Télécharger"
+                                          >
+                                            <FaDownload />
+                                          </a>
+                                        </div>
+                                      </li>
+                                    ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Documents ajoutés par le patient */}
+                            {rdvDocuments.filter(
+                              (doc) => doc.uploader_role === "patient"
+                            ).length > 0 && (
+                              <div>
+                                <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                                  <FaUser className="text-primary" />
+                                  Documents ajoutés par le patient
+                                </h4>
+                                <ul className="divide-y divide-gray-100">
+                                  {rdvDocuments
+                                    .filter(
+                                      (doc) => doc.uploader_role === "patient"
+                                    )
+                                    .map((doc) => (
+                                      <li
+                                        key={doc.id}
+                                        className="py-3 flex flex-wrap items-center gap-3 bg-green-50 rounded-lg p-3"
+                                      >
+                                        <FaFileAlt className="text-gray-400" />
+                                        <span
+                                          className="font-medium max-w-xs overflow-hidden text-ellipsis whitespace-nowrap"
+                                          title={doc.titre}
+                                        >
+                                          {doc.titre.length > 40
+                                            ? doc.titre.slice(0, 40) + "…"
+                                            : doc.titre}
+                                        </span>
+                                        <span className="ml-2 text-gray-700">
+                                          {doc.type_document}
+                                        </span>
+                                        <span className="ml-2 text-gray-500 text-sm">
+                                          {new Date(
+                                            doc.date_creation
+                                          ).toLocaleDateString("fr-FR")}
+                                        </span>
+                                        <div className="ml-auto flex gap-2">
+                                          <button
+                                            className="p-2 rounded hover:bg-gray-200 text-gray-700"
+                                            onClick={() => setPreviewDoc(doc)}
+                                            title="Prévisualiser"
+                                          >
+                                            <FaEye />
+                                          </button>
+                                          <a
+                                            href={`/api/documents/${doc.id}/download`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-2 rounded hover:bg-blue-100 text-blue-600"
+                                            title="Télécharger"
+                                          >
+                                            <FaDownload />
+                                          </a>
+                                        </div>
+                                      </li>
+                                    ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>

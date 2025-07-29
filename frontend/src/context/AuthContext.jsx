@@ -5,16 +5,13 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
-  useRef,
 } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   httpService,
   clearAuth,
   getCurrentToken,
-  resetSessionExpired,
   forceResetAuth,
-  setSessionExpiredHandler,
   setForbiddenHandler,
 } from "../services/http";
 import { authService, createUserService } from "../services/api";
@@ -25,8 +22,6 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const sessionExpiredRef = useRef(false);
-  const [sessionExpired, setSessionExpired] = useState(false);
   const navigate = useNavigate();
 
   // ✅ Créer le service utilisateur avec useMemo pour éviter la re-création
@@ -38,8 +33,6 @@ export const AuthProvider = ({ children }) => {
 
     forceResetAuth(); // Reset httpService interne
 
-    sessionExpiredRef.current = false;
-    setSessionExpired(false);
     setCurrentUser(null);
     setLoading(false);
     setError(null);
@@ -47,88 +40,31 @@ export const AuthProvider = ({ children }) => {
     console.log("[AuthContext] État complètement réinitialisé");
   }, []);
 
-  // Fonction pour tester ou forcer l'expiration du token
-  const testExpireToken = useCallback(() => {
-    console.log("[AuthContext] Expiration forcée de la session");
-
-    clearAuth();
-
-    sessionExpiredRef.current = true;
-    setSessionExpired(true);
-    setCurrentUser(null);
-
-    // Utiliser la navigation React Router pour éviter un reload complet
-    navigate("/session-expired", { replace: true });
-  }, [navigate]);
-
   // Fonction de déconnexion standard
-  const logout = useCallback(
-    async (expired = false) => {
-      console.log("[AuthContext] Déconnexion initiée", { expired });
+  const logout = useCallback(async () => {
+    console.log("[AuthContext] Déconnexion initiée");
 
-      try {
-        // Nettoyer les tokens avec la fonction centralisée
-        await clearAuth();
-      } finally {
-        // Nettoyer les données de session
-        setCurrentUser(null);
-
-        // Si la session a expiré, rediriger vers la page de session expirée
-        if (expired) {
-          testExpireToken();
-        } else {
-          navigate("/auth/login");
-        }
-      }
-    },
-    [navigate, testExpireToken]
-  );
+    try {
+      // Nettoyer les tokens avec la fonction centralisée
+      await clearAuth();
+    } finally {
+      // Nettoyer les données de session
+      setCurrentUser(null);
+      navigate("/auth/login");
+    }
+  }, [navigate]);
 
   // Vérifier si l'utilisateur est déjà connecté au chargement
   useEffect(() => {
     const verifyToken = async () => {
-      // ✅ Si on est sur la page session-expired, ne pas vérifier automatiquement
-      // MAIS garder les fonctions login/logout disponibles pour la reconnexion
-      if (
-        typeof window !== "undefined" &&
-        window.location.pathname.includes("/session-expired")
-      ) {
-        console.log(
-          "[AuthContext] Sur la page session-expired, pas de vérification automatique"
-        );
-        setLoading(false);
-        setCurrentUser(null); // S'assurer qu'on est déconnecté
-        return; // ✅ Permettre les fonctions login/logout pour la reconnexion
-      }
-
       const accessToken = getCurrentToken();
       console.log("[AuthContext] Vérification des tokens au chargement", {
         hasAccessToken: !!accessToken,
-        isSessionExpired: sessionExpiredRef.current,
-        currentPath: typeof window !== "undefined" ? window.location.pathname : "unknown",
+
+        currentPath:
+          typeof window !== "undefined" ? window.location.pathname : "unknown",
+
       });
-
-      // ✅ Si la session est marquée comme expirée, permettre quand même l'accès aux pages d'auth
-      if (sessionExpiredRef.current) {
-        // Si on est sur une page d'authentification, réinitialiser l'état
-        const isAuthPage =
-          typeof window !== "undefined" &&
-          (window.location.pathname.includes("/auth/") ||
-            window.location.pathname.includes("/login") ||
-            window.location.pathname.includes("/register"));
-
-        if (isAuthPage) {
-          console.log(
-            "[AuthContext] Page d'auth détectée - réinitialisation de l'état d'expiration"
-          );
-          sessionExpiredRef.current = false;
-          setSessionExpired(false);
-          resetSessionExpired();
-        } else {
-          setLoading(false);
-          return;
-        }
-      }
 
       // ✅ NOUVELLE LOGIQUE : Gérer les différents cas
       try {
@@ -178,7 +114,7 @@ export const AuthProvider = ({ children }) => {
                 setCurrentUser(refreshedUserData.user);
               } catch {
                 console.log(
-                  "[AuthContext] Refresh échoué - session vraiment expirée"
+                  "[AuthContext] Refresh échoué - authentification requise"
                 );
                 setCurrentUser(null);
               }
@@ -207,20 +143,9 @@ export const AuthProvider = ({ children }) => {
   }, [userService]);
 
   // --------------------------------------------------
-  // Enregistrer un callback pour gérer la fin de session
+  // Enregistrer un callback pour gérer les erreurs 403
   // --------------------------------------------------
   useEffect(() => {
-    const handler = () => {
-      console.log("[AuthContext] Callback session expirée déclenché");
-      sessionExpiredRef.current = true;
-      setSessionExpired(true);
-      setCurrentUser(null);
-      navigate("/session-expired", { replace: true });
-    };
-
-    // Enregistrement auprès du httpService
-    setSessionExpiredHandler(handler);
-
     // Handler 403 → rediriger vers page 403 dédiée
     const forbiddenHandler = () => {
       console.log("[AuthContext] Callback 403 déclenché");
@@ -230,7 +155,6 @@ export const AuthProvider = ({ children }) => {
 
     // Nettoyage à la destruction du provider
     return () => {
-      setSessionExpiredHandler(null);
       setForbiddenHandler(null);
     };
   }, [navigate]);
@@ -239,13 +163,6 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       console.log("[AuthContext] Tentative de connexion", { email });
-
-      // ✅ Réinitialiser l'état d'expiration de session (local ET httpService)
-      sessionExpiredRef.current = false;
-      setSessionExpired(false);
-
-      // ✅ Réinitialiser l'état d'expiration dans httpService sans logout
-      resetSessionExpired();
 
       setError(null);
       const authData = await authService.login(email, password);
@@ -323,8 +240,6 @@ export const AuthProvider = ({ children }) => {
       login,
       logout,
       register,
-      sessionExpired,
-      testExpireToken,
       forceUnlock, // ✅ Fonction de déblocage d'urgence
     }),
     [
@@ -334,8 +249,6 @@ export const AuthProvider = ({ children }) => {
       login,
       logout,
       register,
-      sessionExpired,
-      testExpireToken,
       forceUnlock,
       setCurrentUser,
     ]
