@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  # Votre application Backend
+  backend:
+    build: .
+    container_name: carnet_sante_backend
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=host.docker.internal
+      - DB_USER=postgres
+      - DB_PASSWORD= a_mettre_plus_tard
+      - DB_NAME=cds
+      - DB_PORT=5432
+      - PORT=5001
+      - JWT_SECRET= a_mettre_plus_tard
+      - JWT_REFRESH_SECRET= a_mettre_plus_tard
+      - TEMPS_EXPIRATION=1
+      - CLIENT_URL=http://localhost:5173
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./uploads:/app/uploads
+    networks:
+      - default
+    restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge
