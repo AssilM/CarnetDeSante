@@ -13,9 +13,7 @@ import {
   FaDownload,
   FaEye,
   FaTrash,
-
   FaNotesMedical,
-
 } from "react-icons/fa";
 import PageWrapper from "../../../components/PageWrapper";
 import { useAppContext } from "../../../context/AppContext";
@@ -23,6 +21,7 @@ import { useAppointmentContext } from "../../../context/AppointmentContext";
 import { useAuth } from "../../../context/AuthContext";
 import createDocumentService from "../../../services/api/documentService";
 import { httpService } from "../../../services/http";
+import DeleteDocumentModal from "../../../components/admin/appointments/DeleteDocumentModal";
 
 // Composant de modale de confirmation
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, loading }) => {
@@ -77,6 +76,9 @@ const AppointmentDetails = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [documents, setDocuments] = useState([]);
   const [loadingDocuments, setLoadingDocuments] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Créer le service de documents une seule fois
 
@@ -84,7 +86,6 @@ const AppointmentDetails = () => {
     () => createDocumentService(httpService),
     []
   );
-
 
   // Récupérer l'ID du rendez-vous depuis les paramètres d'URL
   const appointmentId = params.id;
@@ -154,14 +155,10 @@ const AppointmentDetails = () => {
           hasUser: !!currentUser,
           appointmentId: appointment?.id,
 
-          
-
           userId: currentUser?.id,
-
         });
         return;
       }
-
 
       console.log(
         "[AppointmentDetails] Chargement des documents pour le rendez-vous:",
@@ -191,7 +188,6 @@ const AppointmentDetails = () => {
           documentsData.length
         );
 
-
         // Debug: afficher les détails de chaque document
         documentsData.forEach((doc, index) => {
           console.log(`[AppointmentDetails] Document ${index + 1}:`, {
@@ -216,7 +212,6 @@ const AppointmentDetails = () => {
           message: err.message,
           response: err.response?.data,
           status: err.response?.status,
-
         });
         // Ne pas afficher d'erreur si aucun document n'est trouvé
         setDocuments([]);
@@ -295,8 +290,6 @@ const AppointmentDetails = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-
-
       showNotification({
         type: "success",
         message: "Document téléchargé avec succès !",
@@ -352,13 +345,16 @@ const AppointmentDetails = () => {
         type: "error",
         message: "Impossible de supprimer le document",
       });
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteModal(false);
+      setDocumentToDelete(null);
     }
   };
 
   // Déterminer si le rendez-vous est passé ou à venir
   const isPast = () => {
     if (!appointment) return false;
-
 
     // Debug: afficher les informations de date
     console.log("[AppointmentDetails] Debug statut:", {
@@ -369,12 +365,10 @@ const AppointmentDetails = () => {
       status: appointment.status,
 
       rawData: appointment.rawData,
-
     });
 
     // Si le statut est "terminé" dans la BDD, considérer comme passé
     if (appointment.status === "terminé") {
-
       console.log(
         "[AppointmentDetails] Rendez-vous marqué comme terminé dans la BDD"
       );
@@ -413,14 +407,12 @@ const AppointmentDetails = () => {
     const now = new Date().getTime();
     const isPast = timestamp < now;
 
-
     console.log("[AppointmentDetails] Comparaison:", {
       timestamp,
       now,
       isPast,
 
       diffHours: (now - timestamp) / (1000 * 60 * 60),
-
     });
 
     return isPast;
@@ -598,7 +590,6 @@ const AppointmentDetails = () => {
           </div>
         </div>
 
-
         {/* Section Notes de consultation */}
         {appointment.rawData?.notes_medecin && (
           <div className="mt-6 bg-white rounded-lg shadow-sm overflow-hidden">
@@ -643,7 +634,6 @@ const AppointmentDetails = () => {
           </div>
         )}
 
-
         {/* Section Documents du rendez-vous */}
         {appointment.status !== "annulé" && (
           <div className="mt-6 bg-white rounded-lg shadow-sm overflow-hidden">
@@ -661,15 +651,12 @@ const AppointmentDetails = () => {
               </div>
             </div>
 
-            
-
             <div className="p-6">
               {loadingDocuments ? (
                 <div className="text-center py-8">
                   <p className="text-gray-600">Chargement des documents...</p>
                 </div>
               ) : documents.length > 0 ? (
-
                 <div className="space-y-6">
                   {/* Documents ajoutés par le médecin */}
                   {documents.filter((doc) => doc.uploader_role === "medecin")
@@ -826,7 +813,6 @@ const AppointmentDetails = () => {
                       </div>
                     </div>
                   )}
-
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -835,10 +821,8 @@ const AppointmentDetails = () => {
                     Aucun document n'a été partagé pour ce rendez-vous
                   </p>
                   <p className="text-sm text-gray-500 mt-2">
-
                     Les documents ajoutés par le médecin ou vous-même
                     apparaîtront ici
-
                   </p>
                 </div>
               )}
@@ -869,6 +853,15 @@ const AppointmentDetails = () => {
         onClose={() => setShowConfirmModal(false)}
         onConfirm={handleCancelAppointment}
         loading={loading}
+      />
+
+      {/* Modale de confirmation de suppression de document */}
+      <DeleteDocumentModal
+        document={documentToDelete}
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDeleteDocument}
+        loading={deleteLoading}
       />
     </PageWrapper>
   );

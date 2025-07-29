@@ -19,10 +19,12 @@ import {
   FaNotesMedical,
   FaArrowLeft,
   FaDownload,
+  FaTrash,
 } from "react-icons/fa";
 import { useDoctorAppointmentContext } from "../../../context/DoctorAppointmentContext";
 import createDocumentService from "../../../services/api/documentService";
 import { httpService } from "../../../services";
+import DeleteDocumentModal from "../../../components/admin/appointments/DeleteDocumentModal";
 
 const documentService = createDocumentService(httpService);
 
@@ -167,6 +169,11 @@ const AppointmentModals = ({
   const [docNotification, setDocNotification] = useState(null);
   const [previewDoc, setPreviewDoc] = useState(null); // NOUVEAU : doc à prévisualiser
 
+  // États pour la suppression de documents
+  const [showDeleteDocModal, setShowDeleteDocModal] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState(null);
+  const [deleteDocLoading, setDeleteDocLoading] = useState(false);
+
   // Synchroniser l'état local avec l'appointment sélectionné
   useEffect(() => {
     if (selectedAppointment) {
@@ -199,6 +206,39 @@ const AppointmentModals = ({
     handleFinishAppointment(id);
     if (localAppointment && localAppointment.id === id) {
       setLocalAppointment({ ...localAppointment, status: "terminé" });
+    }
+  };
+
+  // Fonction pour supprimer un document
+  const handleDeleteDocument = (document) => {
+    setDocumentToDelete(document);
+    setShowDeleteDocModal(true);
+  };
+
+  const handleConfirmDeleteDocument = async () => {
+    if (!documentToDelete) return;
+
+    try {
+      setDeleteDocLoading(true);
+      await documentService.deleteDocument(documentToDelete.id);
+
+      // Recharger les documents après suppression
+      await loadRdvDocuments();
+
+      setDocNotification({
+        type: "success",
+        message: "Document supprimé avec succès.",
+      });
+    } catch (error) {
+      console.error("Erreur lors de la suppression du document:", error);
+      setDocNotification({
+        type: "error",
+        message: "Erreur lors de la suppression du document.",
+      });
+    } finally {
+      setDeleteDocLoading(false);
+      setShowDeleteDocModal(false);
+      setDocumentToDelete(null);
     }
   };
 
@@ -388,7 +428,6 @@ const AppointmentModals = ({
             setDocumentTypes(response.data.types);
           }
         } catch (error) {
-
           console.error(
             "Erreur lors du chargement des types de documents:",
             error
@@ -403,7 +442,6 @@ const AppointmentModals = ({
             { id: 5, label: "Antécédent", code: "ANTECEDENT" },
 
             { id: 6, label: "Autre", code: "AUTRE" },
-
           ]);
         } finally {
           setLoadingTypes(false);
@@ -528,7 +566,8 @@ const AppointmentModals = ({
       showStartModal ||
       showFinishModal ||
       showAddDocModal ||
-      previewDoc; // Ajouter showAddDocModal et previewDoc
+      previewDoc ||
+      showDeleteDocModal; // Ajouter showAddDocModal, previewDoc et showDeleteDocModal
 
     if (isModalOpen) {
       document.body.style.overflow = "hidden";
@@ -548,6 +587,7 @@ const AppointmentModals = ({
     showFinishModal,
     showAddDocModal, // Ajouter showAddDocModal
     previewDoc, // Ajouter previewDoc
+    showDeleteDocModal, // Ajouter showDeleteDocModal
   ]);
 
   // Si pas d'appointment local, ne rien afficher
@@ -1050,6 +1090,15 @@ const AppointmentModals = ({
                                           >
                                             <FaDownload />
                                           </a>
+                                          <button
+                                            className="p-2 rounded hover:bg-red-100 text-red-600"
+                                            onClick={() =>
+                                              handleDeleteDocument(doc)
+                                            }
+                                            title="Supprimer le document"
+                                          >
+                                            <FaTrash />
+                                          </button>
                                         </div>
                                       </li>
                                     ))}
@@ -1371,6 +1420,20 @@ const AppointmentModals = ({
         <PreviewDocumentModal
           doc={previewDoc}
           onClose={() => setPreviewDoc(null)}
+        />
+      )}
+
+      {/* MODALE DE SUPPRESSION DE DOCUMENT */}
+      {showDeleteDocModal && documentToDelete && (
+        <DeleteDocumentModal
+          document={documentToDelete}
+          open={showDeleteDocModal}
+          onClose={() => {
+            setShowDeleteDocModal(false);
+            setDocumentToDelete(null);
+          }}
+          onConfirm={handleConfirmDeleteDocument}
+          loading={deleteDocLoading}
         />
       )}
     </>
