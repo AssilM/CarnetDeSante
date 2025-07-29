@@ -28,3 +28,4 @@ services:
 networks:
   default:
     driver: bridge
+#docker-compose up --build pour lancer le backend
