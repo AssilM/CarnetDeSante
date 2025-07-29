@@ -12,6 +12,7 @@ import {
   FaFileAlt,
   FaDownload,
   FaEye,
+  FaNotesMedical,
 } from "react-icons/fa";
 import PageWrapper from "../../../components/PageWrapper";
 import { useAppContext } from "../../../context/AppContext";
@@ -540,6 +541,50 @@ const AppointmentDetails = () => {
             </div>
           </div>
         </div>
+
+        {/* Section Notes de consultation */}
+        {appointment.rawData?.notes_medecin && (
+          <div className="mt-6 bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <FaNotesMedical className="text-primary text-xl" />
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Notes de consultation
+                </h2>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <FaUserMd className="text-blue-600 mt-1 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-blue-800 font-medium mb-2">
+                      Notes du Dr. {appointment.doctor.name}
+                    </p>
+                    <div className="text-gray-800 whitespace-pre-wrap">
+                      {appointment.rawData.notes_medecin}
+                    </div>
+                    {appointment.rawData.updated_at && (
+                      <p className="text-xs text-blue-600 mt-3">
+                        Dernière mise à jour :{" "}
+                        {new Date(
+                          appointment.rawData.updated_at
+                        ).toLocaleDateString("fr-FR", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Section Documents du rendez-vous */}
         {appointment.status !== "annulé" && (

@@ -6,6 +6,8 @@ import {
   UserDistributionChart,
   DocumentTypeChart,
   StatisticsHeader,
+  AppointmentsByDayChart,
+  DocumentsSharedChart,
 } from "../../components/admin/statistics";
 import PageWrapper from "../../components/PageWrapper";
 
@@ -157,8 +159,11 @@ const Statistics = () => {
           {/* Graphique en barres - Distribution des utilisateurs */}
           <UserDistributionChart stats={stats} />
 
-          {/* Graphique en aires - Statistiques des documents */}
-          <DocumentTypeChart stats={stats} />
+          {/* NOUVEAU: Graphique des rendez-vous programmés par jour */}
+          <AppointmentsByDayChart data={stats?.rendezVousParJour} />
+
+          {/* NOUVEAU: Graphique des documents partagés par jour */}
+          <DocumentsSharedChart data={stats?.documentsParJour} />
 
           {/* Section d'informations supplémentaires */}
           <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
