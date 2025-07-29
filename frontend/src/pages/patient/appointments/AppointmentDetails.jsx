@@ -12,6 +12,7 @@ import {
   FaFileAlt,
   FaDownload,
   FaEye,
+  FaTrash,
 
   FaNotesMedical,
 
@@ -323,6 +324,33 @@ const AppointmentDetails = () => {
       showNotification({
         type: "error",
         message: "Impossible de visualiser le document",
+      });
+    }
+  };
+
+  // Supprimer un document
+  const handleDeleteDocument = async (documentId, documentName) => {
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer le document "${documentName}" ?`)) {
+      return;
+    }
+
+    try {
+      await documentService.deleteDocument(documentId);
+      
+      // Recharger les documents après suppression
+      const response = await documentService.getDocumentsByRendezVous(appointment.id);
+      const documentsData = response.documents || response || [];
+      setDocuments(documentsData);
+
+      showNotification({
+        type: "success",
+        message: "Document supprimé avec succès !",
+      });
+    } catch (err) {
+      console.error("Erreur lors de la suppression:", err);
+      showNotification({
+        type: "error",
+        message: "Impossible de supprimer le document",
       });
     }
   };
@@ -779,6 +807,18 @@ const AppointmentDetails = () => {
                                   title="Télécharger"
                                 >
                                   <FaDownload className="text-lg" />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleDeleteDocument(
+                                      document.id,
+                                      document.titre || document.nom
+                                    )
+                                  }
+                                  className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
+                                  title="Supprimer"
+                                >
+                                  <FaTrash className="text-lg" />
                                 </button>
                               </div>
                             </div>

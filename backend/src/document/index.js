@@ -67,7 +67,7 @@ router.get("/", authorize(["patient", "medecin", "admin"]), getDocuments);
 router.get("/:id", authorize(["patient", "medecin", "admin"]), getDocument);
 
 // Supprimer un document
-router.delete("/:id", authorize(["medecin", "admin"]), deleteDocument);
+router.delete("/:id", authorize(["patient", "medecin", "admin"]), deleteDocument);
 
 router.get(
   "/:id/download",

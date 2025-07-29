@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiDownload } from "react-icons/hi";
-import { FaThumbtack } from "react-icons/fa";
+import { FaThumbtack, FaTrash } from "react-icons/fa";
 import { useDocumentContext } from "../../../context";
 import { httpService } from '../../../services/http';
+import createDocumentService from "../../../services/api/documentService";
 
 const DocumentItem = ({
   id,
@@ -13,6 +14,7 @@ const DocumentItem = ({
   pinned,
   onDocumentClick,
   onTogglePin,
+  onDeleteDocument,
 }) => {
   const handleDownload = async (e) => {
     e.stopPropagation();
@@ -46,6 +48,11 @@ const DocumentItem = ({
   const handleTogglePin = (e) => {
     e.stopPropagation(); // Empêche le déclenchement du onClick du parent
     onTogglePin(id);
+  };
+
+  const handleDelete = (e) => {
+    e.stopPropagation(); // Empêche le déclenchement du onClick du parent
+    onDeleteDocument(id, title || name);
   };
 
   return (
@@ -84,6 +91,13 @@ const DocumentItem = ({
         >
           <HiDownload className="text-xl" />
         </button>
+        <button
+          onClick={handleDelete}
+          className="p-2 rounded-full hover:bg-red-200 transition-colors text-red-600"
+          title="Supprimer le document"
+        >
+          <FaTrash className="text-lg" />
+        </button>
       </div>
     </div>
   );
@@ -100,6 +114,12 @@ const DocumentsList = () => {
     selectItem,
     setItems,
   } = useDocumentContext();
+
+  // Créer le service de documents
+  const documentService = React.useMemo(
+    () => createDocumentService(httpService),
+    []
+  );
 
   // Initialisation des données de test
   useEffect(() => {
@@ -124,6 +144,28 @@ const DocumentsList = () => {
 
   const handleTogglePin = (id) => {
     togglePinned(id);
+  };
+
+  const handleDeleteDocument = async (documentId, documentName) => {
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer le document "${documentName}" ?`)) {
+      return;
+    }
+
+    try {
+      await documentService.deleteDocument(documentId);
+      
+      // Recharger les documents après suppression
+      // Note: Ici on devrait idéalement rafraîchir la liste depuis le contexte
+      // Pour l'instant, on supprime juste de la liste locale
+      const updatedItems = items.filter(item => item.id !== documentId);
+      setItems(updatedItems);
+
+      // Afficher une notification de succès
+      console.log("Document supprimé avec succès");
+    } catch (err) {
+      console.error("Erreur lors de la suppression:", err);
+      alert("Impossible de supprimer le document");
+    }
   };
 
   const currentDocuments =
@@ -176,6 +218,7 @@ const DocumentsList = () => {
               pinned={doc.pinned}
               onDocumentClick={handleDocumentClick}
               onTogglePin={handleTogglePin}
+              onDeleteDocument={handleDeleteDocument}
             />
           ))
         )}

@@ -8,6 +8,7 @@ import {
   FaUserMd, 
   FaTimes,
   FaEyeSlash,
+  FaTrash,
 } from "react-icons/fa";
 import { useDocumentContext } from "../../../context/DocumentContext";
 import { httpService } from "../../../services";
@@ -466,6 +467,30 @@ const DocumentDetails = () => {
     }
   };
 
+  // Supprimer le document
+  const handleDelete = async () => {
+    if (!selectedItem || !selectedItem.id) return;
+    
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer le document "${selectedItem.name}" ?`)) {
+      return;
+    }
+
+    try {
+      console.log("🗑️ Suppression du document:", selectedItem.id);
+      
+      const documentService = createDocumentService(httpService);
+      await documentService.deleteDocument(selectedItem.id);
+      
+      console.log("✅ Document supprimé avec succès");
+      
+      // Rediriger vers la liste des documents
+      navigate("/documents");
+    } catch (error) {
+      console.error("❌ Erreur lors de la suppression:", error);
+      alert("Erreur lors de la suppression du document");
+    }
+  };
+
   // Fonction pour rendre le contenu du document selon son type
   const renderDocumentContent = () => {
     if (!selectedItem) return null;
@@ -609,6 +634,13 @@ const DocumentDetails = () => {
             >
               <FaDownload className="mr-2" />
               Télécharger
+            </button>
+            <button
+              onClick={handleDelete}
+              className="px-2 py-1 sm:px-4 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center text-sm justify-center"
+            >
+              <FaTrash className="mr-2" />
+              Supprimer
             </button>
           </div>
         </div>
