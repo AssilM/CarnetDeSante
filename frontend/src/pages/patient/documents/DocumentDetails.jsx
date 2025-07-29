@@ -5,7 +5,7 @@ import {
   FaArrowLeft,
   FaDownload,
   FaShareAlt,
-  FaUserMd, 
+  FaUserMd,
   FaTimes,
   FaEyeSlash,
   FaTrash,
@@ -15,6 +15,7 @@ import { httpService } from "../../../services";
 import PageWrapper from "../../../components/PageWrapper";
 import createDocumentService from "../../../services/api/documentService";
 import Notification from "../../../components/Notification";
+import DeleteDocumentModal from "../../../components/admin/appointments/DeleteDocumentModal";
 
 const ShareModal = ({
   doctors,
@@ -200,6 +201,8 @@ const DocumentDetails = () => {
   const [loadingRevoke, setLoadingRevoke] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [shareDuration, setShareDuration] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const documentService = createDocumentService(httpService);
 
@@ -470,24 +473,30 @@ const DocumentDetails = () => {
   // Supprimer le document
   const handleDelete = async () => {
     if (!selectedItem || !selectedItem.id) return;
-    
-    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer le document "${selectedItem.name}" ?`)) {
-      return;
-    }
+
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedItem || !selectedItem.id) return;
 
     try {
+      setDeleteLoading(true);
       console.log("🗑️ Suppression du document:", selectedItem.id);
-      
+
       const documentService = createDocumentService(httpService);
       await documentService.deleteDocument(selectedItem.id);
-      
+
       console.log("✅ Document supprimé avec succès");
-      
+
       // Rediriger vers la liste des documents
       navigate("/documents");
     } catch (error) {
       console.error("❌ Erreur lors de la suppression:", error);
       alert("Erreur lors de la suppression du document");
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -678,6 +687,15 @@ const DocumentDetails = () => {
             loadingRevoke={loadingRevoke}
             onClose={() => setShowAccessModal(false)}
             currentUserId={currentUserId}
+          />
+        )}
+        {showDeleteModal && (
+          <DeleteDocumentModal
+            document={selectedItem}
+            open={showDeleteModal}
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={handleConfirmDelete}
+            loading={deleteLoading}
           />
         )}
         {/* Carte principale */}

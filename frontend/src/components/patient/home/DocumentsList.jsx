@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { HiDownload } from "react-icons/hi";
 import { FaThumbtack, FaTrash } from "react-icons/fa";
 import { useDocumentContext } from "../../../context";
-import { httpService } from '../../../services/http';
+import { httpService } from "../../../services/http";
 import createDocumentService from "../../../services/api/documentService";
+import DeleteDocumentModal from "../../../components/admin/appointments/DeleteDocumentModal";
 
 const DocumentItem = ({
   id,
@@ -21,27 +22,28 @@ const DocumentItem = ({
     try {
       // Appel API pour récupérer le document en blob
       const response = await httpService.get(`/documents/${id}/download`, {
-        responseType: 'blob',
+        responseType: "blob",
       });
-      const contentType = response.headers['content-type'] || 'application/octet-stream';
+      const contentType =
+        response.headers["content-type"] || "application/octet-stream";
       let fileName = title || `document-${id}`;
-      const contentDisposition = response.headers['content-disposition'];
+      const contentDisposition = response.headers["content-disposition"];
       if (contentDisposition) {
         const match = contentDisposition.match(/filename="([^"]+)"/);
         if (match) fileName = match[1];
       }
       const blob = new Blob([response.data], { type: contentType });
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', fileName);
+      link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      alert('Erreur lors du téléchargement du document');
-      console.error('Erreur téléchargement document:', error);
+      alert("Erreur lors du téléchargement du document");
+      console.error("Erreur téléchargement document:", error);
     }
   };
 
@@ -104,16 +106,19 @@ const DocumentItem = ({
 };
 
 const DocumentsList = () => {
-  const [activeTab, setActiveTab] = useState("recent");
   const navigate = useNavigate();
   const {
     items,
+    setItems,
+    selectItem,
     togglePinned,
     getRecentItems,
     getPinnedItems,
-    selectItem,
-    setItems,
   } = useDocumentContext();
+  const [activeTab, setActiveTab] = useState("recent");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Créer le service de documents
   const documentService = React.useMemo(
@@ -124,9 +129,7 @@ const DocumentsList = () => {
   // Initialisation des données de test
   useEffect(() => {
     if (items.length === 0) {
-      setItems([
-        
-      ]);
+      setItems([]);
     }
   }, [setItems, items.length]);
 
@@ -147,17 +150,23 @@ const DocumentsList = () => {
   };
 
   const handleDeleteDocument = async (documentId, documentName) => {
-    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer le document "${documentName}" ?`)) {
-      return;
-    }
+    setDocumentToDelete({ id: documentId, name: documentName });
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDeleteDocument = async () => {
+    if (!documentToDelete) return;
 
     try {
-      await documentService.deleteDocument(documentId);
-      
+      setDeleteLoading(true);
+      await documentService.deleteDocument(documentToDelete.id);
+
       // Recharger les documents après suppression
       // Note: Ici on devrait idéalement rafraîchir la liste depuis le contexte
       // Pour l'instant, on supprime juste de la liste locale
-      const updatedItems = items.filter(item => item.id !== documentId);
+      const updatedItems = items.filter(
+        (item) => item.id !== documentToDelete.id
+      );
       setItems(updatedItems);
 
       // Afficher une notification de succès
@@ -165,6 +174,10 @@ const DocumentsList = () => {
     } catch (err) {
       console.error("Erreur lors de la suppression:", err);
       alert("Impossible de supprimer le document");
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteModal(false);
+      setDocumentToDelete(null);
     }
   };
 
@@ -230,6 +243,15 @@ const DocumentsList = () => {
       >
         Cliquez ici pour retrouver tous vos documents
       </button>
+
+      {/* Modale de confirmation de suppression de document */}
+      <DeleteDocumentModal
+        document={documentToDelete}
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDeleteDocument}
+        loading={deleteLoading}
+      />
     </div>
   );
 };
