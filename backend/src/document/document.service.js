@@ -102,18 +102,31 @@ export const createDocumentByPatientService = async (
   // 5. Insérer le document
   const insertedDocument = await documentRepository.createDocument(docData);
   
+  console.log("[CreateDocumentByPatientService] Document créé:", {
+    id: insertedDocument.id,
+    titre: insertedDocument.titre,
+    patient_id: insertedDocument.patient_id,
+    uploader_id: insertedDocument.uploader_id
+  });
+  
   // 6. Créer les permissions ACL
+  console.log("[CreateDocumentByPatientService] Création de la permission owner pour l'utilisateur:", userId);
   await documentRepository.createDocumentPermission(
     insertedDocument.id,
     userId,
     "owner"
   );
+  
+  console.log("[CreateDocumentByPatientService] Permission owner créée avec succès");
+  
   if (userRole === "medecin") {
+    console.log("[CreateDocumentByPatientService] Création de la permission author pour le médecin");
     await documentRepository.createDocumentPermission(
       insertedDocument.id,
       userId,
       "author"
     );
+    console.log("[CreateDocumentByPatientService] Permission author créée avec succès");
   }
 
   // 7. NOUVEAU: Lier au rendez-vous si spécifié
@@ -123,8 +136,26 @@ export const createDocumentByPatientService = async (
       insertedDocument.id,
       parseInt(rendez_vous_id)
     );
+    
+    // 8. NOUVEAU: Donner accès au médecin du rendez-vous
+    try {
+      const rendezVous = await documentRepository.getRendezVousById(parseInt(rendez_vous_id));
+      if (rendezVous && rendezVous.medecin_id) {
+        console.log(`[DocumentService] Attribution de permission shared au médecin ${rendezVous.medecin_id} pour le document ${insertedDocument.id}`);
+        await documentRepository.createDocumentPermission(
+          insertedDocument.id,
+          rendezVous.medecin_id,
+          "shared"
+        );
+        console.log(`[DocumentService] Permission shared accordée au médecin ${rendezVous.medecin_id}`);
+      }
+    } catch (error) {
+      console.error(`[DocumentService] Erreur lors de l'attribution de permission au médecin:`, error);
+      // Ne pas faire échouer la création du document pour cette erreur
+    }
   }
 
+  console.log("[CreateDocumentByPatientService] Document et permissions créés avec succès");
   return insertedDocument;
 };
 
@@ -227,6 +258,23 @@ export const createDocumentByDoctorService = async (
       insertedDocument.id,
       parseInt(rendez_vous_id)
     );
+    
+    // 9. NOUVEAU: Donner accès au patient du rendez-vous
+    try {
+      const rendezVous = await documentRepository.getRendezVousById(parseInt(rendez_vous_id));
+      if (rendezVous && rendezVous.patient_id) {
+        console.log(`[DocumentService] Attribution de permission shared au patient ${rendezVous.patient_id} pour le document ${insertedDocument.id}`);
+        await documentRepository.createDocumentPermission(
+          insertedDocument.id,
+          rendezVous.patient_id,
+          "shared"
+        );
+        console.log(`[DocumentService] Permission shared accordée au patient ${rendezVous.patient_id}`);
+      }
+    } catch (error) {
+      console.error(`[DocumentService] Erreur lors de l'attribution de permission au patient:`, error);
+      // Ne pas faire échouer la création du document pour cette erreur
+    }
   }
   return insertedDocument;
 };
@@ -244,17 +292,38 @@ export const getDocumentsService = async (userId, userRole) => {
 };
 
 export const getDocumentByIdService = async (userId, userRole, documentId) => {
+  console.log("[GetDocumentByIdService] Début de la vérification:", {
+    userId,
+    userRole,
+    documentId
+  });
+
   // Vérifier la permission ACL
   const permissions = await documentRepository.getDocumentPermissions(
     documentId
   );
+  
+  console.log("[GetDocumentByIdService] Permissions trouvées:", permissions);
+  
   const perm = permissions.find((p) => p.user_id === userId);
+  
+  console.log("[GetDocumentByIdService] Permission pour l'utilisateur:", perm);
+  
   if (!perm) {
+    console.log("[GetDocumentByIdService] Aucune permission trouvée pour l'utilisateur");
     const error = new Error("Accès non autorisé à ce document");
     error.code = "FORBIDDEN";
     throw error;
   }
+  
   const doc = await documentRepository.getDocumentById(documentId);
+  
+  console.log("[GetDocumentByIdService] Document récupéré:", {
+    id: doc?.id,
+    titre: doc?.titre,
+    patient_id: doc?.patient_id
+  });
+  
   // On renvoie le label du type de document sous le nom type_document (pour le front)
   if (doc && doc.type_document_label) {
     doc.type_document = doc.type_document_label;

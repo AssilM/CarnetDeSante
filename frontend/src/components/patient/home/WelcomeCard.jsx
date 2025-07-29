@@ -16,7 +16,7 @@ const WelcomeCard = () => {
     firstName && lastName ? `${firstName} ${lastName}` : "Utilisateur";
 
   return (
-    <div className="text-white relative flex justify-between items-center rounded-lg overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 p-4 md:p-8">
+    <div className="text-white relative flex justify-between items-center rounded-lg overflow-hidden bg-blue-600 p-4 md:p-8">
       <div className="space-y-2 w-full">
         <div>
           <h2 className="text-2xl font-bold">Bienvenue {fullName} ! 👋</h2>

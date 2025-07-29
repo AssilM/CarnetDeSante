@@ -204,6 +204,15 @@ class DocumentRepository {
     );
     return rows.length > 0 ? rows[0].id : null;
   }
+
+  // Récupérer un rendez-vous par ID
+  async getRendezVousById(rendezVousId) {
+    const { rows } = await pool.query(
+      "SELECT * FROM rendez_vous WHERE id = $1",
+      [rendezVousId]
+    );
+    return rows.length > 0 ? rows[0] : null;
+  }
 }
 
 export default new DocumentRepository();

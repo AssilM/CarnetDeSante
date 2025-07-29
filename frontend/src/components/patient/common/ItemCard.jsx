@@ -57,7 +57,7 @@ const ItemCard = ({
       case "document":
         return { bg: "bg-secondary", text: "text-primary" };
       case "vaccine":
-        return { bg: "bg-purple-100", text: "text-purple-600" };
+        return { bg: "bg-blue-100", text: "text-blue-600" };
       case "history":
         return { bg: "bg-blue-100", text: "text-blue-600" };
       case "allergy":

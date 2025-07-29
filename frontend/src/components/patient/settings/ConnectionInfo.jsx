@@ -74,10 +74,6 @@ const ConnectionInfo = () => {
 
   return (
     <div>
-      <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">
-        Informations de connexion
-      </h2>
-
       <div className="space-y-4 sm:space-y-6">
         <div className="bg-white rounded-lg p-4 sm:p-6">
           <h3 className="text-base sm:text-lg font-medium mb-4">
