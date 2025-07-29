@@ -2,6 +2,8 @@ import React from "react";
 import { Link } from "react-router-dom";
 import logo from "../../assets/logo-C.svg";
 import Footer from "../../components/Footer";
+import Image1 from "../../assets/Img1.png";
+import Image2 from "../../assets/Img2.png";
 
 const LandingPage = () => {
   return (
@@ -48,7 +50,7 @@ const LandingPage = () => {
         <div className="md:w-1/2">
           {/* Espace réservé pour l'image héro */}
           <div className="w-full h-64 md:h-96 bg-blue-100 rounded-lg shadow-xl flex items-center justify-center">
-            <p className="text-blue-400 font-medium">Image à venir</p>
+            <img src={Image1} className="h-full object-contain" />
           </div>
         </div>
       </section>
@@ -60,7 +62,7 @@ const LandingPage = () => {
             <div className="md:w-1/2 mb-8 md:mb-0">
               {/* Espace réservé pour l'image de documents */}
               <div className="w-full h-64 bg-blue-50 rounded-lg shadow-lg flex items-center justify-center">
-                <p className="text-blue-400 font-medium">Documents médicaux</p>
+                <img src={Image2} className="h-full object-contain" />
               </div>
             </div>
             <div className="md:w-1/2 md:pl-10">
@@ -95,20 +97,57 @@ const LandingPage = () => {
             </div>
             <div className="md:w-1/2 md:pr-10">
               <h2 className="text-3xl font-bold text-blue-900 mb-4">
-                Communiquez facilement avec vos médecins
+                Prenez vos rendez-vous avec vos médecins
               </h2>
               <p className="text-gray-600 mb-4">
-                Grâce à la messagerie intégrée du Carnet de Santé Virtuel,
-                restez en contact direct avec vos médecins.
+                Notre plateforme vous permet de prendre rendez-vous avec vos
+                médecins en quelques clics.
               </p>
               <p className="text-gray-600 mb-4">
-                Posez vos questions, recevez des conseils, partagez rapidement
-                vos documents médicaux ou vos préoccupations de santé.
+                Consultez les disponibilités de vos praticiens et réservez
+                directement en ligne, sans avoir à les appeler.
               </p>
               <p className="text-gray-600">
-                Une communication simple, rapide et sécurisée pour un meilleur
-                suivi de votre santé.
+                Recevez des rappels de vos rendez-vous et gérez votre agenda
+                médical facilement.
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Section Avis */}
+      <section className="bg-blue-50 py-16">
+        <div className="container mx-auto px-6">
+          <h2 className="text-3xl font-bold text-blue-900 mb-10 text-center">
+            Ils nous font confiance
+          </h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center">
+              <p className="text-gray-700 mb-4 italic">
+                "Super pratique pour suivre les vaccins de mes enfants et partager
+                les documents avec le pédiatre !"
+              </p>
+              <span className="font-semibold text-blue-600">
+                - Sophie, maman de 2 enfants
+              </span>
+            </div>
+            <div className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center">
+              <p className="text-gray-700 mb-4 italic">
+                "Enfin un carnet de santé numérique sécurisé, accessible partout.
+                Je recommande à mes patients !"
+              </p>
+              <span className="font-semibold text-blue-600">
+                - Dr. Martin, médecin généraliste
+              </span>
+            </div>
+            <div className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center">
+              <p className="text-gray-700 mb-4 italic">
+                "Je prends tout mes rendez-vous médicaux et mes ordonnances avec le carnet de santé virtuel. C'est un gain de temps énorme !"
+              </p>
+              <span className="font-semibold text-blue-600">
+                - Julien, utilisateur
+              </span>
             </div>
           </div>
         </div>
