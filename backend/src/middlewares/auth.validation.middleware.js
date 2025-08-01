@@ -57,6 +57,28 @@ const emailOTPSchema = z.object({
     .optional(),
 });
 
+
+// Schémas de validation pour la réinitialisation de mot de passe
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Format d'email invalide"),
+});
+
+const verifyResetTokenSchema = z.object({
+  token: z.string().min(1, "Token requis"),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Token requis"),
+  newPassword: z
+    .string()
+    .min(8, "Le mot de passe doit contenir au moins 8 caractères")
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      "Le mot de passe doit contenir au moins une minuscule, une majuscule et un chiffre"
+    ),
+});
+
+
 /**
  * Middleware de validation pour l'inscription
  * @param {Object} req - Requête Express
@@ -193,6 +215,126 @@ export const validateSigninData = (req, res, next) => {
     next();
   } catch (error) {
     console.error("[validateSigninData] Erreur lors de la validation:", error);
+    return res.status(500).json({
+      message: "Erreur lors de la validation des données",
+    });
+  }
+};
+
+/**
+ * Middleware de validation pour la demande de réinitialisation
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Next middleware
+ */
+export const validateForgotPassword = (req, res, next) => {
+  try {
+    console.log(
+      "[validateForgotPassword] Validation des données de demande de réinitialisation"
+    );
+
+    const validationResult = forgotPasswordSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      console.log(
+        "[validateForgotPassword] Erreurs de validation:",
+        validationResult.error.errors
+      );
+      return res.status(400).json({
+        message: "Données de demande de réinitialisation invalides",
+        errors: validationResult.error.errors,
+      });
+    }
+
+    // Stocker les données validées dans req.validatedData
+    req.validatedData = validationResult.data;
+    console.log("[validateForgotPassword] Validation réussie");
+    next();
+  } catch (error) {
+    console.error(
+      "[validateForgotPassword] Erreur lors de la validation:",
+      error
+    );
+    return res.status(500).json({
+      message: "Erreur lors de la validation des données",
+    });
+  }
+};
+
+/**
+ * Middleware de validation pour la vérification du token de réinitialisation
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Next middleware
+ */
+export const validateVerifyResetToken = (req, res, next) => {
+  try {
+    console.log(
+      "[validateVerifyResetToken] Validation du token de réinitialisation"
+    );
+
+    const validationResult = verifyResetTokenSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      console.log(
+        "[validateVerifyResetToken] Erreurs de validation:",
+        validationResult.error.errors
+      );
+      return res.status(400).json({
+        message: "Token de réinitialisation invalide",
+        errors: validationResult.error.errors,
+      });
+    }
+
+    // Stocker les données validées dans req.validatedData
+    req.validatedData = validationResult.data;
+    console.log("[validateVerifyResetToken] Validation réussie");
+    next();
+  } catch (error) {
+    console.error(
+      "[validateVerifyResetToken] Erreur lors de la validation:",
+      error
+    );
+    return res.status(500).json({
+      message: "Erreur lors de la validation des données",
+    });
+  }
+};
+
+/**
+ * Middleware de validation pour la réinitialisation de mot de passe
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Next middleware
+ */
+export const validateResetPassword = (req, res, next) => {
+  try {
+    console.log(
+      "[validateResetPassword] Validation des données de réinitialisation"
+    );
+
+    const validationResult = resetPasswordSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      console.log(
+        "[validateResetPassword] Erreurs de validation:",
+        validationResult.error.errors
+      );
+      return res.status(400).json({
+        message: "Données de réinitialisation invalides",
+        errors: validationResult.error.errors,
+      });
+    }
+
+    // Stocker les données validées dans req.validatedData
+    req.validatedData = validationResult.data;
+    console.log("[validateResetPassword] Validation réussie");
+    next();
+  } catch (error) {
+    console.error(
+      "[validateResetPassword] Erreur lors de la validation:",
+      error
+    );
     return res.status(500).json({
       message: "Erreur lors de la validation des données",
     });
