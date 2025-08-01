@@ -65,6 +65,7 @@ const createUserTable = async () => {
       ville VARCHAR(100),
       role VARCHAR(20) NOT NULL CHECK (role IN ('patient', 'medecin', 'admin')),
       chemin_photo VARCHAR(255),
+      email_verified BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
@@ -287,6 +288,10 @@ const createIndexes = async () => {
     `CREATE INDEX IF NOT EXISTS idx_document_date ON document(date_creation)`,
     `CREATE INDEX IF NOT EXISTS idx_documents_rendez_vous_document ON documents_rendez_vous(document_id)`,
     `CREATE INDEX IF NOT EXISTS idx_documents_rendez_vous_rdv ON documents_rendez_vous(rendez_vous_id)`,
+    // NOUVEAUX INDEX pour user_tokens
+    `CREATE INDEX IF NOT EXISTS idx_user_tokens_user_id ON user_tokens(user_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_user_tokens_purpose ON user_tokens(purpose)`,
+    `CREATE INDEX IF NOT EXISTS idx_user_tokens_expires_at ON user_tokens(expires_at)`,
   ];
 
   try {
@@ -456,6 +461,30 @@ const createNewIndexes = async () => {
   }
 };
 
+// NOUVELLE TABLE : user_tokens pour OTP et reset password
+const createUserTokensTable = async () => {
+  const queryText = `
+    CREATE TABLE IF NOT EXISTS user_tokens (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES utilisateur(id) ON DELETE CASCADE,
+      purpose VARCHAR(30) NOT NULL,         -- 'OTP_LOGIN' | 'PWD_RESET' | 'EMAIL_VERIFY'
+      token_hash VARCHAR(255) NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      attempts_left SMALLINT DEFAULT 5,     -- utile pour OTP, ignoré sinon
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (user_id, purpose)             -- un jeton actif par usage
+    )
+  `;
+
+  try {
+    await pool.query(queryText);
+    console.log("Table user_tokens créée avec succès");
+  } catch (error) {
+    console.error("Erreur lors de la création de la table user_tokens:", error);
+    throw error;
+  }
+};
+
 // --- TABLE SPECIALITE ---
 const createSpecialiteTable = async () => {
   const queryText = `
@@ -554,6 +583,7 @@ const initTables = async () => {
     await createDocRoleEnum();
     await createUserTable();
     await createRefreshTokenTable();
+    await createUserTokensTable(); // NOUVELLE TABLE
     await createPatientTable();
     await createMedecinTable();
     await createDisponibiliteMedecinTable();
@@ -580,6 +610,7 @@ const initTables = async () => {
 export {
   createUserTable,
   createRefreshTokenTable,
+  createUserTokensTable, // NOUVELLE EXPORT
   createPatientTable,
   createMedecinTable,
   createDisponibiliteMedecinTable,
