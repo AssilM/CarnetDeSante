@@ -186,6 +186,7 @@ const createRendezVousTable = async () => {
       heure_debut_reel TIMESTAMP,
       heure_fin_reel TIMESTAMP,
       duree_reelle INTEGER,
+      reminder_sent BOOLEAN DEFAULT false,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )

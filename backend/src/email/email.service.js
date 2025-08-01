@@ -115,11 +115,15 @@ export const formatAppointmentData = (appointment) => {
   const timeString = appointment.heure;
   const formattedTime = timeString.substring(0, 5); // Enlever les secondes
 
-  // Construire le nom complet du médecin
-  const medecinName = `${appointment.medecin_prenom} ${appointment.medecin_nom}`;
+  // Construire le nom complet du médecin avec gestion des undefined
+  const medecinPrenom = appointment.medecin_prenom || "";
+  const medecinNom = appointment.medecin_nom || "";
+  const medecinName = `${medecinPrenom} ${medecinNom}`.trim() || "Dr. Médecin";
 
-  // Construire le nom complet du patient
-  const patientName = `${appointment.patient_prenom} ${appointment.patient_nom}`;
+  // Construire le nom complet du patient avec gestion des undefined
+  const patientPrenom = appointment.patient_prenom || "";
+  const patientNom = appointment.patient_nom || "";
+  const patientName = `${patientPrenom} ${patientNom}`.trim() || "Patient";
 
   return {
     patientName,
@@ -128,7 +132,7 @@ export const formatAppointmentData = (appointment) => {
     appointmentDate: formattedDate,
     appointmentTime: formattedTime,
     duration: appointment.duree || 30,
-    motif: appointment.motif || "",
+    motif: appointment.motif || "Consultation médicale",
     adresse: appointment.adresse || "",
     appointmentUrl: `${process.env.FRONTEND_URL}/appointments/${appointment.id}`,
     cancelUrl: `${process.env.FRONTEND_URL}/appointments/${appointment.id}/cancel`,

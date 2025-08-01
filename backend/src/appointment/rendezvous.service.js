@@ -127,6 +127,10 @@ export const createRendezVousService = async (rdvData) => {
       "[createRendezVousService] Rendez-vous créé avec succès:",
       newRendezVous
     );
+
+    // Récupérer les données complètes avec les noms du patient et du médecin
+    const completeAppointment = await findRendezVousById(newRendezVous.id);
+
     // Création souple du lien de suivi patient-médecin
     try {
       await createFollowRelationship(patient_id, medecin_id);
@@ -137,7 +141,8 @@ export const createRendezVousService = async (rdvData) => {
       );
       // On ne bloque pas la création du rendez-vous
     }
-    return newRendezVous;
+
+    return completeAppointment;
   } catch (error) {
     console.error("[createRendezVousService] Erreur:", error);
 

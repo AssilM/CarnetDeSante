@@ -11,6 +11,8 @@ export {
   sendWelcomeEmail,
   sendVerificationEmail,
   sendOTPEmail,
+  sendAppointmentConfirmation,
+  sendAppointmentReminder,
   getUserEmailById,
 } from "./email.service.js";
 export { renderTemplate, testTemplate } from "./email.templates.js";
