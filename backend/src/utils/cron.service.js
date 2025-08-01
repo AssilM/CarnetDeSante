@@ -37,7 +37,9 @@ const cleanExpiredTokens = async () => {
 const cleanExpiredRefreshTokens = async () => {
   try {
     const result = await pool.query(`
+
       DELETE FROM refresh_token
+
       WHERE expires_at < NOW()
          OR (created_at < NOW() - INTERVAL '30 days')
     `);
@@ -58,6 +60,7 @@ const cleanExpiredRefreshTokens = async () => {
 };
 
 /**
+
  * Fonction principale de nettoyage
  * Nettoie tous les types de données expirées
  */
@@ -67,7 +70,10 @@ const performCleanup = async () => {
   const tokensDeleted = await cleanExpiredTokens();
   const refreshTokensDeleted = await cleanExpiredRefreshTokens();
 
-  const totalDeleted = tokensDeleted + refreshTokensDeleted;
+  const sessionsDeleted = await cleanExpiredSessions();
+
+  const totalDeleted = tokensDeleted + refreshTokensDeleted + sessionsDeleted;
+
 
   if (totalDeleted > 0) {
     console.log(

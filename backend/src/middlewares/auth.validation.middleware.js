@@ -57,6 +57,7 @@ const emailOTPSchema = z.object({
     .optional(),
 });
 
+
 // Schémas de validation pour la réinitialisation de mot de passe
 const forgotPasswordSchema = z.object({
   email: z.string().email("Format d'email invalide"),
@@ -76,6 +77,7 @@ const resetPasswordSchema = z.object({
       "Le mot de passe doit contenir au moins une minuscule, une majuscule et un chiffre"
     ),
 });
+
 
 /**
  * Middleware de validation pour l'inscription

@@ -22,9 +22,11 @@ import {
   validateSigninData,
   validateLoginOTP,
   validateEmailOTP,
+
   validateForgotPassword,
   validateVerifyResetToken,
   validateResetPassword,
+
 } from "../middlewares/auth.validation.middleware.js";
 
 const router = express.Router();
@@ -46,6 +48,7 @@ router.post("/resend-verification", validateSigninData, resendVerification);
 router.post("/forgot-password", validateForgotPassword, forgotPassword);
 router.post("/verify-reset-token", validateVerifyResetToken, verifyResetToken);
 router.post("/reset-password", validateResetPassword, resetPasswordHandler);
+
 
 // Routes protégées
 router.use(authenticate);

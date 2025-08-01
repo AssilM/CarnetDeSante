@@ -323,6 +323,7 @@ export const sendOTPEmail = async (user) => {
   }
 };
 
+
 /**
  * Envoie un email de réinitialisation de mot de passe
  * @param {string} email - Email de l'utilisateur
@@ -363,3 +364,4 @@ export const sendPasswordResetEmail = async (email, resetToken) => {
     throw error;
   }
 };
+

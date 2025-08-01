@@ -10,8 +10,10 @@ import RoleSelectPage from "../pages/auth/RoleSelectPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import EmailVerificationPage from "../pages/auth/EmailVerificationPage";
+
 import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
+
 import Forbidden from "../pages/Forbidden";
 
 /**
@@ -76,6 +78,7 @@ const AuthRoutes = [
       </AuthGuard>
     }
   />,
+
 
   // Route de demande de réinitialisation de mot de passe - protégée par AuthGuard
   <Route
