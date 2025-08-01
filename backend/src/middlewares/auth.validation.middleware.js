@@ -40,6 +40,23 @@ const signinSchema = z.object({
   password: z.string().min(1, "Mot de passe requis"),
 });
 
+// Schémas de validation pour les OTP
+const loginOTPSchema = z.object({
+  email: z.string().email("Format d'email invalide"),
+  otp: z
+    .string()
+    .regex(/^\d{6}$/, "Le code OTP doit contenir 6 chiffres")
+    .optional(),
+});
+
+const emailOTPSchema = z.object({
+  email: z.string().email("Format d'email invalide"),
+  otp: z
+    .string()
+    .regex(/^\d{6}$/, "Le code OTP doit contenir 6 chiffres")
+    .optional(),
+});
+
 /**
  * Middleware de validation pour l'inscription
  * @param {Object} req - Requête Express
@@ -69,6 +86,78 @@ export const validateSignupData = (req, res, next) => {
     next();
   } catch (error) {
     console.error("[validateSignupData] Erreur lors de la validation:", error);
+    return res.status(500).json({
+      message: "Erreur lors de la validation des données",
+    });
+  }
+};
+
+/**
+ * Middleware de validation pour les OTP de connexion
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Next middleware
+ */
+export const validateLoginOTP = (req, res, next) => {
+  try {
+    console.log("[validateLoginOTP] Validation des données OTP de connexion");
+
+    const validationResult = loginOTPSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      console.log(
+        "[validateLoginOTP] Erreurs de validation:",
+        validationResult.error.errors
+      );
+      return res.status(400).json({
+        message: "Données OTP invalides",
+        errors: validationResult.error.errors,
+      });
+    }
+
+    // Stocker les données validées dans req.validatedData
+    req.validatedData = validationResult.data;
+    console.log("[validateLoginOTP] Validation réussie");
+    next();
+  } catch (error) {
+    console.error("[validateLoginOTP] Erreur lors de la validation:", error);
+    return res.status(500).json({
+      message: "Erreur lors de la validation des données",
+    });
+  }
+};
+
+/**
+ * Middleware de validation pour les OTP de vérification email
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @param {Function} next - Next middleware
+ */
+export const validateEmailOTP = (req, res, next) => {
+  try {
+    console.log(
+      "[validateEmailOTP] Validation des données OTP de vérification"
+    );
+
+    const validationResult = emailOTPSchema.safeParse(req.body);
+
+    if (!validationResult.success) {
+      console.log(
+        "[validateEmailOTP] Erreurs de validation:",
+        validationResult.error.errors
+      );
+      return res.status(400).json({
+        message: "Données OTP invalides",
+        errors: validationResult.error.errors,
+      });
+    }
+
+    // Stocker les données validées dans req.validatedData
+    req.validatedData = validationResult.data;
+    console.log("[validateEmailOTP] Validation réussie");
+    next();
+  } catch (error) {
+    console.error("[validateEmailOTP] Erreur lors de la validation:", error);
     return res.status(500).json({
       message: "Erreur lors de la validation des données",
     });

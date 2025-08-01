@@ -9,6 +9,7 @@ import LandingPage from "../pages/auth/LandingPage";
 import RoleSelectPage from "../pages/auth/RoleSelectPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
+import EmailVerificationPage from "../pages/auth/EmailVerificationPage";
 import Forbidden from "../pages/Forbidden";
 
 /**
@@ -59,6 +60,17 @@ const AuthRoutes = [
     element={
       <AuthGuard>
         <RegisterPage />
+      </AuthGuard>
+    }
+  />,
+
+  // Route de vérification d'email - protégée par AuthGuard
+  <Route
+    key="verify-email"
+    path="/auth/verify-email"
+    element={
+      <AuthGuard>
+        <EmailVerificationPage />
       </AuthGuard>
     }
   />,

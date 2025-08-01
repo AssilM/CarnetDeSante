@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Confirmation de Rendez-vous - Carnet de Santé</title>
+  </head>
+  <body
+    style="
+      font-family: Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #e0effe;
+    "
+  >
+    <div
+      style="
+        max-width: 600px;
+        margin: 20px auto;
+        background-color: #ffffff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      "
+    >
+      <div
+        style="
+          background: linear-gradient(135deg, #1366e7 0%, #0d4aa3 100%);
+          color: white;
+          padding: 30px;
+          text-align: center;
+        "
+      >
+        <div style="font-size: 24px; font-weight: bold; margin-bottom: 10px">
+          📅
+        </div>
+        <h1 style="margin: 0; font-size: 28px; font-weight: 300">
+          Confirmation de Rendez-vous
+        </h1>
+      </div>
+
+      <div style="padding: 40px 30px">
+        <div style="font-size: 18px; margin-bottom: 25px; color: #555">
+          Bonjour <strong>{{patientName}}</strong>,<br />
+          Votre rendez-vous a été confirmé !
+        </div>
+
+        <div
+          style="
+            background-color: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+          "
+        >
+          <h2 style="margin-top: 0; color: #333; text-align: center">
+            Détails du Rendez-vous
+          </h2>
+
+          <div
+            style="
+              margin: 20px 0;
+              padding: 20px;
+              background-color: #ffffff;
+              border-radius: 8px;
+              border-left: 4px solid #1366e7;
+            "
+          >
+            <div
+              style="display: flex; align-items: center; margin-bottom: 15px"
+            >
+              <span style="font-size: 20px; margin-right: 10px">👨‍⚕️</span>
+              <div>
+                <strong style="color: #333">Médecin :</strong><br />
+                <span style="color: #666">Dr {{medecinName}}</span><br />
+                <span style="color: #1366e7; font-size: 14px"
+                  >{{specialite}}</span
+                >
+              </div>
+            </div>
+
+            <div
+              style="display: flex; align-items: center; margin-bottom: 15px"
+            >
+              <span style="font-size: 20px; margin-right: 10px">📅</span>
+              <div>
+                <strong style="color: #333">Date :</strong><br />
+                <span style="color: #666">{{appointmentDate}}</span>
+              </div>
+            </div>
+
+            <div
+              style="display: flex; align-items: center; margin-bottom: 15px"
+            >
+              <span style="font-size: 20px; margin-right: 10px">🕐</span>
+              <div>
+                <strong style="color: #333">Heure :</strong><br />
+                <span style="color: #666">{{appointmentTime}}</span>
+              </div>
+            </div>
+
+            <div
+              style="display: flex; align-items: center; margin-bottom: 15px"
+            >
+              <span style="font-size: 20px; margin-right: 10px">⏱️</span>
+              <div>
+                <strong style="color: #333">Durée :</strong><br />
+                <span style="color: #666">{{duration}} minutes</span>
+              </div>
+            </div>
+
+            {{#if motif}}
+            <div
+              style="display: flex; align-items: center; margin-bottom: 15px"
+            >
+              <span style="font-size: 20px; margin-right: 10px">📝</span>
+              <div>
+                <strong style="color: #333">Motif :</strong><br />
+                <span style="color: #666">{{motif}}</span>
+              </div>
+            </div>
+            {{/if}} {{#if adresse}}
+            <div
+              style="display: flex; align-items: center; margin-bottom: 15px"
+            >
+              <span style="font-size: 20px; margin-right: 10px">📍</span>
+              <div>
+                <strong style="color: #333">Adresse :</strong><br />
+                <span style="color: #666">{{adresse}}</span>
+              </div>
+            </div>
+            {{/if}}
+          </div>
+
+          <div style="text-align: center; margin-top: 25px">
+            <div
+              style="
+                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                color: white;
+                padding: 15px;
+                border-radius: 8px;
+                display: inline-block;
+              "
+            >
+              <strong>✅ Rendez-vous Confirmé</strong>
+            </div>
+          </div>
+        </div>
+
+        <div
+          style="
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #e8f4fd;
+            border-radius: 8px;
+            border-left: 4px solid #1366e7;
+          "
+        >
+          <h4 style="margin-top: 0; color: #1366e7">Rappels importants :</h4>
+          <ul style="color: #555; line-height: 1.8">
+            <li>Arrivez 10 minutes avant l'heure du rendez-vous</li>
+            <li>Apportez vos documents médicaux si nécessaire</li>
+            <li>Vous recevrez un rappel 24h avant le rendez-vous</li>
+            <li>Vous pouvez annuler jusqu'à 24h avant le rendez-vous</li>
+          </ul>
+        </div>
+
+        <div style="margin-top: 30px; text-align: center">
+          <a
+            href="{{appointmentUrl}}"
+            style="
+              display: inline-block;
+              background: linear-gradient(135deg, #1366e7 0%, #0d4aa3 100%);
+              color: white;
+              text-decoration: none;
+              padding: 15px 30px;
+              border-radius: 25px;
+              font-weight: 600;
+              font-size: 16px;
+            "
+          >
+            Voir le Détail du Rendez-vous
+          </a>
+        </div>
+      </div>
+
+      <div
+        style="
+          background-color: #f8f9fa;
+          padding: 20px 30px;
+          text-align: center;
+          border-top: 1px solid #e9ecef;
+        "
+      >
+        <p style="margin: 5px 0; font-size: 12px; color: #666">
+          Cet email a été envoyé automatiquement par Carnet de Santé Virtuel
+        </p>
+        <p style="margin: 5px 0; font-size: 12px; color: #666">
+          Si vous avez des questions, contactez notre support
+        </p>
+        <p style="margin: 5px 0; font-size: 12px; color: #666">
+          © 2024 Carnet de Santé Virtuel - Tous droits réservés
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

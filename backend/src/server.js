@@ -7,6 +7,7 @@ import seedDatabase from "./data/seedData.js";
 import cors from "cors";
 import { checkAppointmentsStatus } from "./appointment/rendezvous.service.js";
 import notificationListener from "./notification/notificationListener.js";
+import { initCronJobs } from "./utils/cron.service.js";
 
 dotenv.config();
 
@@ -43,6 +44,14 @@ app.use(cors());
 // Démarrer le serveur
 app.listen(port, async () => {
   console.log(`Server is running on port ${port}`);
+
+  // Initialiser les tâches cron
+  try {
+    initCronJobs();
+    console.log("🕐 Tâches cron initialisées avec succès");
+  } catch (error) {
+    console.error("❌ Erreur lors de l'initialisation des tâches cron:", error);
+  }
 
   // Démarrer le listener de notifications
   try {

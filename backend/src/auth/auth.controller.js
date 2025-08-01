@@ -4,6 +4,10 @@ import {
   refreshUserToken,
   signoutUser,
   getCurrentUser,
+  sendLoginOTP,
+  authenticateUserWithOTP,
+  verifyEmailOTP,
+  resendVerificationOTP,
 } from "./auth.service.js";
 import { setRefreshTokenCookie } from "../utils/auth.utils.js";
 
@@ -99,13 +103,151 @@ export const signin = async (req, res, next) => {
       user,
     });
   } catch (error) {
-    // Gestion des erreurs d'authentification
+    // Gestion des erreurs métier du service
     if (error.message === "Email ou mot de passe incorrect") {
       return res.status(401).json({ message: error.message });
     }
 
-    // Erreurs techniques
+    // Erreurs techniques - passer au middleware d'erreur
     console.error("Controller: Erreur lors de la connexion:", error);
+    next(error);
+  }
+};
+
+/**
+ * Envoie un OTP pour la connexion
+ */
+export const requestLoginOTP = async (req, res, next) => {
+  try {
+    const { email } = req.validatedData;
+
+    console.log("Controller: Demande OTP de connexion pour:", email);
+
+    const result = await sendLoginOTP(email);
+
+    res.status(200).json({
+      message: result.message,
+      email: result.email,
+    });
+  } catch (error) {
+    // Gestion des erreurs métier du service
+    if (error.message === "Email ou mot de passe incorrect") {
+      return res.status(401).json({ message: error.message });
+    }
+
+    if (error.message === "Veuillez d'abord vérifier votre adresse email") {
+      return res.status(400).json({ message: error.message });
+    }
+
+    // Erreurs techniques - passer au middleware d'erreur
+    console.error("Controller: Erreur lors de l'envoi OTP:", error);
+    next(error);
+  }
+};
+
+/**
+ * Connexion avec OTP
+ */
+export const signinWithOTP = async (req, res, next) => {
+  try {
+    const { email, otp } = req.validatedData;
+
+    console.log("Controller: Tentative de connexion OTP pour:", email);
+
+    const { user, accessToken, refreshToken } = await authenticateUserWithOTP(
+      email,
+      otp
+    );
+
+    // Gérer le cookie refresh token
+    setRefreshTokenCookie(res, refreshToken);
+
+    res.status(200).json({
+      token: accessToken,
+      user,
+    });
+  } catch (error) {
+    // Gestion des erreurs métier du service
+    if (error.message === "Email ou code incorrect") {
+      return res.status(401).json({ message: error.message });
+    }
+
+    if (error.message === "Veuillez d'abord vérifier votre adresse email") {
+      return res.status(400).json({ message: error.message });
+    }
+
+    if (error.message === "Code incorrect ou expiré") {
+      return res.status(401).json({ message: error.message });
+    }
+
+    // Erreurs techniques - passer au middleware d'erreur
+    console.error("Controller: Erreur lors de la connexion OTP:", error);
+    next(error);
+  }
+};
+
+/**
+ * Vérifie l'OTP d'inscription
+ */
+export const verifyEmail = async (req, res, next) => {
+  try {
+    const { email, otp } = req.validatedData;
+
+    console.log("Controller: Vérification email pour:", email);
+
+    const result = await verifyEmailOTP(email, otp);
+
+    res.status(200).json({
+      message: result.message,
+      user: result.user,
+    });
+  } catch (error) {
+    // Gestion des erreurs métier du service
+    if (error.message === "Email ou code incorrect") {
+      return res.status(401).json({ message: error.message });
+    }
+
+    if (error.message === "Cet email est déjà vérifié") {
+      return res.status(400).json({ message: error.message });
+    }
+
+    if (error.message === "Code incorrect ou expiré") {
+      return res.status(401).json({ message: error.message });
+    }
+
+    // Erreurs techniques - passer au middleware d'erreur
+    console.error("Controller: Erreur lors de la vérification email:", error);
+    next(error);
+  }
+};
+
+/**
+ * Renvoie un OTP de vérification
+ */
+export const resendVerification = async (req, res, next) => {
+  try {
+    const { email } = req.validatedData;
+
+    console.log("Controller: Renvoi OTP de vérification pour:", email);
+
+    const result = await resendVerificationOTP(email);
+
+    res.status(200).json({
+      message: result.message,
+      email: result.email,
+    });
+  } catch (error) {
+    // Gestion des erreurs métier du service
+    if (error.message === "Email incorrect") {
+      return res.status(400).json({ message: error.message });
+    }
+
+    if (error.message === "Cet email est déjà vérifié") {
+      return res.status(400).json({ message: error.message });
+    }
+
+    // Erreurs techniques - passer au middleware d'erreur
+    console.error("Controller: Erreur lors du renvoi OTP:", error);
     next(error);
   }
 };

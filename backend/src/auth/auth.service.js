@@ -16,6 +16,11 @@ import {
   findByIdLite,
   isEmailTaken,
 } from "./auth.repository.js";
+import {
+  sendVerificationEmail,
+  sendOTPEmail,
+  verifyAndConsumeToken,
+} from "../email/index.js";
 import jwt from "jsonwebtoken";
 
 /**
@@ -172,6 +177,23 @@ export const createUser = async (userData, role) => {
 
     await client.query("COMMIT");
 
+    // Envoyer l'email de vérification avec OTP
+    try {
+      await sendVerificationEmail({
+        id: user.id,
+        email: user.email,
+        nom: user.nom,
+        prenom: user.prenom,
+        role: user.role,
+      });
+    } catch (emailError) {
+      console.error(
+        "Erreur lors de l'envoi de l'email de vérification:",
+        emailError.message
+      );
+      // On ne fait pas échouer l'inscription si l'email échoue
+    }
+
     // Retourner l'utilisateur sans le mot de passe
     return {
       id: user.id,
@@ -180,6 +202,7 @@ export const createUser = async (userData, role) => {
       prenom: user.prenom,
       role: user.role,
       chemin_photo: user.chemin_photo || "",
+      email_verified: false, // L'utilisateur doit vérifier son email
     };
   } catch (error) {
     await client.query("ROLLBACK");
@@ -213,6 +236,12 @@ export const authenticateUser = async (email, password) => {
   if (!passwordMatch) {
     console.log("Service: Mot de passe invalide");
     throw new Error("Email ou mot de passe incorrect");
+  }
+
+  // Vérifier si l'email est vérifié
+  if (!user.email_verified) {
+    console.log("Service: Email non vérifié pour l'utilisateur:", user.id);
+    throw new Error("Veuillez d'abord vérifier votre adresse email");
   }
 
   // Supprimer les anciens tokens
@@ -359,4 +388,180 @@ export const getCurrentUser = async (userId) => {
  */
 export const isEmailAvailable = async (email) => {
   return !(await isEmailTaken(email));
+};
+
+/**
+ * Envoie un OTP pour la connexion
+ * @param {string} email - Email de l'utilisateur
+ * @returns {Promise<Object>} Informations sur l'envoi
+ */
+export const sendLoginOTP = async (email) => {
+  console.log("Service: Envoi OTP de connexion pour:", email);
+
+  // Vérifier si l'utilisateur existe
+  const user = await findByEmail(email);
+  if (!user) {
+    console.log("Service: Utilisateur non trouvé pour OTP");
+    throw new Error("Email ou mot de passe incorrect");
+  }
+
+  // Vérifier si l'email est vérifié
+  if (!user.email_verified) {
+    throw new Error("Veuillez d'abord vérifier votre adresse email");
+  }
+
+  // Envoyer l'OTP
+  await sendOTPEmail({
+    id: user.id,
+    email: user.email,
+    nom: user.nom,
+    prenom: user.prenom,
+    role: user.role,
+  });
+
+  return {
+    message: "Code de connexion envoyé par email",
+    email: user.email, // Pour confirmation côté client
+  };
+};
+
+/**
+ * Authentifie un utilisateur avec OTP
+ * @param {string} email - Email de l'utilisateur
+ * @param {string} otp - Code OTP
+ * @returns {Promise<Object>} { user, accessToken, refreshToken }
+ */
+export const authenticateUserWithOTP = async (email, otp) => {
+  console.log("Service: Tentative de connexion OTP pour:", email);
+
+  // Vérifier si l'utilisateur existe
+  const user = await findByEmail(email);
+  if (!user) {
+    console.log("Service: Utilisateur non trouvé");
+    throw new Error("Email ou code incorrect");
+  }
+
+  console.log("Service: Utilisateur trouvé:", { id: user.id, role: user.role });
+
+  // Vérifier si l'email est vérifié
+  if (!user.email_verified) {
+    throw new Error("Veuillez d'abord vérifier votre adresse email");
+  }
+
+  // Vérifier l'OTP
+  const otpValid = await verifyAndConsumeToken(user.id, "OTP_LOGIN", otp);
+  if (!otpValid) {
+    console.log("Service: OTP invalide");
+    throw new Error("Code incorrect ou expiré");
+  }
+
+  // Supprimer les anciens tokens
+  await invalidateAllRefreshTokens(user.id);
+
+  // Générer les tokens
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user.id);
+
+  // Stocker le refresh token en base
+  await storeRefreshToken(refreshToken, user.id);
+
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      nom: user.nom,
+      prenom: user.prenom,
+      role: user.role,
+      chemin_photo: user.chemin_photo || "",
+    },
+    accessToken,
+    refreshToken,
+  };
+};
+
+/**
+ * Vérifie l'OTP d'inscription et active le compte
+ * @param {string} email - Email de l'utilisateur
+ * @param {string} otp - Code OTP
+ * @returns {Promise<Object>} Informations sur la vérification
+ */
+export const verifyEmailOTP = async (email, otp) => {
+  console.log("Service: Vérification OTP d'inscription pour:", email);
+
+  // Vérifier si l'utilisateur existe
+  const user = await findByEmail(email);
+  if (!user) {
+    console.log("Service: Utilisateur non trouvé");
+    throw new Error("Email ou code incorrect");
+  }
+
+  // Vérifier si l'email est déjà vérifié
+  if (user.email_verified) {
+    throw new Error("Cet email est déjà vérifié");
+  }
+
+  // Vérifier l'OTP
+  const otpValid = await verifyAndConsumeToken(user.id, "EMAIL_VERIFY", otp);
+  if (!otpValid) {
+    console.log("Service: OTP invalide");
+    throw new Error("Code incorrect ou expiré");
+  }
+
+  // Activer le compte
+  await pool.query(
+    "UPDATE utilisateur SET email_verified = true WHERE id = $1",
+    [user.id]
+  );
+
+  console.log(
+    "Service: Email vérifié avec succès pour l'utilisateur:",
+    user.id
+  );
+
+  return {
+    message: "Email vérifié avec succès",
+    user: {
+      id: user.id,
+      email: user.email,
+      nom: user.nom,
+      prenom: user.prenom,
+      role: user.role,
+      email_verified: true,
+    },
+  };
+};
+
+/**
+ * Renvoie un OTP de vérification email
+ * @param {string} email - Email de l'utilisateur
+ * @returns {Promise<Object>} Informations sur l'envoi
+ */
+export const resendVerificationOTP = async (email) => {
+  console.log("Service: Renvoi OTP de vérification pour:", email);
+
+  // Vérifier si l'utilisateur existe
+  const user = await findByEmail(email);
+  if (!user) {
+    console.log("Service: Utilisateur non trouvé");
+    throw new Error("Email incorrect");
+  }
+
+  // Vérifier si l'email est déjà vérifié
+  if (user.email_verified) {
+    throw new Error("Cet email est déjà vérifié");
+  }
+
+  // Envoyer l'OTP de vérification
+  await sendVerificationEmail({
+    id: user.id,
+    email: user.email,
+    nom: user.nom,
+    prenom: user.prenom,
+    role: user.role,
+  });
+
+  return {
+    message: "Code de vérification renvoyé par email",
+    email: user.email,
+  };
 };
