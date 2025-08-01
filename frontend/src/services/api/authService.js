@@ -204,6 +204,79 @@ const authService = {
       throw error;
     }
   },
+
+  /**
+   * Demande de réinitialisation de mot de passe
+   * @param {string} email - Email de l'utilisateur
+   * @returns {Promise<Object>} Informations sur l'envoi de l'email
+   */
+  forgotPassword: async (email) => {
+    console.log("[Auth Service] Demande de réinitialisation de mot de passe", {
+      email,
+    });
+
+    try {
+      const response = await httpService.post("/auth/forgot-password", {
+        email,
+      });
+      console.log("[Auth Service] Email de réinitialisation envoyé");
+      return response.data;
+    } catch (error) {
+      console.error(
+        "[Auth Service] Erreur lors de la demande de réinitialisation:",
+        error
+      );
+      throw error;
+    }
+  },
+
+  /**
+   * Vérifie un token de réinitialisation
+   * @param {string} token - Token de réinitialisation
+   * @returns {Promise<Object>} Informations sur la validité du token
+   */
+  verifyResetToken: async (token) => {
+    console.log("[Auth Service] Vérification du token de réinitialisation");
+
+    try {
+      const response = await httpService.post("/auth/verify-reset-token", {
+        token,
+      });
+      console.log("[Auth Service] Token de réinitialisation vérifié");
+      return response.data;
+    } catch (error) {
+      console.error(
+        "[Auth Service] Erreur lors de la vérification du token:",
+        error
+      );
+      throw error;
+    }
+  },
+
+  /**
+   * Réinitialise le mot de passe
+   * @param {string} token - Token de réinitialisation
+   * @param {string} newPassword - Nouveau mot de passe
+   * @returns {Promise<Object>} Informations sur la réinitialisation
+   */
+  resetPassword: async (token, newPassword) => {
+    console.log("[Auth Service] Réinitialisation du mot de passe");
+
+    try {
+      const response = await httpService.post("/auth/reset-password", {
+        token,
+        newPassword,
+      });
+      console.log("[Auth Service] Mot de passe réinitialisé avec succès");
+      return response.data;
+    } catch (error) {
+      console.error(
+        "[Auth Service] Erreur lors de la réinitialisation:",
+        error
+      );
+      throw error;
+    }
+  },
 };
 
 export default authService;

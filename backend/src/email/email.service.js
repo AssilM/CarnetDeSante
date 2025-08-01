@@ -322,3 +322,44 @@ export const sendOTPEmail = async (user) => {
     throw new Error(`Erreur lors de l'envoi de l'email OTP: ${error.message}`);
   }
 };
+
+/**
+ * Envoie un email de réinitialisation de mot de passe
+ * @param {string} email - Email de l'utilisateur
+ * @param {string} resetToken - Token de réinitialisation
+ * @returns {Promise<Object>} Informations sur l'envoi
+ */
+export const sendPasswordResetEmail = async (email, resetToken) => {
+  try {
+    // Construire l'URL de réinitialisation
+    const resetUrl = `${
+      process.env.FRONTEND_URL || "http://localhost:5173"
+    }/auth/reset-password?token=${resetToken}`;
+
+    // Préparer les données du template
+    const templateData = {
+      resetUrl: resetUrl,
+      token: resetToken,
+      appName: "Carnet de Santé Virtuel",
+      supportEmail: "support@carnetdesante.fr",
+      expiryHours: 1, // Le token expire dans 1 heure
+    };
+
+    // Envoyer l'email avec le template
+    const result = await sendTemplateEmail(
+      email,
+      "Réinitialisation de mot de passe - Carnet de Santé",
+      "password-reset",
+      templateData
+    );
+
+    console.log("✅ Email de réinitialisation envoyé à:", email);
+    return result;
+  } catch (error) {
+    console.error(
+      "❌ Erreur lors de l'envoi de l'email de réinitialisation:",
+      error
+    );
+    throw error;
+  }
+};

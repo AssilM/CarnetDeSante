@@ -37,7 +37,7 @@ const cleanExpiredTokens = async () => {
 const cleanExpiredRefreshTokens = async () => {
   try {
     const result = await pool.query(`
-      DELETE FROM refresh_tokens
+      DELETE FROM refresh_token
       WHERE expires_at < NOW()
          OR (created_at < NOW() - INTERVAL '30 days')
     `);
@@ -58,33 +58,6 @@ const cleanExpiredRefreshTokens = async () => {
 };
 
 /**
- * Nettoie les sessions expirées
- * @returns {Promise<number>} Nombre de sessions supprimées
- */
-const cleanExpiredSessions = async () => {
-  try {
-    const result = await pool.query(`
-      DELETE FROM user_sessions
-      WHERE expires_at < NOW()
-         OR (last_activity < NOW() - INTERVAL '7 days')
-    `);
-
-    console.log(
-      "🧹 Cron cleanSessions ➜",
-      result.rowCount,
-      "sessions supprimées"
-    );
-    return result.rowCount;
-  } catch (error) {
-    console.error(
-      "❌ Erreur lors du nettoyage automatique des sessions:",
-      error.message
-    );
-    return 0;
-  }
-};
-
-/**
  * Fonction principale de nettoyage
  * Nettoie tous les types de données expirées
  */
@@ -93,9 +66,8 @@ const performCleanup = async () => {
 
   const tokensDeleted = await cleanExpiredTokens();
   const refreshTokensDeleted = await cleanExpiredRefreshTokens();
-  const sessionsDeleted = await cleanExpiredSessions();
 
-  const totalDeleted = tokensDeleted + refreshTokensDeleted + sessionsDeleted;
+  const totalDeleted = tokensDeleted + refreshTokensDeleted;
 
   if (totalDeleted > 0) {
     console.log(
