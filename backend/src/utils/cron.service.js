@@ -74,7 +74,6 @@ const performCleanup = async () => {
 
   const totalDeleted = tokensDeleted + refreshTokensDeleted + sessionsDeleted;
 
-
   if (totalDeleted > 0) {
     console.log(
       `✅ Nettoyage terminé ➜ ${totalDeleted} éléments supprimés au total`
