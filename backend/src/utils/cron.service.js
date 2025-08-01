@@ -1,5 +1,9 @@
 import cron from "node-cron";
 import pool from "../config/db.js";
+import {
+  sendHourlyReminders,
+  sendDailyReminders,
+} from "../email/appointment-reminder.service.js";
 
 /**
  * Service de nettoyage automatique des tokens expirés
@@ -60,7 +64,15 @@ const cleanExpiredRefreshTokens = async () => {
 };
 
 /**
+ * Nettoie les sessions expirées
+ * @returns {Promise<number>} Nombre de sessions supprimées
+ */
+const cleanExpiredSessions = async () => {
+  // Table user_sessions n'existe pas - fonction désactivée
+  return 0;
+};
 
+/**
  * Fonction principale de nettoyage
  * Nettoie tous les types de données expirées
  */
@@ -69,10 +81,9 @@ const performCleanup = async () => {
 
   const tokensDeleted = await cleanExpiredTokens();
   const refreshTokensDeleted = await cleanExpiredRefreshTokens();
+  // const sessionsDeleted = await cleanExpiredSessions(); // Désactivé - table inexistante
 
-  const sessionsDeleted = await cleanExpiredSessions();
-
-  const totalDeleted = tokensDeleted + refreshTokensDeleted + sessionsDeleted;
+  const totalDeleted = tokensDeleted + refreshTokensDeleted;
 
   if (totalDeleted > 0) {
     console.log(
@@ -108,9 +119,42 @@ export const initCronJobs = () => {
     }
   );
 
+  // Rappels de rendez-vous toutes les 5 minutes (pour les RDV dans l'heure)
+  cron.schedule(
+    "*/5 * * * *",
+    async () => {
+      console.log("📧 Vérification des rappels de rendez-vous...");
+      const result = await sendHourlyReminders();
+      if (result.sent > 0) {
+        console.log(`📧 Rappels envoyés: ${result.sent}/${result.total}`);
+      }
+    },
+    {
+      scheduled: true,
+      timezone: "Europe/Paris",
+    }
+  );
+
+  // Rappels quotidiens désactivés - logique unifiée dans sendHourlyReminders
+  // cron.schedule(
+  //   "0 9 * * *",
+  //   async () => {
+  //     console.log("📧 Rappels quotidiens de rendez-vous...");
+  //     const result = await sendDailyReminders();
+  //     console.log(
+  //       `📧 Rappels quotidiens: ${result.sent}/${result.total} envoyés`
+  //     );
+  //   },
+  //   {
+  //     scheduled: true,
+  //     timezone: "Europe/Paris",
+  //   }
+  // );
+
   console.log("✅ Tâches cron initialisées:");
   console.log("   - Nettoyage automatique: toutes les 15 minutes");
   console.log("   - Nettoyage quotidien: 2h00 du matin");
+  console.log("   - Rappels RDV 24h: toutes les 5 minutes");
 };
 
 /**
@@ -128,4 +172,24 @@ export const stopCronJobs = () => {
 export const testCleanup = async () => {
   console.log("🧪 Test du nettoyage manuel...");
   await performCleanup();
+};
+
+/**
+ * Fonction pour tester les rappels horaires manuellement
+ */
+export const testHourlyReminders = async () => {
+  console.log("🧪 Test des rappels horaires manuel...");
+  const result = await sendHourlyReminders();
+  console.log(`📧 Résultat: ${result.sent}/${result.total} rappels envoyés`);
+  return result;
+};
+
+/**
+ * Fonction pour tester les rappels quotidiens manuellement
+ */
+export const testDailyReminders = async () => {
+  console.log("🧪 Test des rappels quotidiens manuel...");
+  const result = await sendDailyReminders();
+  console.log(`📧 Résultat: ${result.sent}/${result.total} rappels envoyés`);
+  return result;
 };
