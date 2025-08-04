@@ -7,10 +7,12 @@
   </head>
   <body
     style="
-      font-family: Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+        sans-serif;
       margin: 0;
       padding: 0;
-      background-color: #e0effe;
+      background-color: #f5f7fa;
+      line-height: 1.6;
     "
   >
     <div
@@ -18,223 +20,349 @@
         max-width: 600px;
         margin: 20px auto;
         background-color: #ffffff;
-        border-radius: 8px;
+        border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
       "
     >
+      <!-- Header avec logo et titre -->
       <div
         style="
-          background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
           color: white;
-          padding: 30px;
+          padding: 40px 30px;
           text-align: center;
         "
       >
-        <div style="font-size: 24px; font-weight: bold; margin-bottom: 10px">
-          ⏰
-        </div>
-        <h1 style="margin: 0; font-size: 28px; font-weight: 300">
-          Rappel de Rendez-vous
+        <div style="font-size: 48px; margin-bottom: 20px">⏰</div>
+        <h1
+          style="
+            margin: 0;
+            font-size: 32px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+          "
+        >
+          Rappel de rendez-vous
         </h1>
+        <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9">
+          Votre rendez-vous approche
+        </p>
       </div>
 
+      <!-- Contenu principal -->
       <div style="padding: 40px 30px">
-        <div style="font-size: 18px; margin-bottom: 25px; color: #555">
-          Bonjour <strong>{{patientName}}</strong>,<br />
-          Ceci est un rappel pour votre rendez-vous demain !
-        </div>
-
+        <!-- Message d'introduction -->
         <div
           style="
-            background-color: #fff3cd;
-            border: 2px solid #ffeaa7;
+            background-color: #fef3c7;
+            border: 1px solid #f59e0b;
             border-radius: 8px;
-            padding: 25px;
-            margin: 25px 0;
+            padding: 20px;
+            margin-bottom: 30px;
           "
         >
-          <h2 style="margin-top: 0; color: #856404; text-align: center">
-            Votre Rendez-vous
-          </h2>
+          <div style="display: flex; align-items: center; margin-bottom: 10px">
+            <span style="font-size: 20px; margin-right: 10px">👋</span>
+            <span style="font-weight: 600; color: #92400e"
+              >Bonjour {{patientName}}</span
+            >
+          </div>
+          <p style="margin: 0; color: #92400e; font-size: 16px">
+            Ceci est un rappel pour votre rendez-vous qui approche !
+          </p>
+        </div>
 
-          <div
+        <!-- Détails du rendez-vous -->
+        <div
+          style="
+            background-color: #f8fafc;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #e2e8f0;
+          "
+        >
+          <h2
             style="
-              margin: 20px 0;
-              padding: 20px;
-              background-color: #ffffff;
-              border-radius: 8px;
-              border-left: 4px solid #ff6b35;
+              margin: 0 0 25px 0;
+              color: #1e293b;
+              font-size: 20px;
+              font-weight: 600;
             "
           >
-            <div
-              style="display: flex; align-items: center; margin-bottom: 15px"
-            >
-              <span style="font-size: 20px; margin-right: 10px">👨‍⚕️</span>
-              <div>
-                <strong style="color: #333">Médecin :</strong><br />
-                <span style="color: #666">Dr {{medecinName}}</span><br />
-                <span style="color: #1366e7; font-size: 14px"
-                  >{{specialite}}</span
-                >
-              </div>
-            </div>
+            Votre rendez-vous
+          </h2>
 
-            <div
-              style="display: flex; align-items: center; margin-bottom: 15px"
-            >
-              <span style="font-size: 20px; margin-right: 10px">📅</span>
-              <div>
-                <strong style="color: #333">Date :</strong><br />
-                <span style="color: #666">{{appointmentDate}}</span>
+          <!-- Date -->
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              margin-bottom: 20px;
+              padding: 15px;
+              background-color: white;
+              border-radius: 8px;
+              border: 1px solid #e2e8f0;
+            "
+          >
+            <div style="font-size: 24px; margin-right: 15px; color: #f59e0b">
+              📅
+            </div>
+            <div>
+              <div style="font-weight: 600; color: #1e293b; margin-bottom: 4px">
+                Date
+              </div>
+              <div style="color: #64748b; font-size: 16px">
+                {{appointmentDate}}
               </div>
             </div>
-
-            <div
-              style="display: flex; align-items: center; margin-bottom: 15px"
-            >
-              <span style="font-size: 20px; margin-right: 10px">🕐</span>
-              <div>
-                <strong style="color: #333">Heure :</strong><br />
-                <span style="color: #666">{{appointmentTime}}</span>
-              </div>
-            </div>
-
-            <div
-              style="display: flex; align-items: center; margin-bottom: 15px"
-            >
-              <span style="font-size: 20px; margin-right: 10px">⏱️</span>
-              <div>
-                <strong style="color: #333">Durée :</strong><br />
-                <span style="color: #666">{{duration}} minutes</span>
-              </div>
-            </div>
-
-            {{#if motif}}
-            <div
-              style="display: flex; align-items: center; margin-bottom: 15px"
-            >
-              <span style="font-size: 20px; margin-right: 10px">📝</span>
-              <div>
-                <strong style="color: #333">Motif :</strong><br />
-                <span style="color: #666">{{motif}}</span>
-              </div>
-            </div>
-            {{/if}} {{#if adresse}}
-            <div
-              style="display: flex; align-items: center; margin-bottom: 15px"
-            >
-              <span style="font-size: 20px; margin-right: 10px">📍</span>
-              <div>
-                <strong style="color: #333">Adresse :</strong><br />
-                <span style="color: #666">{{adresse}}</span>
-              </div>
-            </div>
-            {{/if}}
           </div>
 
-          <div style="text-align: center; margin-top: 25px">
-            <div
-              style="
-                background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
-                color: white;
-                padding: 15px;
-                border-radius: 8px;
-                display: inline-block;
-              "
-            >
-              <strong>⏰ Rendez-vous dans 24h</strong>
+          <!-- Heure -->
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              margin-bottom: 20px;
+              padding: 15px;
+              background-color: white;
+              border-radius: 8px;
+              border: 1px solid #e2e8f0;
+            "
+          >
+            <div style="font-size: 24px; margin-right: 15px; color: #f59e0b">
+              🕐
+            </div>
+            <div>
+              <div style="font-weight: 600; color: #1e293b; margin-bottom: 4px">
+                Heure
+              </div>
+              <div style="color: #64748b; font-size: 16px">
+                {{appointmentTime}}
+              </div>
             </div>
           </div>
+
+          <!-- Médecin -->
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              margin-bottom: 20px;
+              padding: 15px;
+              background-color: white;
+              border-radius: 8px;
+              border: 1px solid #e2e8f0;
+            "
+          >
+            <div style="font-size: 24px; margin-right: 15px; color: #f59e0b">
+              👨‍⚕️
+            </div>
+            <div>
+              <div style="font-weight: 600; color: #1e293b; margin-bottom: 4px">
+                Médecin
+              </div>
+              <div style="color: #64748b; font-size: 16px">
+                Dr {{medecinName}}
+              </div>
+              <div style="color: #2563eb; font-size: 14px; margin-top: 2px">
+                {{specialite}}
+              </div>
+            </div>
+          </div>
+
+          <!-- Adresse -->
+          {{#if adresse}}
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              margin-bottom: 20px;
+              padding: 15px;
+              background-color: white;
+              border-radius: 8px;
+              border: 1px solid #e2e8f0;
+            "
+          >
+            <div style="font-size: 24px; margin-right: 15px; color: #f59e0b">
+              📍
+            </div>
+            <div>
+              <div style="font-weight: 600; color: #1e293b; margin-bottom: 4px">
+                Adresse
+              </div>
+              <div style="color: #64748b; font-size: 16px">{{adresse}}</div>
+            </div>
+          </div>
+          {{/if}}
+
+          <!-- Motif -->
+          {{#if motif}}
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              padding: 15px;
+              background-color: white;
+              border-radius: 8px;
+              border: 1px solid #e2e8f0;
+            "
+          >
+            <div style="font-size: 24px; margin-right: 15px; color: #f59e0b">
+              📋
+            </div>
+            <div>
+              <div style="font-weight: 600; color: #1e293b; margin-bottom: 4px">
+                Motif
+              </div>
+              <div style="color: #64748b; font-size: 16px">{{motif}}</div>
+            </div>
+          </div>
+          {{/if}}
         </div>
 
+        <!-- Boutons d'action -->
+        <div style="text-align: center; margin: 30px 0">
+          <a
+            href="http://localhost:5173/appointments"
+            style="
+              display: inline-block;
+              background-color: #f59e0b;
+              color: white;
+              text-decoration: none;
+              padding: 16px 32px;
+              border-radius: 8px;
+              font-weight: 600;
+              font-size: 16px;
+              margin-bottom: 12px;
+              width: 100%;
+              box-sizing: border-box;
+            "
+          >
+            📋 AFFICHER LES DÉTAILS
+          </a>
+
+          <a
+            href="data:text/calendar;charset=utf8,BEGIN:VCALENDAR%0D%0AVERSION:2.0%0D%0ABEGIN:VEVENT%0D%0AURL:{{appointmentUrl}}%0D%0ADTSTART:{{appointmentDateTime}}%0D%0ADTEND:{{appointmentEndTime}}%0D%0ASUMMARY:Rendez-vous avec Dr {{medecinName}}%0D%0ADESCRIPTION:{{motif}}%0D%0ALOCATION:{{adresse}}%0D%0AEND:VEVENT%0D%0AEND:VCALENDAR"
+            style="
+              display: inline-block;
+              background-color: white;
+              color: #f59e0b;
+              text-decoration: none;
+              padding: 16px 32px;
+              border-radius: 8px;
+              font-weight: 600;
+              font-size: 16px;
+              border: 2px solid #f59e0b;
+              width: 100%;
+              box-sizing: border-box;
+            "
+          >
+            📅 AJOUTER À MON AGENDA
+          </a>
+        </div>
+
+        <!-- Section rappels importants -->
         <div
           style="
-            margin-top: 30px;
-            padding: 20px;
-            background-color: #e8f4fd;
+            background-color: #dbeafe;
+            border: 1px solid #3b82f6;
             border-radius: 8px;
-            border-left: 4px solid #1366e7;
+            padding: 20px;
+            margin-top: 30px;
           "
         >
-          <h4 style="margin-top: 0; color: #1366e7">
-            Préparatifs recommandés :
-          </h4>
-          <ul style="color: #555; line-height: 1.8">
-            <li>📋 Préparez vos questions pour le médecin</li>
-            <li>📄 Apportez vos documents médicaux récents</li>
-            <li>💊 Notez vos traitements en cours</li>
-            <li>⏰ Prévoyez d'arriver 10 minutes à l'avance</li>
-            <li>📱 Gardez votre téléphone à portée de main</li>
+          <h3
+            style="
+              margin: 0 0 15px 0;
+              color: #1e40af;
+              font-size: 16px;
+              font-weight: 600;
+            "
+          >
+            💡 Rappels importants
+          </h3>
+          <ul
+            style="
+              margin: 0;
+              padding-left: 20px;
+              color: #1e40af;
+              font-size: 14px;
+              line-height: 1.6;
+            "
+          >
+            <li style="margin-bottom: 8px">
+              Arrivez 10 minutes avant l'heure du rendez-vous
+            </li>
+            <li style="margin-bottom: 8px">
+              Apportez vos documents médicaux si nécessaire
+            </li>
+            <li style="margin-bottom: 8px">
+              Pensez à votre carte vitale et mutuelle
+            </li>
+            <li style="margin-bottom: 0">
+              Vous pouvez annuler jusqu'à 24h avant le rendez-vous
+            </li>
           </ul>
         </div>
 
+        <!-- Section annulation -->
         <div
           style="
-            margin-top: 30px;
-            padding: 20px;
-            background-color: #f8d7da;
+            background-color: #fef2f2;
+            border: 1px solid #ef4444;
             border-radius: 8px;
-            border-left: 4px solid #dc3545;
+            padding: 20px;
+            margin-top: 20px;
           "
         >
-          <h4 style="margin-top: 0; color: #dc3545">Si vous devez annuler :</h4>
-          <p style="color: #721c24; margin-bottom: 15px">
-            Vous pouvez annuler votre rendez-vous jusqu'à 24h avant l'heure
-            prévue. Au-delà de ce délai, merci de contacter directement le
-            cabinet.
+          <h3
+            style="
+              margin: 0 0 10px 0;
+              color: #991b1b;
+              font-size: 16px;
+              font-weight: 600;
+            "
+          >
+            ⚠️ Un imprévu ?
+          </h3>
+          <p
+            style="margin: 0; color: #991b1b; font-size: 14px; line-height: 1.5"
+          >
+            Si vous ne pouvez pas venir, annulez votre rendez-vous dès que
+            possible.
           </p>
           <a
             href="{{cancelUrl}}"
             style="
               display: inline-block;
-              background: #dc3545;
-              color: white;
+              color: #dc2626;
               text-decoration: none;
-              padding: 10px 20px;
-              border-radius: 5px;
-              font-size: 14px;
-            "
-          >
-            Annuler le Rendez-vous
-          </a>
-        </div>
-
-        <div style="margin-top: 30px; text-align: center">
-          <a
-            href="{{appointmentUrl}}"
-            style="
-              display: inline-block;
-              background: linear-gradient(135deg, #1366e7 0%, #0d4aa3 100%);
-              color: white;
-              text-decoration: none;
-              padding: 15px 30px;
-              border-radius: 25px;
               font-weight: 600;
-              font-size: 16px;
+              font-size: 14px;
+              margin-top: 10px;
             "
           >
-            Voir le Détail du Rendez-vous
+            🚫 Annuler le rendez-vous
           </a>
         </div>
       </div>
 
+      <!-- Footer -->
       <div
         style="
-          background-color: #f8f9fa;
-          padding: 20px 30px;
+          background-color: #f8fafc;
+          padding: 30px;
           text-align: center;
-          border-top: 1px solid #e9ecef;
+          border-top: 1px solid #e2e8f0;
         "
       >
-        <p style="margin: 5px 0; font-size: 12px; color: #666">
-          Cet email a été envoyé automatiquement par Carnet de Santé Virtuel
+        <p style="margin: 0; color: #64748b; font-size: 14px">
+          Cet email a été envoyé automatiquement par le système Carnet de Santé.
         </p>
-        <p style="margin: 5px 0; font-size: 12px; color: #666">
-          Si vous avez des questions, contactez notre support
-        </p>
-        <p style="margin: 5px 0; font-size: 12px; color: #666">
-          © 2024 Carnet de Santé Virtuel - Tous droits réservés
+        <p style="margin: 10px 0 0 0; color: #64748b; font-size: 14px">
+          Pour toute question, contactez votre médecin.
         </p>
       </div>
     </div>
