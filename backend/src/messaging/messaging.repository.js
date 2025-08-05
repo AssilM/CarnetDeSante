@@ -49,8 +49,10 @@ class MessagingRepository {
       ...conversation,
       patient_nom: patient?.nom,
       patient_prenom: patient?.prenom,
+      patient_photo: patient?.chemin_photo,
       doctor_nom: doctor?.nom,
       doctor_prenom: doctor?.prenom,
+      doctor_photo: doctor?.chemin_photo,
     };
   }
 
@@ -63,7 +65,7 @@ class MessagingRepository {
                (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id AND m.is_read = false AND m.sender_id != $1) as unread_count,
                (SELECT content FROM messages m WHERE m.conversation_id = c.id ORDER BY m.sent_at DESC LIMIT 1) as last_message
         FROM conversations c
-        WHERE c.patient_id = $1
+        WHERE c.patient_id = $1 AND c.status = 'active'
         ORDER BY c.updated_at DESC
       `;
     } else if (userRole === "medecin") {
@@ -72,7 +74,7 @@ class MessagingRepository {
                (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id AND m.is_read = false AND m.sender_id != $1) as unread_count,
                (SELECT content FROM messages m WHERE m.conversation_id = c.id ORDER BY m.sent_at DESC LIMIT 1) as last_message
         FROM conversations c
-        WHERE c.doctor_id = $1
+        WHERE c.doctor_id = $1 AND c.status = 'active'
         ORDER BY c.updated_at DESC
       `;
     } else {
@@ -134,6 +136,68 @@ class MessagingRepository {
     `;
     const { rows } = await chatPool.query(query, [patientId, doctorId]);
     return rows.length > 0 ? rows[0].id : null;
+  }
+
+  // Archiver une conversation
+  async archiveConversation(conversationId, userId, userRole) {
+    // Vérifier que l'utilisateur a accès à cette conversation
+    const conversation = await this.getConversationById(conversationId);
+    if (!conversation) {
+      throw new Error("Conversation non trouvée");
+    }
+
+    // Vérifier les permissions
+    if (userRole === "patient" && conversation.patient_id !== userId) {
+      throw new Error("Accès non autorisé à cette conversation");
+    }
+    if (userRole === "medecin" && conversation.doctor_id !== userId) {
+      throw new Error("Accès non autorisé à cette conversation");
+    }
+
+    const query = `
+      UPDATE conversations 
+      SET status = 'archived', updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING *
+    `;
+    const { rows } = await chatPool.query(query, [conversationId]);
+    return rows[0];
+  }
+
+  // Réactiver une conversation archivée
+  async reactivateConversation(conversationId, userId, userRole) {
+    // Vérifier que l'utilisateur a accès à cette conversation
+    const conversation = await this.getConversationById(conversationId);
+    if (!conversation) {
+      throw new Error("Conversation non trouvée");
+    }
+
+    // Vérifier les permissions
+    if (userRole === "patient" && conversation.patient_id !== userId) {
+      throw new Error("Accès non autorisé à cette conversation");
+    }
+    if (userRole === "medecin" && conversation.doctor_id !== userId) {
+      throw new Error("Accès non autorisé à cette conversation");
+    }
+
+    const query = `
+      UPDATE conversations 
+      SET status = 'active', updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING *
+    `;
+    const { rows } = await chatPool.query(query, [conversationId]);
+    return rows[0];
+  }
+
+  // Vérifier si une conversation archivée existe entre patient et médecin
+  async getArchivedConversation(patientId, doctorId) {
+    const query = `
+      SELECT * FROM conversations 
+      WHERE patient_id = $1 AND doctor_id = $2 AND status = 'archived'
+    `;
+    const { rows } = await chatPool.query(query, [patientId, doctorId]);
+    return rows.length > 0 ? rows[0] : null;
   }
 
   // Mettre à jour le timestamp du dernier message

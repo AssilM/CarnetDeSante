@@ -101,6 +101,22 @@ const createMessagingService = (httpClient) => {
       );
       return response.data;
     },
+
+    // Archiver une conversation
+    async archiveConversation(conversationId) {
+      const response = await httpClient.post(
+        `/messaging/conversations/${conversationId}/archive`
+      );
+      return response.data;
+    },
+
+    // Réactiver une conversation
+    async reactivateConversation(conversationId) {
+      const response = await httpClient.post(
+        `/messaging/conversations/${conversationId}/reactivate`
+      );
+      return response.data;
+    },
   };
 };
 

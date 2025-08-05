@@ -9,6 +9,8 @@ import {
   getAvailableUsersService,
   validateConversationAccessService,
   validateUserRelationshipService,
+  archiveConversationService,
+  reactivateConversationService,
 } from "./messaging.service.js";
 
 // === CONVERSATIONS ===
@@ -223,6 +225,46 @@ export const validateUserRelationship = async (req, res, next) => {
     res.status(200).json({
       success: true,
       hasRelationship,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const archiveConversation = async (req, res, next) => {
+  try {
+    const { conversationId } = req.params;
+
+    const archivedConversation = await archiveConversationService(
+      req.userId,
+      req.userRole,
+      parseInt(conversationId)
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Conversation archivée avec succès",
+      conversation: archivedConversation,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const reactivateConversation = async (req, res, next) => {
+  try {
+    const { conversationId } = req.params;
+
+    const reactivatedConversation = await reactivateConversationService(
+      req.userId,
+      req.userRole,
+      parseInt(conversationId)
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Conversation réactivée avec succès",
+      conversation: reactivatedConversation,
     });
   } catch (error) {
     next(error);

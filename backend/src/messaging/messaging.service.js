@@ -23,6 +23,19 @@ export const createConversationService = async (
       throw error;
     }
 
+    // Vérifier s'il existe une conversation archivée
+    const archivedConversation =
+      await messagingRepository.getArchivedConversation(userId, otherUserId);
+
+    if (archivedConversation) {
+      // Réactiver la conversation archivée
+      return await messagingRepository.reactivateConversation(
+        archivedConversation.id,
+        userId,
+        userRole
+      );
+    }
+
     return await messagingRepository.createConversation(userId, otherUserId);
   } else if (userRole === "medecin") {
     // Un médecin ne peut créer une conversation qu'avec un patient qu'il suit
@@ -37,6 +50,19 @@ export const createConversationService = async (
       );
       error.code = "RELATIONSHIP_REQUIRED";
       throw error;
+    }
+
+    // Vérifier s'il existe une conversation archivée
+    const archivedConversation =
+      await messagingRepository.getArchivedConversation(otherUserId, userId);
+
+    if (archivedConversation) {
+      // Réactiver la conversation archivée
+      return await messagingRepository.reactivateConversation(
+        archivedConversation.id,
+        userId,
+        userRole
+      );
     }
 
     return await messagingRepository.createConversation(otherUserId, userId);
@@ -265,4 +291,47 @@ export const validateUserRelationshipService = async (
     );
   }
   return false;
+};
+
+export const archiveConversationService = async (
+  userId,
+  userRole,
+  conversationId
+) => {
+  // Validation du rôle
+  if (!["patient", "medecin"].includes(userRole)) {
+    const error = new Error("Rôle non autorisé pour la messagerie");
+    error.code = "FORBIDDEN";
+    throw error;
+  }
+
+  const archivedConversation = await messagingRepository.archiveConversation(
+    conversationId,
+    userId,
+    userRole
+  );
+
+  return archivedConversation;
+};
+
+export const reactivateConversationService = async (
+  userId,
+  userRole,
+  conversationId
+) => {
+  // Validation du rôle
+  if (!["patient", "medecin"].includes(userRole)) {
+    const error = new Error("Rôle non autorisé pour la messagerie");
+    error.code = "FORBIDDEN";
+    throw error;
+  }
+
+  const reactivatedConversation =
+    await messagingRepository.reactivateConversation(
+      conversationId,
+      userId,
+      userRole
+    );
+
+  return reactivatedConversation;
 };

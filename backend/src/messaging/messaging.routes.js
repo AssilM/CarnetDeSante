@@ -10,6 +10,8 @@ import {
   getAvailableUsers,
   validateConversationAccess,
   validateUserRelationship,
+  archiveConversation,
+  reactivateConversation,
 } from "./messaging.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
 import messagingRepository from "./messaging.repository.js";
@@ -34,6 +36,15 @@ router.get("/conversations/:conversationId", getConversationById);
 router.get(
   "/conversations/:conversationId/validate",
   validateConversationAccess
+);
+
+// Archiver une conversation
+router.post("/conversations/:conversationId/archive", archiveConversation);
+
+// Réactiver une conversation
+router.post(
+  "/conversations/:conversationId/reactivate",
+  reactivateConversation
 );
 
 // === ROUTES DE MESSAGES ===

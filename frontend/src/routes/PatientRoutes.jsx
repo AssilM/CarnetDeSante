@@ -384,7 +384,7 @@ const PatientRoutes = [
     path="/messagerie"
     element={
       <ProtectedRoute>
-        <MainLayout>
+        <MainLayout hideFooter={true}>
           <Messagerie />
         </MainLayout>
       </ProtectedRoute>
