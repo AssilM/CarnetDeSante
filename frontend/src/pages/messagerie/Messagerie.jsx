@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useAppContext } from "../../context/AppContext";
 import { createMessagingService } from "../../services/api";
@@ -14,6 +14,8 @@ import {
   FaComments,
   FaInbox,
   FaTrash,
+  FaCheck,
+  FaCheckDouble,
 } from "react-icons/fa";
 
 const messagingService = createMessagingService(httpService);
@@ -31,6 +33,10 @@ const Messagerie = () => {
   const [showContactModal, setShowContactModal] = useState(false);
   const [error, setError] = useState(null);
   const [refreshingConversation, setRefreshingConversation] = useState(false);
+  const [expandedMessages, setExpandedMessages] = useState(new Set());
+  const [typingUsers, setTypingUsers] = useState(new Set());
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef(null);
 
   // Afficher l'erreur si elle existe
   useEffect(() => {
@@ -48,6 +54,11 @@ const Messagerie = () => {
 
       // Écouter les événements WebSocket
       messagingSocket.on("new_message", handleNewMessage);
+      messagingSocket.on("messages_read", handleMessageRead);
+      messagingSocket.on("room_joined", handleRoomJoined);
+      messagingSocket.on("user_joined_room", handleUserJoinedRoom);
+      messagingSocket.on("typing_start", handleTypingStart);
+      messagingSocket.on("typing_stop", handleTypingStop);
       messagingSocket.on("error", handleSocketError);
       messagingSocket.on("connect", () => {
         console.log("✅ WebSocket connecté - mise à jour de l'état");
@@ -67,9 +78,19 @@ const Messagerie = () => {
 
       return () => {
         messagingSocket.off("new_message", handleNewMessage);
+        messagingSocket.off("messages_read", handleMessageRead);
+        messagingSocket.off("room_joined", handleRoomJoined);
+        messagingSocket.off("user_joined_room", handleUserJoinedRoom);
+        messagingSocket.off("typing_start", handleTypingStart);
+        messagingSocket.off("typing_stop", handleTypingStop);
         messagingSocket.off("error", handleSocketError);
         messagingSocket.off("connect");
         messagingSocket.off("disconnect");
+
+        // Cleanup du timeout de frappe
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
       };
     }
   }, [currentUser, conversations]);
@@ -79,13 +100,13 @@ const Messagerie = () => {
     loadConversations();
   }, []);
 
-  // Auto-scroll vers le bas quand de nouveaux messages arrivent
+  // Auto-scroll vers le bas quand de nouveaux messages arrivent ou quand l'indicateur de frappe apparaît
   useEffect(() => {
     const messagesContainer = document.querySelector(".messages-container");
     if (messagesContainer) {
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, typingUsers]);
 
   // Gérer les nouveaux messages
   const handleNewMessage = (messageData) => {
@@ -102,6 +123,11 @@ const Messagerie = () => {
     ) {
       // Ajouter le message à la liste locale pour l'affichage dans le chat principal
       setMessages((prev) => [...prev, messageData.message]);
+
+      // Marquer automatiquement comme lus si on a la conversation ouverte
+      setTimeout(() => {
+        messagingSocket.markAsRead(messageData.conversationId);
+      }, 100);
     }
 
     // Mettre à jour la conversation dans la liste (pour tous les cas)
@@ -127,6 +153,121 @@ const Messagerie = () => {
   const handleSocketError = (error) => {
     console.error("Erreur WebSocket:", error);
     setSocketConnected(false);
+  };
+
+  // Gérer la mise à jour du statut de lecture d'un message
+  const handleMessageRead = (data) => {
+    console.log("✅ Messages marqués comme lus:", data);
+
+    // Si c'est l'autre utilisateur qui a lu nos messages, mettre à jour tous nos messages non lus
+    if (data.userId !== currentUser.id) {
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) => {
+          // Marquer comme lu tous nos messages qui ne sont pas encore lus
+          if (msg.sender_id === currentUser.id && !msg.is_read) {
+            return { ...msg, is_read: true };
+          }
+          return msg;
+        })
+      );
+    }
+  };
+
+  // Gérer l'événement de rejoindre une room
+  const handleRoomJoined = (data) => {
+    console.log("🏠 Room rejointe:", data.conversationId);
+
+    // Marquer automatiquement les messages comme lus quand on rejoint une room
+    if (data.conversationId === selectedConversation?.id) {
+      messagingSocket.markAsRead(data.conversationId);
+    }
+  };
+
+  // Gérer l'événement quand un autre utilisateur rejoint la room
+  const handleUserJoinedRoom = (data) => {
+    console.log("👤 Utilisateur rejoint la room:", data);
+
+    // Si l'autre utilisateur rejoint la room et qu'on a la conversation ouverte,
+    // marquer nos messages comme lus
+    if (
+      data.conversationId === selectedConversation?.id &&
+      data.userId !== currentUser.id
+    ) {
+      setTimeout(() => {
+        messagingSocket.markAsRead(data.conversationId);
+      }, 200);
+    }
+  };
+
+  // Gérer le début de frappe
+  const handleTypingStart = (data) => {
+    console.log("⌨️ Début de frappe:", data);
+    if (data.userId !== currentUser.id) {
+      setTypingUsers((prev) => new Set([...prev, data.userId]));
+    }
+  };
+
+  // Gérer l'arrêt de frappe
+  const handleTypingStop = (data) => {
+    console.log("⏹️ Arrêt de frappe:", data);
+    if (data.userId !== currentUser.id) {
+      setTypingUsers((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(data.userId);
+        return newSet;
+      });
+    }
+  };
+
+  // Fonction optimisée pour gérer la frappe avec debounce
+  const handleTyping = () => {
+    if (!selectedConversation) return;
+
+    // Si on n'est pas déjà en train d'écrire, envoyer l'événement de début
+    if (!isTyping) {
+      setIsTyping(true);
+      messagingSocket.startTyping(selectedConversation.id);
+    }
+
+    // Clear le timeout précédent
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Définir un nouveau timeout pour arrêter l'indicateur
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      messagingSocket.stopTyping(selectedConversation.id);
+    }, 7000); // Arrêter après 7 secondes d'inactivité
+  };
+
+  // Composant pour l'indicateur de frappe
+  const TypingIndicator = () => {
+    const otherUserTyping = Array.from(typingUsers).some(
+      (userId) => userId !== currentUser.id
+    );
+
+    if (!otherUserTyping) return null;
+
+    return (
+      <div className="flex justify-start mb-4">
+        <div className="bg-gray-200 text-gray-900 px-4 py-2 rounded-2xl shadow-sm">
+          <div className="flex items-center space-x-1">
+            <div className="flex space-x-1">
+              <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+              <div
+                className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                style={{ animationDelay: "0.1s" }}
+              ></div>
+              <div
+                className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                style={{ animationDelay: "0.2s" }}
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // Charger les conversations
@@ -195,8 +336,10 @@ const Messagerie = () => {
       // Rejoindre la room WebSocket
       messagingSocket.joinRoom(conversationId);
 
-      // Marquer les messages comme lus via WebSocket
-      messagingSocket.markAsRead(conversationId);
+      // Marquer les messages comme lus via WebSocket (avec un délai pour s'assurer que la room est rejointe)
+      setTimeout(() => {
+        messagingSocket.markAsRead(conversationId);
+      }, 500);
     } catch (err) {
       console.error("Erreur lors du chargement des messages:", err);
     }
@@ -229,6 +372,9 @@ const Messagerie = () => {
 
       // Vider le champ de saisie immédiatement pour une meilleure UX
       setMessage("");
+
+      // Arrêter l'indicateur de frappe
+      messagingSocket.stopTyping(selectedConversation.id);
 
       // Envoyer via WebSocket (le serveur WebSocket gère la création en base)
       messagingSocket.sendMessage(selectedConversation.id, tempMessage.content);
@@ -366,6 +512,98 @@ const Messagerie = () => {
     }
   };
 
+  // Gérer l'expansion/réduction d'un message
+  const toggleMessageExpansion = (messageId) => {
+    setExpandedMessages((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+      }
+      return newSet;
+    });
+  };
+
+  // Déterminer le statut de lecture d'un message
+  const getMessageStatus = (msg, isOwnMessage) => {
+    if (!isOwnMessage) return null; // Seulement pour nos propres messages
+
+    if (msg.is_read) {
+      return { icon: FaCheckDouble, color: "text-blue-200", title: "Lu" };
+    } else {
+      return { icon: FaCheck, color: "text-gray-300", title: "Envoyé" };
+    }
+  };
+
+  // Composant pour afficher un message avec gestion du texte long
+  const MessageBubble = ({ msg, isOwnMessage }) => {
+    const isExpanded = expandedMessages.has(msg.id);
+    const maxLength = 200; // Longueur maximale avant troncature
+    const isLongMessage = msg.content.length > maxLength;
+    const displayText = isExpanded
+      ? msg.content
+      : msg.content.substring(0, maxLength);
+    const needsTruncation = isLongMessage && !isExpanded;
+    const messageStatus = getMessageStatus(msg, isOwnMessage);
+
+    return (
+      <div
+        className={`max-w-[75%] md:max-w-md px-4 py-2 rounded-2xl ${
+          isOwnMessage
+            ? "bg-blue-500 text-white"
+            : "bg-white text-gray-900 shadow-sm"
+        }`}
+      >
+        <div className="whitespace-pre-wrap break-words">
+          {displayText}
+          {needsTruncation && (
+            <span
+              className={`text-lg font-bold ${
+                isOwnMessage ? "text-blue-200" : "text-gray-400"
+              } ml-1`}
+            >
+              ...
+            </span>
+          )}
+        </div>
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center space-x-2">
+            <p
+              className={`text-xs ${
+                isOwnMessage ? "text-blue-100" : "text-gray-400"
+              }`}
+            >
+              {formatDate(msg.sent_at)}
+            </p>
+            {messageStatus && (
+              <div
+                className="flex items-center space-x-1"
+                title={messageStatus.title}
+              >
+                <messageStatus.icon
+                  className={`text-xs ${messageStatus.color}`}
+                />
+              </div>
+            )}
+          </div>
+          {isLongMessage && (
+            <button
+              onClick={() => toggleMessageExpansion(msg.id)}
+              className={`px-3 py-1 text-sm font-medium rounded-full ${
+                isOwnMessage
+                  ? "bg-blue-400 text-white hover:bg-blue-300"
+                  : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+              } transition-colors shadow-sm`}
+            >
+              {isExpanded ? "Voir moins" : "Voir suite"}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
       className={`h-full bg-gray-50 transition-all duration-300 ${
@@ -427,9 +665,6 @@ const Messagerie = () => {
                     ? "Chargement..."
                     : getOtherUserName(selectedConversation)}
                 </h2>
-                <p className="text-xs text-gray-500">
-                  {socketConnected ? "En ligne" : "Hors ligne"}
-                </p>
               </div>
             </div>
           </div>
@@ -537,26 +772,13 @@ const Messagerie = () => {
                         : "justify-start"
                     }`}
                   >
-                    <div
-                      className={`max-w-[75%] px-4 py-2 rounded-2xl ${
-                        msg.sender_id === currentUser.id
-                          ? "bg-blue-500 text-white"
-                          : "bg-white text-gray-900 shadow-sm"
-                      }`}
-                    >
-                      <p className="text-sm">{msg.content}</p>
-                      <p
-                        className={`text-xs mt-1 ${
-                          msg.sender_id === currentUser.id
-                            ? "text-blue-100"
-                            : "text-gray-400"
-                        }`}
-                      >
-                        {formatDate(msg.sent_at)}
-                      </p>
-                    </div>
+                    <MessageBubble
+                      msg={msg}
+                      isOwnMessage={msg.sender_id === currentUser.id}
+                    />
                   </div>
                 ))}
+                <TypingIndicator />
               </div>
 
               {/* Zone de saisie - Mobile */}
@@ -565,11 +787,22 @@ const Messagerie = () => {
                   <input
                     type="text"
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={(e) => {
+                      setMessage(e.target.value);
+                      // Utiliser la fonction optimisée de frappe
+                      handleTyping();
+                    }}
                     onKeyPress={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
                         handleSendMessage();
+                      }
+                    }}
+                    onBlur={() => {
+                      // Arrêter l'indicateur de frappe quand on quitte le champ
+                      if (selectedConversation && isTyping) {
+                        setIsTyping(false);
+                        messagingSocket.stopTyping(selectedConversation.id);
                       }
                     }}
                     placeholder="Message..."
@@ -723,9 +956,6 @@ const Messagerie = () => {
                         ? "Chargement..."
                         : getOtherUserName(selectedConversation)}
                     </h2>
-                    <p className="text-sm text-gray-500">
-                      {socketConnected ? "En ligne" : "Hors ligne"}
-                    </p>
                   </div>
                 </div>
               </div>
@@ -741,26 +971,13 @@ const Messagerie = () => {
                         : "justify-start"
                     }`}
                   >
-                    <div
-                      className={`max-w-md px-4 py-2 rounded-2xl ${
-                        msg.sender_id === currentUser.id
-                          ? "bg-blue-500 text-white"
-                          : "bg-white text-gray-900 shadow-sm"
-                      }`}
-                    >
-                      <p className="text-sm">{msg.content}</p>
-                      <p
-                        className={`text-xs mt-1 ${
-                          msg.sender_id === currentUser.id
-                            ? "text-blue-100"
-                            : "text-gray-400"
-                        }`}
-                      >
-                        {formatDate(msg.sent_at)}
-                      </p>
-                    </div>
+                    <MessageBubble
+                      msg={msg}
+                      isOwnMessage={msg.sender_id === currentUser.id}
+                    />
                   </div>
                 ))}
+                <TypingIndicator />
               </div>
 
               {/* Zone de saisie - Desktop */}
@@ -769,11 +986,22 @@ const Messagerie = () => {
                   <input
                     type="text"
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={(e) => {
+                      setMessage(e.target.value);
+                      // Utiliser la fonction optimisée de frappe
+                      handleTyping();
+                    }}
                     onKeyPress={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
                         handleSendMessage();
+                      }
+                    }}
+                    onBlur={() => {
+                      // Arrêter l'indicateur de frappe quand on quitte le champ
+                      if (selectedConversation && isTyping) {
+                        setIsTyping(false);
+                        messagingSocket.stopTyping(selectedConversation.id);
                       }
                     }}
                     placeholder="Tapez votre message..."
