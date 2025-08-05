@@ -68,7 +68,6 @@ const createUserTable = async () => {
       role VARCHAR(20) NOT NULL CHECK (role IN ('patient', 'medecin', 'admin')),
       email_verified BOOLEAN DEFAULT FALSE,
       chemin_photo VARCHAR(255),
-      email_verified BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )

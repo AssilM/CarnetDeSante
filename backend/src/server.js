@@ -9,7 +9,8 @@ import { checkAppointmentsStatus } from "./appointment/rendezvous.service.js";
 import notificationListener from "./notification/notificationListener.js";
 import { createServer } from 'http';
 import SocketServer from './websocket/socketServer.js';
-import initMessagingTables from './data/initMessagingTables.js';import { createMessagingTables, cleanupMessagingTables } from './data/createMessagingTables.js';
+import initMessagingTables from './data/initMessagingTables.js';
+import { createMessagingTables, cleanupMessagingTables } from './data/createMessagingTables.js';
 
 
 dotenv.config();
@@ -61,8 +62,14 @@ server.listen(port, async () => {
     console.log("💬 Tables de messagerie initialisées");
   } catch (error) {
     console.error("❌ Erreur lors de l'initialisation des tables de messagerie:", error);
- notificationListener.connect();
+  }
+
+  // Démarrer le NotificationListener
+  try {
+    notificationListener.connect();
     console.log("🔔 NotificationListener démarré avec succès");
+  } catch (error) {
+    console.error("❌ Erreur lors du démarrage du NotificationListener:", error);
   }
 
   // Démarrer la vérification périodique des statuts des rendez-vous
@@ -105,5 +112,3 @@ server.listen(port, async () => {
   }, CHECK_INTERVAL);
 });
 
-// Démarrer le serveur
-startServer();
