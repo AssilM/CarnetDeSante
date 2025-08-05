@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { createMessagingService } from "../../services/api";
 import { httpService } from "../../services";
@@ -29,19 +29,6 @@ const Messagerie = () => {
   const [showContactModal, setShowContactModal] = useState(false);
   const [error, setError] = useState(null);
 
-  // Référence vers le conteneur des messages pour le scroll automatique
-  const messagesEndRef = useRef(null);
-
-  // Fonction pour faire défiler vers le bas
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  // Effet pour faire défiler vers le bas quand les messages changent
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   // Afficher l'erreur si elle existe
   useEffect(() => {
     if (error) {
@@ -62,6 +49,13 @@ const Messagerie = () => {
       messagingSocket.on("connect", () => {
         console.log("✅ WebSocket connecté - mise à jour de l'état");
         setSocketConnected(true);
+
+        // Rejoindre les rooms après la connexion WebSocket
+        if (conversations.length > 0) {
+          conversations.forEach((conversation) => {
+            messagingSocket.joinRoom(conversation.id);
+          });
+        }
       });
       messagingSocket.on("disconnect", () => {
         console.log("❌ WebSocket déconnecté - mise à jour de l'état");
@@ -75,33 +69,39 @@ const Messagerie = () => {
         messagingSocket.off("disconnect");
       };
     }
-  }, [currentUser]);
+  }, [currentUser, conversations]);
 
   // Charger les conversations au montage
   useEffect(() => {
     loadConversations();
   }, []);
 
+  // Auto-scroll vers le bas quand de nouveaux messages arrivent
+  useEffect(() => {
+    const messagesContainer = document.querySelector(".messages-container");
+    if (messagesContainer) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  }, [messages]);
+
   // Gérer les nouveaux messages
   const handleNewMessage = (messageData) => {
     console.log("📨 Nouveau message reçu via WebSocket:", messageData);
 
+    // Vérifier si le message vient de l'utilisateur actuel
+    const isFromCurrentUser = messageData.message.sender_id === currentUser.id;
+
+    // Si la conversation est actuellement sélectionnée ET que le message ne vient pas de l'utilisateur actuel
     if (
       selectedConversation &&
-      messageData.conversationId === selectedConversation.id
+      messageData.conversationId === selectedConversation.id &&
+      !isFromCurrentUser
     ) {
-      // Vérifier si le message vient de l'utilisateur actuel
-      const isFromCurrentUser =
-        messageData.message.sender_id === currentUser.id;
-
-      // Ajouter le message à la liste locale seulement s'il ne vient pas de l'utilisateur actuel
-      // (car les messages envoyés par l'utilisateur actuel sont déjà ajoutés localement)
-      if (!isFromCurrentUser) {
-        setMessages((prev) => [...prev, messageData.message]);
-      }
+      // Ajouter le message à la liste locale pour l'affichage dans le chat principal
+      setMessages((prev) => [...prev, messageData.message]);
     }
 
-    // Mettre à jour la conversation dans la liste
+    // Mettre à jour la conversation dans la liste (pour tous les cas)
     setConversations((prev) =>
       prev.map((conv) =>
         conv.id === messageData.conversationId
@@ -109,6 +109,11 @@ const Messagerie = () => {
               ...conv,
               last_message: messageData.message.content,
               updated_at: messageData.message.sent_at,
+              // Incrémenter le compteur de messages non lus si la conversation n'est pas sélectionnée
+              unread_count:
+                selectedConversation?.id === messageData.conversationId
+                  ? conv.unread_count
+                  : (conv.unread_count || 0) + 1,
             }
           : conv
       )
@@ -128,6 +133,17 @@ const Messagerie = () => {
       setError(null);
       const response = await messagingService.getConversations();
       setConversations(response.conversations || []);
+
+      // Rejoindre automatiquement toutes les rooms des conversations seulement si WebSocket est connecté
+      if (
+        socketConnected &&
+        response.conversations &&
+        response.conversations.length > 0
+      ) {
+        response.conversations.forEach((conversation) => {
+          messagingSocket.joinRoom(conversation.id);
+        });
+      }
     } catch (err) {
       console.error("Erreur lors du chargement des conversations:", err);
       setError("Impossible de charger les conversations");
@@ -209,10 +225,13 @@ const Messagerie = () => {
   const handleSelectConversation = (conversation) => {
     setSelectedConversation(conversation);
     loadMessages(conversation.id);
-    // Faire défiler vers le bas après un court délai pour laisser le temps aux messages de se charger
-    setTimeout(() => {
-      scrollToBottom();
-    }, 100);
+
+    // Réinitialiser le compteur de messages non lus pour cette conversation
+    setConversations((prev) =>
+      prev.map((conv) =>
+        conv.id === conversation.id ? { ...conv, unread_count: 0 } : conv
+      )
+    );
   };
 
   // Gérer la sélection d'un contact
@@ -402,7 +421,7 @@ const Messagerie = () => {
                   </div>
 
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 messages-container">
                     {messages.map((msg) => (
                       <div
                         key={msg.id}
@@ -426,7 +445,6 @@ const Messagerie = () => {
                         </div>
                       </div>
                     ))}
-                    <div ref={messagesEndRef} />
                   </div>
 
                   {/* Zone de saisie */}
