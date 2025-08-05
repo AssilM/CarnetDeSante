@@ -2,16 +2,25 @@ import app from "./app.js";
 import dotenv from "dotenv";
 import pool from "./config/db.js";
 import initTables, { dropAllTables } from "./data/createTables.js";
+import initChatTables, { dropAllChatTables } from "./data/createChatTables.js";
 import { createNotificationTriggers } from "./data/notificationTriggers.js";
 import seedDatabase from "./data/seedData.js";
 import cors from "cors";
 import { checkAppointmentsStatus } from "./appointment/rendezvous.service.js";
 import notificationListener from "./notification/notificationListener.js";
 import { initCronJobs } from "./utils/cron.service.js";
+import webSocketServer from "./messaging/websocket/websocket.server.js";
+import { createServer } from "http";
 
 dotenv.config();
 
 const port = process.env.PORT || 5001;
+
+// Créer le serveur HTTP
+const server = createServer(app);
+
+// Initialiser le serveur WebSocket
+webSocketServer.initialize(server);
 
 // Créer les tables et générer des données de test
 const initDatabase = async () => {
@@ -21,7 +30,7 @@ const initDatabase = async () => {
 
     // Initialiser les tables
     await initTables();
-    console.log("Base de données initialisée avec succès");
+    console.log("Base de données principale initialisée avec succès");
 
     // Créer les triggers de notifications
     await createNotificationTriggers();
@@ -32,7 +41,24 @@ const initDatabase = async () => {
     console.log("Données de test générées avec succès");
   } catch (err) {
     console.error(
-      "Erreur lors de l'initialisation de la base de données:",
+      "Erreur lors de l'initialisation de la base de données principale:",
+      err
+    );
+  }
+};
+
+// Initialiser la base de données de messagerie
+const initChatDatabase = async () => {
+  try {
+    // Pour réinitialiser complètement la base de données de messagerie, décommentez la ligne suivante
+    await dropAllChatTables();
+
+    // Initialiser les tables de messagerie
+    await initChatTables();
+    console.log("Base de données de messagerie initialisée avec succès");
+  } catch (err) {
+    console.error(
+      "Erreur lors de l'initialisation de la base de données de messagerie:",
       err
     );
   }
@@ -40,9 +66,10 @@ const initDatabase = async () => {
 
 // Initialiser la base de données
 //initDatabase();
+//initChatDatabase();
 app.use(cors());
 // Démarrer le serveur
-app.listen(port, async () => {
+server.listen(port, async () => {
   console.log(`Server is running on port ${port}`);
 
   // Initialiser les tâches cron

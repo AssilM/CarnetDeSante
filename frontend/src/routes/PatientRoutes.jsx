@@ -47,6 +47,9 @@ import AppointmentConfirmation from "../pages/patient/appointments/AppointmentCo
 // Pages - Notifications
 import Notifications from "../pages/Notifications";
 
+// Pages - Messagerie
+import Messagerie from "../pages/messagerie/Messagerie";
+
 /**
  * Routes pour les patients
  * Exporte un tableau de routes pour le rôle patient
@@ -145,7 +148,6 @@ const PatientRoutes = [
       </ProtectedRoute>
     }
   />,
-
 
   <Route
     key="medical-profile-history"
@@ -371,6 +373,19 @@ const PatientRoutes = [
       <ProtectedRoute>
         <MainLayout>
           <Notifications />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+
+  // Route de la messagerie
+  <Route
+    key="messagerie"
+    path="/messagerie"
+    element={
+      <ProtectedRoute>
+        <MainLayout>
+          <Messagerie />
         </MainLayout>
       </ProtectedRoute>
     }
