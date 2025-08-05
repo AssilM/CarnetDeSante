@@ -23,6 +23,7 @@ import {
   notFoundHandler,
 } from "./middlewares/error.middleware.js";
 import { requestLogger } from "./middlewares/logging.middleware.js";
+import { handleOTPError } from "./middlewares/otp.middleware.js";
 
 dotenv.config();
 
@@ -80,6 +81,9 @@ app.get("/", (req, res) => {
 
 // Middleware pour les routes non trouvées
 app.use(notFoundHandler);
+
+// Middleware de gestion d'erreurs OTP (avant le middleware général)
+app.use(handleOTPError);
 
 // Middleware de gestion d'erreurs (doit être le dernier)
 app.use(errorHandler);

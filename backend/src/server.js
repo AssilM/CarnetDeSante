@@ -1,6 +1,6 @@
 import app from "./app.js";
 import dotenv from "dotenv";
-import pool from "./config/db.js";
+import pool from "./config/db.js"
 import initTables, { dropAllTables } from "./data/createTables.js";
 import { createNotificationTriggers } from "./data/notificationTriggers.js";
 import seedDatabase from "./data/seedData.js";
@@ -9,8 +9,8 @@ import { checkAppointmentsStatus } from "./appointment/rendezvous.service.js";
 import notificationListener from "./notification/notificationListener.js";
 import { createServer } from 'http';
 import SocketServer from './websocket/socketServer.js';
-import initMessagingTables from './data/initMessagingTables.js';
-import { createMessagingTables, cleanupMessagingTables } from './data/createMessagingTables.js';
+import initMessagingTables from './data/initMessagingTables.js';import { createMessagingTables, cleanupMessagingTables } from './data/createMessagingTables.js';
+
 
 dotenv.config();
 
@@ -31,8 +31,8 @@ const initDatabase = async () => {
 
     // 2. Réinitialiser la base "Messagerie"
     console.log("📋 Réinitialisation de la base 'Messagerie'...");
-    await cleanupMessagingTables(); // Supprimer les tables existantes
-    await createMessagingTables(); // Recréer les tables
+    await cleanupMessagingTables(); // Supprimer les tables existantes    await createMessagingTables(); // Recréer les tables
+
     console.log("✅ Base 'Messagerie' réinitialisée avec succès");
 
     console.log("🎉 Toutes les bases de données ont été réinitialisées");
@@ -61,17 +61,8 @@ server.listen(port, async () => {
     console.log("💬 Tables de messagerie initialisées");
   } catch (error) {
     console.error("❌ Erreur lors de l'initialisation des tables de messagerie:", error);
-  }
-
-  // Démarrer le listener de notifications
-  try {
-    await notificationListener.connect();
+ notificationListener.connect();
     console.log("🔔 NotificationListener démarré avec succès");
-  } catch (error) {
-    console.error(
-      "❌ Erreur lors du démarrage du NotificationListener:",
-      error
-    );
   }
 
   // Démarrer la vérification périodique des statuts des rendez-vous
@@ -113,3 +104,6 @@ server.listen(port, async () => {
     }
   }, CHECK_INTERVAL);
 });
+
+// Démarrer le serveur
+startServer();

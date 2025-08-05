@@ -39,6 +39,60 @@ const authService = {
   },
 
   /**
+   * Demande un OTP pour la connexion
+   * @param {string} email - Email de l'utilisateur
+   * @param {string} password - Mot de passe de l'utilisateur
+   * @returns {Promise<Object>} Informations sur l'envoi de l'OTP
+   */
+  requestLoginOTP: async (email, password) => {
+    console.log("[Auth Service] Demande OTP de connexion", { email });
+
+    try {
+      const response = await httpService.post("/auth/login/request-otp", {
+        email,
+        password,
+      });
+      console.log("[Auth Service] OTP de connexion envoyé");
+      return response.data;
+    } catch (error) {
+      console.error("[Auth Service] Erreur lors de la demande OTP:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Connecte un utilisateur avec OTP
+   * @param {string} email - Email de l'utilisateur
+   * @param {string} otp - Code OTP
+   * @returns {Promise<Object>} Données de l'utilisateur connecté avec tokens
+   */
+  loginWithOTP: async (email, otp) => {
+    console.log("[Auth Service] Tentative de connexion OTP", { email });
+
+    try {
+      const response = await httpService.post("/auth/login/verify-otp", {
+        email,
+        otp,
+      });
+      console.log("[Auth Service] Connexion OTP réussie", {
+        hasToken: !!response.data.token,
+        hasUser: !!response.data.user,
+      });
+      const { token, user } = response.data;
+
+      // Stocker immédiatement le token pour les requêtes suivantes
+      const stored = setAccessToken(token);
+      if (!stored) {
+        throw new Error("STORAGE_FAILED");
+      }
+      return { token, user };
+    } catch (error) {
+      console.error("[Auth Service] Erreur lors de la connexion OTP:", error);
+      throw error;
+    }
+  },
+
+  /**
    * Inscrit un nouvel utilisateur
    * @param {Object} userData - Données de l'utilisateur à inscrire
    * @param {string} role - Rôle de l'utilisateur (patient, medecin) - optionnel, par défaut patient
@@ -71,6 +125,51 @@ const authService = {
   },
 
   /**
+   * Vérifie l'OTP d'inscription et active le compte
+   * @param {string} email - Email de l'utilisateur
+   * @param {string} otp - Code OTP
+   * @returns {Promise<Object>} Informations sur la vérification
+   */
+  verifyEmailOTP: async (email, otp) => {
+    console.log("[Auth Service] Vérification OTP d'inscription", { email });
+
+    try {
+      const response = await httpService.post("/auth/verify-email", {
+        email,
+        otp,
+      });
+      console.log("[Auth Service] Email vérifié avec succès");
+      return response.data;
+    } catch (error) {
+      console.error(
+        "[Auth Service] Erreur lors de la vérification email:",
+        error
+      );
+      throw error;
+    }
+  },
+
+  /**
+   * Renvoie un OTP de vérification email
+   * @param {string} email - Email de l'utilisateur
+   * @returns {Promise<Object>} Informations sur l'envoi
+   */
+  resendVerificationOTP: async (email) => {
+    console.log("[Auth Service] Renvoi OTP de vérification", { email });
+
+    try {
+      const response = await httpService.post("/auth/resend-verification", {
+        email,
+      });
+      console.log("[Auth Service] OTP de vérification renvoyé");
+      return response.data;
+    } catch (error) {
+      console.error("[Auth Service] Erreur lors du renvoi OTP:", error);
+      throw error;
+    }
+  },
+
+  /**
    * Déconnecte l'utilisateur courant
    * @returns {Promise<void>}
    */
@@ -100,6 +199,79 @@ const authService = {
     } catch (error) {
       console.error(
         "[Auth Service] Erreur lors du rafraîchissement du token:",
+        error
+      );
+      throw error;
+    }
+  },
+
+  /**
+   * Demande de réinitialisation de mot de passe
+   * @param {string} email - Email de l'utilisateur
+   * @returns {Promise<Object>} Informations sur l'envoi de l'email
+   */
+  forgotPassword: async (email) => {
+    console.log("[Auth Service] Demande de réinitialisation de mot de passe", {
+      email,
+    });
+
+    try {
+      const response = await httpService.post("/auth/forgot-password", {
+        email,
+      });
+      console.log("[Auth Service] Email de réinitialisation envoyé");
+      return response.data;
+    } catch (error) {
+      console.error(
+        "[Auth Service] Erreur lors de la demande de réinitialisation:",
+        error
+      );
+      throw error;
+    }
+  },
+
+  /**
+   * Vérifie un token de réinitialisation
+   * @param {string} token - Token de réinitialisation
+   * @returns {Promise<Object>} Informations sur la validité du token
+   */
+  verifyResetToken: async (token) => {
+    console.log("[Auth Service] Vérification du token de réinitialisation");
+
+    try {
+      const response = await httpService.post("/auth/verify-reset-token", {
+        token,
+      });
+      console.log("[Auth Service] Token de réinitialisation vérifié");
+      return response.data;
+    } catch (error) {
+      console.error(
+        "[Auth Service] Erreur lors de la vérification du token:",
+        error
+      );
+      throw error;
+    }
+  },
+
+  /**
+   * Réinitialise le mot de passe
+   * @param {string} token - Token de réinitialisation
+   * @param {string} newPassword - Nouveau mot de passe
+   * @returns {Promise<Object>} Informations sur la réinitialisation
+   */
+  resetPassword: async (token, newPassword) => {
+    console.log("[Auth Service] Réinitialisation du mot de passe");
+
+    try {
+      const response = await httpService.post("/auth/reset-password", {
+        token,
+        newPassword,
+      });
+      console.log("[Auth Service] Mot de passe réinitialisé avec succès");
+      return response.data;
+    } catch (error) {
+      console.error(
+        "[Auth Service] Erreur lors de la réinitialisation:",
         error
       );
       throw error;

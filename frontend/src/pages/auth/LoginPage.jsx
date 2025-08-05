@@ -4,6 +4,8 @@ import logo from "../../assets/logo-C.svg";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../context/AuthContext";
 import { useAppContext } from "../../context/AppContext";
+import OTPInput from "../../components/common/OTPInput";
+import authService from "../../services/api/authService";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -14,9 +16,16 @@ const LoginPage = () => {
   const [loginError, setLoginError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  // États pour l'OTP
+  const [loginMode, setLoginMode] = useState("password"); // "password" ou "otp"
+  const [otp, setOtp] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, setCurrentUser } = useAuth();
   const { showSuccess } = useAppContext();
 
   useEffect(() => {
@@ -159,6 +168,89 @@ const LoginPage = () => {
     }
   };
 
+  const handleRequestOTP = async (e) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setOtpError("Veuillez saisir votre email et mot de passe");
+      return;
+    }
+
+    setOtpLoading(true);
+    setOtpError("");
+
+    try {
+      await authService.requestLoginOTP(email, password);
+      setOtpSent(true);
+      setOtpError("");
+      showSuccess("Code de connexion envoyé par email");
+    } catch (error) {
+      console.error("Erreur lors de la demande OTP:", error);
+      setOtpError(
+        error.response?.data?.message ||
+          "Erreur lors de l'envoi du code. Veuillez réessayer."
+      );
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleOTPSubmit = async (e) => {
+    e.preventDefault();
+    if (otp.length !== 6) {
+      setOtpError("Veuillez saisir le code à 6 chiffres");
+      return;
+    }
+
+    setIsLoading(true);
+    setOtpError("");
+
+    try {
+      const { user } = await authService.loginWithOTP(email, otp);
+      console.log("Connexion OTP réussie:", user);
+
+      // Vérifier si le rôle de l'utilisateur correspond au rôle sélectionné
+      if (role && user.role !== role) {
+        setOtpError(
+          `Vous n'êtes pas autorisé à vous connecter en tant que ${role}. Votre compte est un compte ${user.role}.`
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      // Mettre à jour l'utilisateur dans le contexte d'authentification
+      setCurrentUser(user);
+
+      // Afficher un message de succès
+      showSuccess(`Connexion réussie. Bienvenue, ${user.prenom} ${user.nom} !`);
+
+      // Redirection en fonction du rôle
+      if (user.role === "patient") {
+        navigate("/patient/home");
+      } else if (user.role === "medecin") {
+        navigate("/doctor/home");
+      } else if (user.role === "admin") {
+        navigate("/admin/home");
+      } else {
+        navigate("/home");
+      }
+    } catch (error) {
+      console.error("Erreur de connexion OTP:", error);
+      setOtpError(
+        error.response?.data?.message ||
+          "Code incorrect ou expiré. Veuillez réessayer."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetOTP = () => {
+    setOtpSent(false);
+    setOtp("");
+    setOtpError("");
+    setLoginMode("password");
+  };
+
   const { title, description, icon } = getRoleTitleAndDescription();
 
   return (
@@ -225,104 +317,280 @@ const LoginPage = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Adresse email
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Votre email"
-                  required
-                />
-              </div>
-
+            {/* Mode de connexion */}
+            {!otpSent && (
               <div className="mb-6">
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Mot de passe
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    id="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Votre mot de passe"
-                    required
-                  />
+                <div className="flex bg-gray-100 rounded-lg p-1">
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                    onClick={() => setLoginMode("password")}
+                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                      loginMode === "password"
+                        ? "bg-white text-blue-600 shadow-sm"
+                        : "text-gray-600 hover:text-gray-800"
+                    }`}
                   >
-                    {showPassword ? (
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                        ></path>
-                      </svg>
-                    ) : (
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                        ></path>
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                        ></path>
-                      </svg>
-                    )}
+                    Mot de passe
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLoginMode("otp")}
+                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                      loginMode === "otp"
+                        ? "bg-white text-blue-600 shadow-sm"
+                        : "text-gray-600 hover:text-gray-800"
+                    }`}
+                  >
+                    Code de connexion
                   </button>
                 </div>
-                <div className="flex justify-end mt-1">
-                  <Link
-                    to="/auth/forgot-password"
-                    className="text-sm text-blue-600 hover:underline"
-                  >
-                    Mot de passe oublié ?
-                  </Link>
-                </div>
               </div>
+            )}
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 transition duration-300 disabled:bg-blue-400"
-              >
-                {isLoading ? "Connexion en cours..." : "Se connecter"}
-              </button>
-            </form>
+            {/* Formulaire de connexion classique */}
+            {loginMode === "password" && !otpSent && (
+              <form onSubmit={handleSubmit}>
+                <div className="mb-4">
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Adresse email
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Votre email"
+                    required
+                  />
+                </div>
+
+                <div className="mb-6">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Mot de passe
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Votre mot de passe"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                    >
+                      {showPassword ? (
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                          ></path>
+                        </svg>
+                      ) : (
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          ></path>
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          ></path>
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex justify-end mt-1">
+                    <Link
+                      to="/auth/forgot-password"
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      Mot de passe oublié ?
+                    </Link>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 transition duration-300 disabled:bg-blue-400"
+                >
+                  {isLoading ? "Connexion en cours..." : "Se connecter"}
+                </button>
+              </form>
+            )}
+
+            {/* Formulaire de demande d'OTP */}
+            {loginMode === "otp" && !otpSent && (
+              <form onSubmit={handleRequestOTP}>
+                <div className="mb-4">
+                  <label
+                    htmlFor="email-otp"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Adresse email
+                  </label>
+                  <input
+                    type="email"
+                    id="email-otp"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Votre email"
+                    required
+                  />
+                </div>
+
+                <div className="mb-6">
+                  <label
+                    htmlFor="password-otp"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Mot de passe
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password-otp"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Votre mot de passe"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                    >
+                      {showPassword ? (
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                          ></path>
+                        </svg>
+                      ) : (
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          ></path>
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          ></path>
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {otpError && (
+                  <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
+                    {otpError}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={otpLoading}
+                  className="w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 transition duration-300 disabled:bg-blue-400"
+                >
+                  {otpLoading ? "Envoi en cours..." : "Envoyer le code"}
+                </button>
+              </form>
+            )}
+
+            {/* Formulaire de saisie d'OTP */}
+            {otpSent && (
+              <div>
+                <div className="mb-4 p-3 bg-blue-50 text-blue-700 rounded-lg">
+                  <p className="text-sm">
+                    Un code de connexion a été envoyé à <strong>{email}</strong>
+                  </p>
+                </div>
+
+                <form onSubmit={handleOTPSubmit}>
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
+                      Saisissez le code à 6 chiffres
+                    </label>
+                    <OTPInput
+                      value={otp}
+                      onChange={setOtp}
+                      disabled={isLoading}
+                      error={otpError}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading || otp.length !== 6}
+                    className="w-full bg-blue-600 text-white font-medium py-3 rounded-lg hover:bg-blue-700 transition duration-300 disabled:bg-blue-400 mb-4"
+                  >
+                    {isLoading ? "Connexion en cours..." : "Se connecter"}
+                  </button>
+
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={resetOTP}
+                      className="text-sm text-gray-600 hover:text-gray-800 underline"
+                    >
+                      Retour à la connexion classique
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
 
             <div className="mt-6 text-center">
               <span className="text-gray-600">Vous n'avez pas de compte ?</span>{" "}

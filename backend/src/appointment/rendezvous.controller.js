@@ -18,6 +18,10 @@ import {
   validatePatientExists,
   validateDoctorExists,
 } from "../shared/index.js";
+import {
+  sendAppointmentConfirmation,
+  getUserEmailById,
+} from "../email/index.js";
 
 /**
  * Controller pour la gestion des rendez-vous
@@ -150,6 +154,22 @@ export const createRendezVous = async (req, res, next) => {
     // 4. Créer le rendez-vous via le service
     const newRendezVous = await createRendezVousService(rdvData);
     console.log("[createRendezVous] Rendez-vous créé avec succès");
+
+    // 5. ✅ NOUVEAU : Envoyer l'email de confirmation
+    try {
+      const patientEmail = await getUserEmailById(patient_id);
+      if (patientEmail) {
+        await sendAppointmentConfirmation(newRendezVous, patientEmail);
+        console.log("✅ Email de confirmation envoyé à:", patientEmail);
+      } else {
+        console.warn(
+          "⚠️ Email du patient non trouvé pour l'envoi de confirmation"
+        );
+      }
+    } catch (emailError) {
+      console.warn("⚠️ Erreur envoi email confirmation:", emailError.message);
+      // Ne pas bloquer la création du RDV si l'email échoue
+    }
 
     res.status(201).json(newRendezVous);
   } catch (error) {

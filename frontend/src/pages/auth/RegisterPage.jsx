@@ -293,8 +293,12 @@ const RegisterPage = () => {
         // Enregistrer l'utilisateur avec toutes les données
         await register(userData);
 
-        // Ajouter un message de succès dans les paramètres de l'URL
-        navigate(`/auth/login?role=${role}&registered=success`);
+        // Rediriger vers la page de vérification d'email
+        navigate(
+          `/auth/verify-email?email=${encodeURIComponent(
+            formData.email
+          )}&role=${role}`
+        );
       } catch (error) {
         console.error("Erreur d'inscription:", error);
         setRegisterError(
