@@ -10,6 +10,7 @@ export const NOTIFICATION_TYPES = {
   DOCUMENT_PATIENT_SHARED: "document_patient_shared",
   DOCUMENT_ACCESS_REVOKED: "document_access_revoked",
   DOCUMENT_DELETED: "document_deleted",
+  NEW_MESSAGE: "new_message",
   SYSTEM_INFO: "system_info",
   SYSTEM_WARNING: "system_warning",
   SYSTEM_ERROR: "system_error",

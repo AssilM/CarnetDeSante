@@ -14,6 +14,7 @@ import {
   createFollowRelationship,
 } from "./rendezvous.repository.js";
 import { getJourSemaine, isDateInFuture } from "../utils/date.utils.js";
+import messagingService from "../messaging/messaging.service.js";
 
 /**
  * Service de gestion des rendez-vous
@@ -127,6 +128,7 @@ export const createRendezVousService = async (rdvData) => {
       "[createRendezVousService] Rendez-vous créé avec succès:",
       newRendezVous
     );
+    
     // Création souple du lien de suivi patient-médecin
     try {
       await createFollowRelationship(patient_id, medecin_id);
@@ -137,6 +139,22 @@ export const createRendezVousService = async (rdvData) => {
       );
       // On ne bloque pas la création du rendez-vous
     }
+    
+    // Créer automatiquement une conversation pour ce rendez-vous
+    try {
+      await messagingService.createConversation(newRendezVous.id, patient_id, medecin_id);
+      console.log(
+        "[createRendezVousService] Conversation créée pour le rendez-vous:",
+        newRendezVous.id
+      );
+    } catch (conversationError) {
+      console.warn(
+        "[createRendezVousService] Impossible de créer la conversation:",
+        conversationError.message
+      );
+      // On ne bloque pas la création du rendez-vous
+    }
+    
     return newRendezVous;
   } catch (error) {
     console.error("[createRendezVousService] Erreur:", error);

@@ -1,10 +1,12 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaSyringe } from "react-icons/fa";
 import { useVaccinationContext } from "../../../context";
 import PageWrapper from "../../../components/PageWrapper";
-import { ItemsList, ActionButton } from "../../../components/patient/common";
+import { ActionButton } from "../../../components/patient/common";
 import AddVaccineForm from "../../../components/patient/vaccination/AddVaccineForm";
+import VaccineCard from "../../../components/patient/vaccination/VaccineCard";
+import DeleteVaccineModal from "../../../components/patient/vaccination/DeleteVaccineModal";
 import { useFormModal } from "../../../hooks";
 import jsPDF from "jspdf";
 import dayjs from "dayjs";
@@ -22,7 +24,12 @@ const Vaccination = () => {
     loading,
     error,
     fetchVaccines,
+    deleteVaccine,
+    togglePinned,
   } = useVaccinationContext();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [vaccineToDelete, setVaccineToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Utilisation du hook personnalisé pour gérer le formulaire d'ajout
   const {
@@ -44,6 +51,26 @@ const Vaccination = () => {
   const handleViewDetails = (vaccine) => {
     selectItem(vaccine);
     navigate("/vaccination/details");
+  };
+
+  const handleDeleteVaccine = (vaccine) => {
+    setVaccineToDelete(vaccine);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDeleteVaccine = async () => {
+    if (!vaccineToDelete) return;
+
+    setDeleteLoading(true);
+    try {
+      await deleteVaccine(vaccineToDelete.id);
+      setShowDeleteModal(false);
+      setVaccineToDelete(null);
+    } catch (err) {
+      console.error("Erreur lors de la suppression:", err);
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const handleGenerateReport = async () => {
@@ -242,25 +269,83 @@ const Vaccination = () => {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <ItemsList
-            items={items}
-            type="vaccine"
-            title="Vaccination"
-            description="Permet de retrouver et d'ajouter des vaccins"
-            onAdd={openForm}
-            onViewDetails={handleViewDetails}
-            addButtonText="Ajouter un vaccin"
-            loading={loading}
-            error={error}
-            showPinnedSection={false}
-          />
+          {/* En-tête de la section */}
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Vaccination
+            </h2>
+            <p className="text-sm text-gray-600">
+              Permet de retrouver et d'ajouter des vaccins
+            </p>
+          </div>
+
+          {/* Bouton d'ajout */}
+          <div className="mb-6">
+            <button
+              onClick={openForm}
+              className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            >
+              Ajouter un vaccin
+            </button>
+          </div>
+
+          {/* Liste des vaccins */}
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="text-gray-600 mt-2">Chargement des vaccins...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8">
+              <p className="text-red-600">{error}</p>
+            </div>
+          ) : items.length === 0 ? (
+            <div className="bg-white rounded-lg p-6 text-center text-gray-500">
+              <FaSyringe className="text-gray-400 text-4xl mx-auto mb-4" />
+              <p className="text-gray-600">
+                Aucun vaccin enregistré
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Commencez par ajouter votre premier vaccin
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {items.map((vaccine) => (
+                <VaccineCard
+                  key={vaccine.id}
+                  title={vaccine.name}
+                  date={vaccine.date}
+                  subtitle={vaccine.doctor}
+                  onViewDetails={() => handleViewDetails(vaccine)}
+                  onDelete={() => handleDeleteVaccine(vaccine)}
+                  pinned={vaccine.pinned}
+                  onTogglePin={() => togglePinned(vaccine.id)}
+                  statut={vaccine.status}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
       </>
     );
   };
 
-  return <PageWrapper>{content()}</PageWrapper>;
+  return (
+    <PageWrapper>
+      {content()}
+      
+      {/* Modale de confirmation de suppression */}
+      <DeleteVaccineModal
+        vaccine={vaccineToDelete}
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDeleteVaccine}
+        loading={deleteLoading}
+      />
+    </PageWrapper>
+  );
 };
 
 export default Vaccination;

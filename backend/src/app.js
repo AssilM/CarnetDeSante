@@ -16,6 +16,7 @@ import documentRoutes from "./document/index.js";
 import vaccinRoutes from "./vaccin/vaccin.js";
 
 import { notificationRoutes } from "./notification/index.js";
+import messagingRoutes from "./messaging/messaging.routes.js";
 
 import {
   errorHandler,
@@ -69,6 +70,7 @@ app.use("/api/documents", documentRoutes);
 app.use("/api/vaccins", vaccinRoutes);
 
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/messaging", messagingRoutes);
 
 app.use("/api/upload-photo", userRoutes);
 // Routes de test

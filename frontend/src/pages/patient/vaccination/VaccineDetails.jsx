@@ -1,14 +1,17 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaSyringe, FaArrowLeft } from "react-icons/fa";
+import { FaSyringe, FaArrowLeft, FaTrash } from "react-icons/fa";
 import { useVaccinationContext } from "../../../context/VaccinationContext";
 import PageWrapper from "../../../components/PageWrapper";
+import DeleteVaccineModal from "../../../components/patient/vaccination/DeleteVaccineModal";
 import dayjs from "dayjs";
 import "dayjs/locale/fr";
 
 const VaccineDetails = () => {
   const navigate = useNavigate();
-  const { selectedItem, clearSelectedItem } = useVaccinationContext();
+  const { selectedItem, clearSelectedItem, deleteVaccine } = useVaccinationContext();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Utiliser useEffect pour la navigation au lieu de l'appeler directement dans le rendu
   useEffect(() => {
@@ -24,6 +27,26 @@ const VaccineDetails = () => {
   const handleBack = () => {
     clearSelectedItem();
     navigate(-1);
+  };
+
+  const handleDeleteVaccine = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDeleteVaccine = async () => {
+    if (!selectedItem) return;
+
+    setDeleteLoading(true);
+    try {
+      await deleteVaccine(selectedItem.id);
+      setShowDeleteModal(false);
+      clearSelectedItem();
+      navigate("/vaccination");
+    } catch (err) {
+      console.error("Erreur lors de la suppression:", err);
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   // Format date FR
@@ -46,13 +69,22 @@ const VaccineDetails = () => {
     <PageWrapper className="bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* En-tête avec bouton retour */}
-        <div className="mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <button
             onClick={handleBack}
             className="flex items-center text-gray-600 hover:text-gray-900"
           >
             <FaArrowLeft className="mr-2" />
             Retour
+          </button>
+          
+          <button
+            onClick={handleDeleteVaccine}
+            className="flex items-center px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+            title="Supprimer ce vaccin"
+          >
+            <FaTrash className="mr-2" />
+            Supprimer
           </button>
         </div>
 
@@ -133,6 +165,15 @@ const VaccineDetails = () => {
           </div>
         </div>
       </div>
+
+      {/* Modale de confirmation de suppression */}
+      <DeleteVaccineModal
+        vaccine={selectedItem}
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDeleteVaccine}
+        loading={deleteLoading}
+      />
     </PageWrapper>
   );
 };

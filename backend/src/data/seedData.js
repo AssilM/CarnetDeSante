@@ -8,19 +8,7 @@ const hashPassword = async (password) => {
 };
 
 // Création d'utilisateurs de test
-const createTestUsers = async () => {
-  try {
-    // Vérifier si des utilisateurs existent déjà
-    const checkQuery = "SELECT COUNT(*) as count FROM utilisateur";
-    const checkResult = await pool.query(checkQuery);
-
-    if (checkResult.rows[0].count > 0) {
-      console.log(
-        "Des utilisateurs existent déjà, aucune donnée de test n'a été créée."
-      );
-      return;
-    }
-
+const createTestUsers = async (force = false) => {
     // Hachage des mots de passe
     const password = await hashPassword("password123");
 
@@ -40,6 +28,7 @@ const createTestUsers = async () => {
         code_postal: "75001",
         ville: "Paris",
         role: "patient",
+        email_verified: true, // Ajout de la vérification email
       },
       {
         email: "patient2@example.com",
@@ -54,6 +43,7 @@ const createTestUsers = async () => {
         code_postal: "75002",
         ville: "Paris",
         role: "patient",
+        email_verified: true, // Ajout de la vérification email
       },
       // Médecins
       {
@@ -69,6 +59,7 @@ const createTestUsers = async () => {
         code_postal: "75003",
         ville: "Paris",
         role: "medecin",
+        email_verified: true, // Ajout de la vérification email
       },
       {
         email: "medecin2@example.com",
@@ -83,6 +74,7 @@ const createTestUsers = async () => {
         code_postal: "75004",
         ville: "Paris",
         role: "medecin",
+        email_verified: true, // Ajout de la vérification email
       },
       // Admin
       {
@@ -98,19 +90,19 @@ const createTestUsers = async () => {
         code_postal: "75005",
         ville: "Paris",
         role: "admin",
+        email_verified: true, // Ajout de la vérification email
       },
     ];
 
-    // Insérer les utilisateurs dans la base de données
+    // Insérer les utilisateurs
     for (const user of users) {
       const insertQuery = `
         INSERT INTO utilisateur (
-          email, password, nom, prenom, tel_indicatif, tel_numero, date_naissance, sexe, 
-          adresse, code_postal, ville, role
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          email, password, nom, prenom, tel_indicatif, tel_numero,
+          date_naissance, sexe, adresse, code_postal, ville, role, email_verified
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         RETURNING id
       `;
-
       const result = await pool.query(insertQuery, [
         user.email,
         user.password,
@@ -124,32 +116,24 @@ const createTestUsers = async () => {
         user.code_postal,
         user.ville,
         user.role,
+        user.email_verified, // Ajout du champ
       ]);
 
       const userId = result.rows[0].id;
 
-      // Créer un profil patient si c'est un patient
+      // Créer le profil correspondant
       if (user.role === "patient") {
         await createPatientProfile(userId);
-      }
-
-      // Créer un profil médecin si c'est un médecin
-      if (user.role === "medecin") {
+      } else if (user.role === "medecin") {
         await createMedecinProfile(userId);
-      }
-
-      // Créer un profil admin si c'est un admin
-      if (user.role === "admin") {
+        await createMedecinDisponibilites(userId);
+      } else if (user.role === "admin") {
         await createAdminProfile(userId);
       }
     }
 
-    console.log("Données de test créées avec succès.");
-  } catch (error) {
-    console.error("Erreur lors de la création des données de test:", error);
-    throw error;
-  }
-};
+    console.log("Utilisateurs de test créés avec succès");
+}
 
 // Création de profils patients
 const createPatientProfile = async (userId) => {
@@ -272,80 +256,14 @@ const createMedecinDisponibilites = async (medecinId) => {
   }
 };
 
-// Création de rendez-vous de test
-const createTestRendezVous = async () => {
-  try {
-    // Récupérer tous les patients
-    const patientsQuery = "SELECT utilisateur_id FROM patient";
-    const patientsResult = await pool.query(patientsQuery);
-    const patients = patientsResult.rows;
-
-    // Récupérer tous les médecins
-    const medecinsQuery = "SELECT utilisateur_id FROM medecin";
-    const medecinsResult = await pool.query(medecinsQuery);
-    const medecins = medecinsResult.rows;
-
-    // Si pas de patients ou de médecins, sortir
-    if (patients.length === 0 || medecins.length === 0) {
-      console.log("Pas de patients ou de médecins pour créer des rendez-vous");
-      return;
-    }
-
-    // Créer quelques rendez-vous
-    const today = new Date();
-    const statuts = ["planifié", "confirmé", "annulé", "terminé"];
-
-    for (let i = 0; i < 5; i++) {
-      const patient = patients[Math.floor(Math.random() * patients.length)];
-      const medecin = medecins[Math.floor(Math.random() * medecins.length)];
-
-      // Date dans les 30 prochains jours
-      const date = new Date(
-        today.getTime() + Math.random() * 30 * 24 * 60 * 60 * 1000
-      );
-      const dateStr = date.toISOString().split("T")[0];
-
-      // Heure entre 8h et 18h
-      const hour = Math.floor(Math.random() * 10) + 8;
-      const minute = Math.floor(Math.random() * 4) * 15; // 0, 15, 30, 45
-      const heure = `${hour.toString().padStart(2, "0")}:${minute
-        .toString()
-        .padStart(2, "0")}`;
-
-      const duree = [15, 30, 45, 60][Math.floor(Math.random() * 4)];
-      const statut = statuts[Math.floor(Math.random() * statuts.length)];
-      const motif = "Consultation de routine";
-      const adresse = "Cabinet médical";
-
-      const insertQuery = `
-        INSERT INTO rendez_vous (
-          patient_id, medecin_id, date, heure, duree, statut, motif, adresse
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      `;
-      await pool.query(insertQuery, [
-        patient.utilisateur_id,
-        medecin.utilisateur_id,
-        dateStr,
-        heure,
-        duree,
-        statut,
-        motif,
-        adresse,
-      ]);
-    }
-
-    console.log("Rendez-vous de test créés avec succès");
-  } catch (error) {
-    console.error("Erreur lors de la création des rendez-vous de test:", error);
-    throw error;
-  }
-};
+// SUPPRIMER la fonction createTestRendezVous et son appel
+// const createTestRendezVous = async () => { ... } // SUPPRIMER TOUTE LA FONCTION
 
 // Fonction pour initialiser la base de données avec des données de test
-const seedDatabase = async () => {
+const seedDatabase = async (force = false) => {
   try {
-    await createTestUsers();
-    await createTestRendezVous();
+    await createTestUsers(force);
+    // await createTestRendezVous(); // SUPPRIMER CETTE LIGNE
     console.log("Base de données initialisée avec succès");
   } catch (error) {
     console.error(

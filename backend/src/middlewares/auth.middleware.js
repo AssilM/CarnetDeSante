@@ -23,9 +23,6 @@ export const authenticate = async (req, res, next) => {
         console.error("Erreur de vérification du token:", err.message);
         return res.status(401).json({ message: "Token invalide ou expiré" });
       }
-
-      console.log("Token décodé:", decoded);
-
       // Vérifier que le token contient les informations nécessaires
       if (!decoded.id || !decoded.role) {
         console.error("Token incomplet:", decoded);
@@ -41,9 +38,7 @@ export const authenticate = async (req, res, next) => {
 
       // Vérifier que l'utilisateur existe toujours en base
       try {
-        console.log(
-          `Vérification de l'utilisateur ${decoded.id} dans la base de données`
-        );
+
         // Essayer d'abord avec la table "utilisateur"
         const query = "SELECT id, email, role FROM utilisateur WHERE id = $1";
         const result = await pool.query(query, [decoded.id]);
@@ -54,11 +49,6 @@ export const authenticate = async (req, res, next) => {
           );
           return res.status(401).json({ message: "Utilisateur non trouvé" });
         }
-
-        console.log(
-          `Utilisateur ${decoded.id} trouvé dans la base de données:`,
-          result.rows[0]
-        );
 
         // Passer à la suite
         next();

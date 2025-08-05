@@ -14,6 +14,9 @@ import PatientsList from "../pages/doctor/PatientsList";
 // Pages - Notifications
 import Notifications from "../pages/Notifications";
 
+// Pages - Messaging
+import Messaging from "../pages/doctor/Messaging";
+
 /**
  * Routes spécifiques aux médecins
  * Contient toutes les routes nécessaires pour les médecins
@@ -89,6 +92,19 @@ const DoctorRoutes = [
       <ProtectedRoute>
         <MainLayout>
           <Notifications />
+        </MainLayout>
+      </ProtectedRoute>
+    }
+  />,
+
+  // Route de messagerie
+  <Route
+    key="messaging"
+    path="/messaging"
+    element={
+      <ProtectedRoute>
+        <MainLayout>
+          <Messaging />
         </MainLayout>
       </ProtectedRoute>
     }

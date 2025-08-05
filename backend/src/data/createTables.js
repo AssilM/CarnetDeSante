@@ -34,6 +34,8 @@ const dropAllTables = async () => {
     await dropTable("medecin");
     await dropTable("administrateur");
     await dropTable("utilisateur");
+    await dropTable("messages");
+    await dropTable("conversations");
     // Suppression du type ENUM doc_role (à la fin)
     try {
       await pool.query("DROP TYPE IF EXISTS doc_role CASCADE");
@@ -64,6 +66,7 @@ const createUserTable = async () => {
       code_postal VARCHAR(10),
       ville VARCHAR(100),
       role VARCHAR(20) NOT NULL CHECK (role IN ('patient', 'medecin', 'admin')),
+      email_verified BOOLEAN DEFAULT FALSE,
       chemin_photo VARCHAR(255),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -311,7 +314,6 @@ const createDocRoleEnum = async () => {
   } catch (error) {
     // Si déjà existant, ignorer l'erreur spécifique
     if (error.code === "42710") {
-      // Type already exists
       console.log("Type ENUM doc_role déjà existant, on continue.");
       return;
     }
@@ -545,6 +547,50 @@ const createVaccinTable = async () => {
   }
 };
 
+// --- TABLE CONVERSATIONS ---
+const createConversationsTable = async () => {
+  const queryText = `
+    CREATE TABLE IF NOT EXISTS conversations (
+      id SERIAL PRIMARY KEY,
+      rendez_vous_id INTEGER REFERENCES rendez_vous(id) ON DELETE CASCADE,
+      patient_id INTEGER NOT NULL REFERENCES patient(utilisateur_id) ON DELETE CASCADE,
+      medecin_id INTEGER NOT NULL REFERENCES medecin(utilisateur_id) ON DELETE CASCADE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(rendez_vous_id)
+    )
+  `;
+  try {
+    await pool.query(queryText);
+    console.log("Table conversations créée avec succès");
+  } catch (error) {
+    console.error("Erreur lors de la création de la table conversations:", error);
+    throw error;
+  }
+};
+
+// --- TABLE MESSAGES ---
+const createMessagesTable = async () => {
+  const queryText = `
+    CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      sender_id INTEGER NOT NULL REFERENCES utilisateur(id) ON DELETE CASCADE,
+      content TEXT NOT NULL,
+      type VARCHAR(20) DEFAULT 'text' CHECK (type IN ('text', 'image', 'file', 'system')),
+      is_read BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+  try {
+    await pool.query(queryText);
+    console.log("Table messages créée avec succès");
+  } catch (error) {
+    console.error("Erreur lors de la création de la table messages:", error);
+    throw error;
+  }
+};
+
 // Fonction principale pour initialiser toutes les tables
 const initTables = async () => {
   try {
@@ -569,6 +615,8 @@ const initTables = async () => {
     await createNotificationsTable();
     await createDocumentsRendezVousTable();
     await createVaccinTable();
+    await createConversationsTable();
+    await createMessagesTable();
     await createIndexes();
     await createNewIndexes();
     console.log("Initialisation des tables terminée");
@@ -600,6 +648,8 @@ export {
   createSpecialiteTable,
   seedSpecialites,
   createVaccinTable,
+  createConversationsTable,
+  createMessagesTable,
 };
 
 export default initTables;

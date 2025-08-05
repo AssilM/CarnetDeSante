@@ -11,6 +11,7 @@ import {
   MdPeople,
   MdSettings,
   MdNotifications,
+  MdMessage,
 } from "react-icons/md";
 import { BsCalendar2Week } from "react-icons/bs";
 import {
@@ -73,6 +74,11 @@ const Sidebar = () => {
       path: "/notifications",
     },
     {
+      icon: <MdMessage className="text-2xl" />,
+      label: "Messagerie",
+      path: "/messaging",
+    },
+    {
       icon: <FaCog className="text-2xl" />,
       label: "Paramètres",
       path: "/settings",
@@ -104,6 +110,11 @@ const Sidebar = () => {
       icon: <MdNotifications className="text-2xl" />,
       label: "Notifications",
       path: "/notifications",
+    },
+    {
+      icon: <MdMessage className="text-2xl" />,
+      label: "Messagerie",
+      path: "/messaging",
     },
     {
       icon: <FaCog className="text-2xl" />,
