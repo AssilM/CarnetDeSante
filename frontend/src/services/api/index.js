@@ -13,6 +13,7 @@ import createVaccinService from "./vaccinService";
 import createUserPhotoService from "./userPhotoService";
 import { getAllSpecialites } from "./specialiteService";
 import * as adminService from "./adminService";
+import createMessagingService from "./messagingService";
 
 // Pour la compatibilité avec le code existant
 export const authApi = {
@@ -33,4 +34,5 @@ export {
   createUserPhotoService,
   getAllSpecialites,
   adminService,
+  createMessagingService,
 };

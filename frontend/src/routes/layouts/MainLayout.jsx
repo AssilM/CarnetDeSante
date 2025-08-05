@@ -5,7 +5,7 @@ import Footer from "../../components/Footer";
 import { ScrollToTop } from "../../components/patient/common";
 import Notification from "../../components/Notification";
 
-const MainLayout = ({ children }) => {
+const MainLayout = ({ children, hideFooter = false }) => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <ScrollToTop />
@@ -13,11 +13,15 @@ const MainLayout = ({ children }) => {
       <Notification />
       <div className="flex-1 flex">
         <Sidebar />
-        <main className="flex-1 w-full min-h-[calc(100vh-4rem)] mt-16">
+        <main
+          className={`flex-1 w-full mt-16 ${
+            hideFooter ? "h-[calc(100vh-4rem)]" : "min-h-[calc(100vh-4rem)]"
+          }`}
+        >
           {children}
         </main>
       </div>
-      <Footer />
+      {!hideFooter && <Footer />}
     </div>
   );
 };
