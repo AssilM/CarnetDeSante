@@ -12,6 +12,7 @@ class MessagingSocket {
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 1000;
+    this.manualDisconnect = false; // Flag pour éviter les reconnexions automatiques
   }
 
   // === CONNEXION ===
@@ -27,6 +28,9 @@ class MessagingSocket {
       console.error("❌ Token manquant pour la connexion WebSocket");
       return;
     }
+
+    // Réinitialiser le flag de déconnexion manuelle
+    this.manualDisconnect = false;
 
     const wsUrl = `ws://localhost:5001?token=${token}`;
     console.log("🔌 Tentative de connexion WebSocket:", wsUrl);
@@ -56,8 +60,11 @@ class MessagingSocket {
       this.currentRoom = null;
       this.emit("disconnect");
 
-      // Tentative de reconnexion automatique
-      if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      // Tentative de reconnexion automatique seulement si ce n'est pas une déconnexion manuelle
+      if (
+        !this.manualDisconnect &&
+        this.reconnectAttempts < this.maxReconnectAttempts
+      ) {
         this.reconnectAttempts++;
         console.log(
           `🔄 Tentative de reconnexion ${this.reconnectAttempts}/${this.maxReconnectAttempts}`
@@ -66,6 +73,8 @@ class MessagingSocket {
           () => this.connect(),
           this.reconnectDelay * this.reconnectAttempts
         );
+      } else if (this.manualDisconnect) {
+        console.log("🔌 Déconnexion manuelle - pas de reconnexion automatique");
       }
     };
 
@@ -76,12 +85,30 @@ class MessagingSocket {
   }
 
   disconnect() {
+    console.log("🔌 Déconnexion WebSocket initiée");
+
+    // Marquer comme déconnexion manuelle pour éviter les reconnexions automatiques
+    this.manualDisconnect = true;
+
     if (this.ws) {
-      this.ws.close();
+      // Fermer proprement la connexion
+      if (this.ws.readyState === WebSocket.OPEN) {
+        console.log("🔌 Fermeture propre de la connexion WebSocket");
+        this.ws.close(1000, "Déconnexion utilisateur");
+      } else {
+        console.log(
+          "🔌 Connexion WebSocket déjà fermée ou en cours de fermeture"
+        );
+      }
       this.ws = null;
     }
+
+    // Réinitialiser l'état
     this.isConnected = false;
     this.currentRoom = null;
+    this.reconnectAttempts = 0;
+
+    console.log("✅ Déconnexion WebSocket terminée");
   }
 
   // === GESTION DES ROOMS ===

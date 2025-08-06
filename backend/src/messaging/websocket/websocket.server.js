@@ -525,16 +525,29 @@ class WebSocketServerManager {
       const room = this.rooms.get(roomKey);
 
       if (room) {
+        let sentCount = 0;
+        let closedCount = 0;
+
         room.forEach((ws) => {
           if (ws.readyState === 1) {
             // WebSocket.OPEN
             ws.send(JSON.stringify(message));
+            sentCount++;
+          } else {
+            closedCount++;
           }
         });
 
         console.log(
-          `📢 Message diffusé dans la room ${roomKey} à ${room.size} participants`
+          `📢 Message diffusé dans la room ${roomKey}: ${sentCount} envoyés, ${closedCount} connexions fermées`
         );
+
+        // Nettoyer les connexions fermées si nécessaire
+        if (closedCount > 0) {
+          console.log(
+            `🧹 ${closedCount} connexions fermées détectées dans la room ${roomKey}`
+          );
+        }
       } else {
         console.log(`⚠️ Room ${roomKey} non trouvée pour la diffusion`);
       }
@@ -558,36 +571,79 @@ class WebSocketServerManager {
 
   // Gérer la déconnexion
   handleDisconnection(ws, user) {
-    // Supprimer la connexion des maps
+    if (!user) {
+      console.log("🔌 Déconnexion d'un utilisateur non authentifié");
+      return;
+    }
+
+    console.log(`🔌 Déconnexion de l'utilisateur ${user.id} (${user.role})`);
+
+    // 1️⃣ Supprimer la connexion des maps
     this.clients.delete(ws);
 
-    if (user && this.userConnections.has(user.id)) {
-      this.userConnections.get(user.id).delete(ws);
+    // 2️⃣ Nettoyer les connexions utilisateur
+    if (this.userConnections.has(user.id)) {
+      const connections = this.userConnections.get(user.id);
+      connections.delete(ws);
 
-      // Supprimer l'entrée si plus de connexions
-      if (this.userConnections.get(user.id).size === 0) {
+      console.log(
+        `📊 Connexions restantes pour ${user.id}: ${connections.size}`
+      );
+
+      // Supprimer l'utilisateur s'il n'a plus de connexions
+      if (connections.size === 0) {
         this.userConnections.delete(user.id);
+        console.log(`✅ Utilisateur ${user.id} complètement déconnecté`);
       }
     }
 
-    // Retirer l'utilisateur de toutes ses rooms
-    if (user && this.userRooms.has(user.id)) {
+    // 3️⃣ Nettoyer les rooms de cette connexion spécifique
+    if (this.userRooms.has(user.id)) {
       const userRooms = this.userRooms.get(user.id);
-      userRooms.forEach((roomKey) => {
-        if (this.rooms.has(roomKey)) {
-          this.rooms.get(roomKey).delete(ws);
+      const roomsToClean = new Set(userRooms); // Copie pour éviter les modifications pendant l'itération
 
-          // Supprimer la room si elle est vide
-          if (this.rooms.get(roomKey).size === 0) {
-            this.rooms.delete(roomKey);
-            console.log(`🗑️ Room ${roomKey} supprimée (déconnexion)`);
+      roomsToClean.forEach((roomKey) => {
+        if (this.rooms.has(roomKey)) {
+          const room = this.rooms.get(roomKey);
+          const wasInRoom = room.has(ws);
+
+          if (wasInRoom) {
+            room.delete(ws);
+            console.log(
+              `🏠 Utilisateur ${user.id} retiré de la room ${roomKey}`
+            );
+
+            // Supprimer la room si elle est vide
+            if (room.size === 0) {
+              this.rooms.delete(roomKey);
+              console.log(`🗑️ Room ${roomKey} supprimée (vide)`);
+            }
           }
         }
       });
-      this.userRooms.delete(user.id);
+
+      // Nettoyer les rooms vides de la liste de l'utilisateur
+      userRooms.forEach((roomKey) => {
+        if (!this.rooms.has(roomKey)) {
+          userRooms.delete(roomKey);
+        }
+      });
+
+      // Supprimer la liste des rooms si l'utilisateur n'a plus de connexions
+      if (
+        this.userConnections.has(user.id) &&
+        this.userConnections.get(user.id).size === 0
+      ) {
+        this.userRooms.delete(user.id);
+        console.log(`🧹 Rooms nettoyées pour l'utilisateur ${user.id}`);
+      }
     }
 
-    console.log(`🔌 Utilisateur ${user?.id} déconnecté du WebSocket`);
+    // 4️⃣ Logs de statistiques
+    console.log(`📈 Statistiques après déconnexion:`);
+    console.log(`  - Connexions totales: ${this.clients.size}`);
+    console.log(`  - Utilisateurs connectés: ${this.userConnections.size}`);
+    console.log(`  - Rooms actives: ${this.rooms.size}`);
   }
 
   // Obtenir le nombre de connexions actives
@@ -605,13 +661,62 @@ class WebSocketServerManager {
     return this.rooms.size;
   }
 
+  // Nettoyer les connexions fermées
+  cleanupClosedConnections() {
+    let cleanedConnections = 0;
+    let cleanedUsers = 0;
+
+    // Nettoyer les connexions fermées
+    this.clients.forEach((clientData, ws) => {
+      if (ws.readyState !== 1) {
+        // Pas WebSocket.OPEN
+        this.clients.delete(ws);
+        cleanedConnections++;
+
+        // Nettoyer aussi des userConnections
+        if (clientData.userId && this.userConnections.has(clientData.userId)) {
+          this.userConnections.get(clientData.userId).delete(ws);
+
+          if (this.userConnections.get(clientData.userId).size === 0) {
+            this.userConnections.delete(clientData.userId);
+            cleanedUsers++;
+          }
+        }
+      }
+    });
+
+    if (cleanedConnections > 0) {
+      console.log(
+        `🧹 Nettoyage: ${cleanedConnections} connexions fermées supprimées, ${cleanedUsers} utilisateurs nettoyés`
+      );
+    }
+
+    return { cleanedConnections, cleanedUsers };
+  }
+
   // Obtenir les statistiques du serveur
   getStats() {
-    return {
+    // Nettoyer les connexions fermées avant de donner les stats
+    this.cleanupClosedConnections();
+
+    const stats = {
       connections: this.getConnectionCount(),
       users: this.getUserCount(),
       rooms: this.getRoomCount(),
+      // Détails des connexions multiples
+      multipleConnections: 0,
+      connectionDetails: {},
     };
+
+    // Analyser les connexions multiples
+    this.userConnections.forEach((connections, userId) => {
+      if (connections.size > 1) {
+        stats.multipleConnections++;
+        stats.connectionDetails[userId] = connections.size;
+      }
+    });
+
+    return stats;
   }
 }
 
