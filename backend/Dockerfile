@@ -11,7 +11,7 @@ COPY package.json .env ./
 RUN npm install --production
 # Copie du code source
 COPY . .
-RUN node INITBDD.js
+#RUN node INITBDD.js
 
 # Expose le port utilisé par le backend (défini dans .env, par défaut 5001)
 EXPOSE 5001
