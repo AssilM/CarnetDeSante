@@ -77,10 +77,13 @@ const createProfileByRole = async (
 ) => {
   if (role === "patient") {
     if (patientData) {
-      const { groupe_sanguin, poids } = patientData;
+      const { groupe_sanguin, poids, taille } = patientData;
+      // Convertir les valeurs numériques en entiers si ce sont des chaînes
+      const poidsInt = poids ? parseInt(poids, 10) : null;
+      const tailleInt = taille ? parseInt(taille, 10) : null;
       await client.query(
-        "INSERT INTO patient (utilisateur_id, groupe_sanguin, poids) VALUES ($1, $2, $3)",
-        [userId, groupe_sanguin, poids]
+        "INSERT INTO patient (utilisateur_id, groupe_sanguin, poids, taille) VALUES ($1, $2, $3, $4)",
+        [userId, groupe_sanguin, poidsInt, tailleInt]
       );
     } else {
       await client.query("INSERT INTO patient (utilisateur_id) VALUES ($1)", [
@@ -102,7 +105,7 @@ const createProfileByRole = async (
     }
   } else if (role === "admin") {
     await client.query(
-      "INSERT INTO administrateurs (utilisateur_id) VALUES ($1)",
+      "INSERT INTO administrateur (utilisateur_id) VALUES ($1)",
       [userId]
     );
   }

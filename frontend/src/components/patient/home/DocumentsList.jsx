@@ -126,6 +126,12 @@ const DocumentsList = () => {
     []
   );
 
+  // Créer le service de documents
+  const documentService = React.useMemo(
+    () => createDocumentService(httpService),
+    []
+  );
+
   // Initialisation des données de test
   useEffect(() => {
     if (items.length === 0) {

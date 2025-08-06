@@ -323,21 +323,20 @@ const AppointmentDetails = () => {
 
   // Supprimer un document
   const handleDeleteDocument = async (documentId, documentName) => {
-    setDocumentToDelete({ id: documentId, name: documentName });
+    setDocumentToDelete({ id: documentId, titre: documentName, nom: documentName });
     setShowDeleteModal(true);
   };
 
+  // Confirmer la suppression d'un document
   const handleConfirmDeleteDocument = async () => {
     if (!documentToDelete) return;
 
+    setDeleteLoading(true);
     try {
-      setDeleteLoading(true);
       await documentService.deleteDocument(documentToDelete.id);
-
+      
       // Recharger les documents après suppression
-      const response = await documentService.getDocumentsByRendezVous(
-        appointment.id
-      );
+      const response = await documentService.getDocumentsByRendezVous(appointment.id);
       const documentsData = response.documents || response || [];
       setDocuments(documentsData);
 
@@ -754,7 +753,7 @@ const AppointmentDetails = () => {
                           .map((document) => (
                             <div
                               key={document.id}
-                              className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors bg-green-50"
+                              className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors bg-black-50"
                             >
                               <div className="flex items-center gap-3">
                                 <FaFileAlt className="text-primary text-lg" />

@@ -14,6 +14,7 @@ import {
   createFollowRelationship,
 } from "./rendezvous.repository.js";
 import { getJourSemaine, isDateInFuture } from "../utils/date.utils.js";
+import messagingService from "../messaging/messaging.service.js";
 
 /**
  * Service de gestion des rendez-vous
@@ -141,8 +142,7 @@ export const createRendezVousService = async (rdvData) => {
       );
       // On ne bloque pas la création du rendez-vous
     }
-
-    return completeAppointment;
+    return newRendezVous;
   } catch (error) {
     console.error("[createRendezVousService] Erreur:", error);
 

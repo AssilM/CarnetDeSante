@@ -15,6 +15,7 @@ import {
   setForbiddenHandler,
 } from "../services/http";
 import { authService, createUserService } from "../services/api";
+
 import messagingSocket from "../services/websocket/messagingSocket";
 
 const AuthContext = createContext();
@@ -41,6 +42,21 @@ export const AuthProvider = ({ children }) => {
     console.log("[AuthContext] État complètement réinitialisé");
   }, []);
 
+  // Fonction pour forcer la mise à jour de l'utilisateur
+  const refreshUser = useCallback(async () => {
+    console.log("[AuthContext] Forçage de la mise à jour de l'utilisateur");
+    try {
+      const userData = await userService.getCurrentUser();
+      console.log("[AuthContext] Utilisateur mis à jour:", userData);
+      setCurrentUser(userData.user);
+      return userData.user;
+    } catch (error) {
+      console.error("[AuthContext] Erreur lors de la mise à jour de l'utilisateur:", error);
+      setCurrentUser(null);
+      throw error;
+    }
+  }, [userService]);
+
   // Fonction de déconnexion standard
   const logout = useCallback(async () => {
     console.log("[AuthContext] Déconnexion initiée");
@@ -52,12 +68,41 @@ export const AuthProvider = ({ children }) => {
 
       // 2️⃣ Nettoyer les tokens avec la fonction centralisée
       await clearAuth();
+      // Déconnecter le socket
+      socketService.disconnect();
     } finally {
       // 3️⃣ Nettoyer les données de session
       setCurrentUser(null);
       navigate("/auth/login");
     }
   }, [navigate]);
+
+  // Écouter les changements de token et mettre à jour l'état utilisateur
+  useEffect(() => {
+    const checkTokenAndUpdateUser = async () => {
+      const accessToken = getCurrentToken();
+      if (accessToken && !currentUser) {
+        console.log("[AuthContext] Token détecté mais pas d'utilisateur - mise à jour...");
+        try {
+          const userData = await userService.getCurrentUser();
+          console.log("[AuthContext] Utilisateur récupéré après détection de token:", userData);
+          setCurrentUser(userData.user);
+          
+          // Connecter le socket WebSocket
+          if (accessToken) {
+            socketService.connect(accessToken);
+          }
+        } catch (error) {
+          console.log("[AuthContext] Erreur lors de la récupération de l'utilisateur:", error);
+        }
+      }
+    };
+
+    // Vérifier toutes les 30 secondes
+    const interval = setInterval(checkTokenAndUpdateUser, 30000);
+    
+    return () => clearInterval(interval);
+  }, [currentUser, userService]);
 
   // Vérifier si l'utilisateur est déjà connecté au chargement
   useEffect(() => {
@@ -70,23 +115,23 @@ export const AuthProvider = ({ children }) => {
           typeof window !== "undefined" ? window.location.pathname : "unknown",
       });
 
-      // ✅ NOUVELLE LOGIQUE : Gérer les différents cas
       try {
         if (!accessToken) {
           // Cas 1: Pas de token du tout
-          console.log(
-            "[AuthContext] Aucun token - tentative de refresh automatique"
-          );
+          console.log("[AuthContext] Aucun token - tentative de refresh automatique");
 
-          // Essayer un refresh automatique (au cas où il y aurait un refresh token)
           try {
             const userData = await userService.getCurrentUser();
             console.log("[AuthContext] Refresh automatique réussi", userData);
             setCurrentUser(userData.user);
-          } catch {
-            console.log(
-              "[AuthContext] Aucun refresh token valide - déconnecté"
-            );
+            
+            // Connecter le socket WebSocket
+            const accessToken = getCurrentToken();
+            if (accessToken) {
+              socketService.connect(accessToken);
+            }
+          } catch (error) {
+            console.log("[AuthContext] Aucun refresh token valide - déconnecté", error);
             setCurrentUser(null);
           }
         } else {
@@ -95,48 +140,47 @@ export const AuthProvider = ({ children }) => {
 
           try {
             const userData = await userService.getCurrentUser();
-            console.log(
-              "[AuthContext] Token valide - utilisateur connecté",
-              userData
-            );
+            console.log("[AuthContext] Token valide - utilisateur connecté", userData);
             setCurrentUser(userData.user);
+            
+            // Connecter le socket WebSocket
+            const accessToken = getCurrentToken();
+            if (accessToken) {
+              socketService.connect(accessToken);
+            }
           } catch (tokenError) {
+            console.log("[AuthContext] Erreur lors de la validation du token:", tokenError);
+            
             if (tokenError.response?.status === 401) {
               console.log("[AuthContext] Token expiré - tentative de refresh");
 
-              // Cas 2a: Token expiré, attendre le refresh automatique
-              // On fait un petit délai pour laisser le temps à l'intercepteur de faire son travail
-              await new Promise((resolve) => setTimeout(resolve, 100));
+              // Attendre un peu pour laisser l'intercepteur faire son travail
+              await new Promise((resolve) => setTimeout(resolve, 200));
 
               try {
                 // Retenter après le refresh automatique
                 const refreshedUserData = await userService.getCurrentUser();
-                console.log(
-                  "[AuthContext] Refresh automatique réussi",
-                  refreshedUserData
-                );
+                console.log("[AuthContext] Refresh automatique réussi", refreshedUserData);
                 setCurrentUser(refreshedUserData.user);
-              } catch {
-                console.log(
-                  "[AuthContext] Refresh échoué - authentification requise"
-                );
+                
+                // Connecter le socket WebSocket
+                const accessToken = getCurrentToken();
+                if (accessToken) {
+                  socketService.connect(accessToken);
+                }
+              } catch (refreshError) {
+                console.log("[AuthContext] Refresh échoué - authentification requise", refreshError);
                 setCurrentUser(null);
               }
             } else {
-              // Cas 2b: Autre erreur (réseau, serveur, etc.)
-              console.error(
-                "[AuthContext] Erreur de récupération des données utilisateur",
-                tokenError
-              );
+              // Autre erreur (réseau, serveur, etc.)
+              console.error("[AuthContext] Erreur de récupération des données utilisateur", tokenError);
               setCurrentUser(null);
             }
           }
         }
       } catch (error) {
-        console.error(
-          "[AuthContext] Erreur générale lors de la vérification",
-          error
-        );
+        console.error("[AuthContext] Erreur générale lors de la vérification:", error);
         setCurrentUser(null);
       } finally {
         setLoading(false);
@@ -179,6 +223,13 @@ export const AuthProvider = ({ children }) => {
       // Le token est automatiquement stocké par authService.login
 
       setCurrentUser(user);
+      
+      // Connecter le socket WebSocket après connexion réussie
+      const accessToken = getCurrentToken();
+      if (accessToken) {
+        socketService.connect(accessToken);
+      }
+      
       return user;
     } catch (err) {
       console.error("[AuthContext] Erreur lors de la connexion:", err);
@@ -245,6 +296,7 @@ export const AuthProvider = ({ children }) => {
       logout,
       register,
       forceUnlock, // ✅ Fonction de déblocage d'urgence
+      refreshUser, // ✅ Fonction de mise à jour forcée de l'utilisateur
     }),
     [
       currentUser,
@@ -254,6 +306,7 @@ export const AuthProvider = ({ children }) => {
       logout,
       register,
       forceUnlock,
+      refreshUser,
       setCurrentUser,
     ]
   );

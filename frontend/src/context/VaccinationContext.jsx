@@ -125,6 +125,37 @@ export const VaccinationProvider = ({ children }) => {
     }
   };
 
+  // Supprimer un vaccin
+  const deleteVaccine = async (vaccineId) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await vaccinService.deleteVaccine(vaccineId);
+      
+      // Recharger la liste des vaccins
+      setHasLoaded(false);
+      await fetchVaccines();
+      
+      showNotification({
+        type: "success",
+        message: "Vaccin supprimé avec succès !",
+        autoClose: true,
+      });
+      return true;
+    } catch (err) {
+      console.error("Erreur lors de la suppression du vaccin:", err);
+      setError("Erreur lors de la suppression du vaccin");
+      showNotification({
+        type: "error",
+        message: "Impossible de supprimer le vaccin",
+        autoClose: true,
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <VaccinationContext.Provider
       value={{
@@ -138,6 +169,7 @@ export const VaccinationProvider = ({ children }) => {
         setItems: setVaccines, // pour compatibilité
         togglePinned,
         fetchVaccines,
+        deleteVaccine,
       }}
     >
       {children}

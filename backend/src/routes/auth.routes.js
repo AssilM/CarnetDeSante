@@ -42,7 +42,7 @@ router.post("/refresh", refreshToken);
 router.post("/login/request-otp", validateSigninData, requestLoginOTP);
 router.post("/login/verify-otp", validateLoginOTP, signinWithOTP);
 router.post("/verify-email", validateEmailOTP, verifyEmail);
-router.post("/resend-verification", validateSigninData, resendVerification);
+router.post("/resend-verification", validateForgotPassword, resendVerification);
 
 // Routes de réinitialisation de mot de passe
 router.post("/forgot-password", validateForgotPassword, forgotPassword);

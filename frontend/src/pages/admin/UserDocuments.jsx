@@ -16,7 +16,6 @@ import {
   RelationshipCard,
 } from "../../components/admin/documents";
 import {
-  AppointmentCard,
   DeleteAppointmentModal,
   EditAppointmentModal,
 } from "../../components/admin/appointments";
@@ -648,17 +647,74 @@ const UserDocuments = () => {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredData.appointments.map((appointment) => (
-                      <AppointmentCard
+                      <div
                         key={appointment.id}
-                        appointment={appointment}
-                        onEdit={handleEditAppointment}
-                        onDelete={handleDeleteAppointment}
-                        onConfirm={handleConfirmAppointment}
-                        onCancel={handleCancelAppointment}
-                        onStart={handleStartAppointment}
-                        onFinish={handleFinishAppointment}
-                        loading={loadingAppointmentAction === appointment.id}
-                      />
+                        className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="font-medium text-gray-900">
+                              Rendez-vous #{appointment.id}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {appointment.date} à {appointment.heure}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              Statut: {appointment.statut}
+                            </p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleEditAppointment(appointment)}
+                              className="p-1 text-blue-600 hover:text-blue-800"
+                              title="Modifier"
+                            >
+                              <FaUserEdit className="text-sm" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAppointment(appointment.id)}
+                              className="p-1 text-red-600 hover:text-red-800"
+                              title="Supprimer"
+                            >
+                              <FaUserEdit className="text-sm" />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {appointment.statut === "planifié" && (
+                            <>
+                              <button
+                                onClick={() => handleConfirmAppointment(appointment.id)}
+                                className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                              >
+                                Confirmer
+                              </button>
+                              <button
+                                onClick={() => handleCancelAppointment(appointment.id)}
+                                className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                              >
+                                Annuler
+                              </button>
+                            </>
+                          )}
+                          {appointment.statut === "confirmé" && (
+                            <button
+                              onClick={() => handleStartAppointment(appointment.id)}
+                              className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                              Commencer
+                            </button>
+                          )}
+                          {appointment.statut === "en_cours" && (
+                            <button
+                              onClick={() => handleFinishAppointment(appointment.id)}
+                              className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                            >
+                              Terminer
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}

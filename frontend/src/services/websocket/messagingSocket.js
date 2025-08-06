@@ -1,7 +1,4 @@
-/**
- * Client Socket.IO pour la messagerie
- * Gère la connexion Socket.IO et les communications en temps réel
- */
+
 
 import { io } from "socket.io-client";
 
@@ -233,7 +230,6 @@ class MessagingSocket {
       conversationId: conversationId,
     });
   }
-
   // === GESTION DES ÉVÉNEMENTS ===
 
   on(event, callback) {

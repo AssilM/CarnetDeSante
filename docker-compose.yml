@@ -1,0 +1,45 @@
+#docker-compose up --build
+#docker compose down
+version: '3'
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: JmpGer123
+      POSTGRES_DB: Database
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_USER=postgres
+      - DB_PASSWORD=JmpGer123
+      - DB_NAME=Database
+      - PORT=5001
+      - NODE_ENV=production
+    ports:
+      - "5001:5001"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://backend:5001
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

@@ -9,6 +9,10 @@ export * from "./http";
 // Exporter les services API
 export * from "./api";
 
+// Exporter le service de messagerie
+export { default as messagingService } from "./api/messagingService";
+export { default as socketService } from "./socketService";
+
 // Importer les créateurs de services
 import {
   createUserService,

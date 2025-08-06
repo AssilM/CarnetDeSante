@@ -8,19 +8,7 @@ const hashPassword = async (password) => {
 };
 
 // Création d'utilisateurs de test
-const createTestUsers = async () => {
-  try {
-    // Vérifier si des utilisateurs existent déjà
-    const checkQuery = "SELECT COUNT(*) as count FROM utilisateur";
-    const checkResult = await pool.query(checkQuery);
-
-    if (checkResult.rows[0].count > 0) {
-      console.log(
-        "Des utilisateurs existent déjà, aucune donnée de test n'a été créée."
-      );
-      return;
-    }
-
+const createTestUsers = async (force = false) => {
     // Hachage des mots de passe
     const password = await hashPassword("password123");
 
@@ -145,11 +133,7 @@ const createTestUsers = async () => {
     }
 
     console.log("Utilisateurs de test créés avec succès");
-  } catch (error) {
-    console.error("Erreur lors de la création des utilisateurs de test:", error);
-    throw error;
-  }
-};
+}
 
 // Création de profils patients
 const createPatientProfile = async (userId) => {
@@ -276,9 +260,9 @@ const createMedecinDisponibilites = async (medecinId) => {
 // const createTestRendezVous = async () => { ... } // SUPPRIMER TOUTE LA FONCTION
 
 // Fonction pour initialiser la base de données avec des données de test
-const seedDatabase = async () => {
+const seedDatabase = async (force = false) => {
   try {
-    await createTestUsers();
+    await createTestUsers(force);
     // await createTestRendezVous(); // SUPPRIMER CETTE LIGNE
     console.log("Base de données initialisée avec succès");
   } catch (error) {

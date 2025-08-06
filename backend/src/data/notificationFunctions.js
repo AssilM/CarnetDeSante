@@ -35,9 +35,9 @@ export const createNotificationTriggerFunction = async () => {
  */
 export const createNotificationTrigger = async () => {
   const queryText = `
-    DROP TRIGGER IF EXISTS trigger_notify_on_notification_insert ON notification;
+    DROP TRIGGER IF EXISTS trigger_notify_on_notification_insert ON notifications;
     CREATE TRIGGER trigger_notify_on_notification_insert
-      AFTER INSERT ON notification
+      AFTER INSERT ON notifications
       FOR EACH ROW
       EXECUTE FUNCTION notify_on_notification_insert();
   `;
@@ -66,7 +66,7 @@ export const createCleanupOldNotificationsFunction = async () => {
       deleted_count INTEGER;
     BEGIN
       -- Supprimer les notifications lues de plus de 30 jours
-      DELETE FROM notification 
+      DELETE FROM notifications 
       WHERE is_read = true 
       AND created_at < NOW() - INTERVAL '30 days';
       
@@ -112,7 +112,7 @@ export const executeCleanupOldNotifications = async () => {
  */
 export const dropNotificationFunctions = async () => {
   const queries = [
-    "DROP TRIGGER IF EXISTS trigger_notify_on_notification_insert ON notification",
+    "DROP TRIGGER IF EXISTS trigger_notify_on_notification_insert ON notifications",
     "DROP FUNCTION IF EXISTS notify_on_notification_insert() CASCADE",
     "DROP FUNCTION IF EXISTS cleanup_old_notifications() CASCADE",
   ];
