@@ -11,10 +11,9 @@ COPY package.json .env ./
 RUN npm install --production
 # Copie du code source
 COPY . .
-#RUN node INITBDD.js
 
 # Expose le port utilisé par le backend (défini dans .env, par défaut 5001)
 EXPOSE 5001
 
-# Commande de démarrage
-CMD ["node", "src/server.js"]
+# Script de démarrage qui initialise la base de données puis démarre le serveur
+CMD ["sh", "-c", "node init-database.js && node src/server.js"]

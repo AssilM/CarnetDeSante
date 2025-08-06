@@ -46,8 +46,8 @@ const initDatabase = async () => {
 // Fonction principale pour démarrer le serveur
 const startServer = async () => {
   try {
-    // Initialiser la base de données avant de démarrer le serveur
-    await initDatabase();
+    // L'initialisation de la base de données est maintenant gérée par init-database.js
+    console.log("🚀 Démarrage du serveur...");
     
     app.use(cors());
 
