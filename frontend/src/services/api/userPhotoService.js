@@ -13,7 +13,8 @@ const createUserPhotoService = (api) => {
         return null;
       }
       
-      const baseUrl = "http://localhost:5001";
+      // Utilise une URL relative pour que nginx puisse faire le proxy
+      const baseUrl = "";
       
       if (photoPath.startsWith("/")) {
         return `${baseUrl}${photoPath}`;

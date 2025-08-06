@@ -52,6 +52,60 @@ const server = createServer(app);
 // Initialiser le serveur WebSocket
 const socketServer = new SocketServer(server);
 
+<<<<<<< Updated upstream
+=======
+// Créer les tables et générer des données de test
+const initDatabase = async () => {
+  try {
+    // Pour réinitialiser complètement la base de données, décommentez la ligne suivante
+    await dropAllTables();
+
+    // Initialiser les tables
+    await initTables();
+    console.log("Base de données principale initialisée avec succès");
+
+    // Créer les triggers de notifications
+    await createNotificationTriggers();
+    console.log("Triggers de notifications créés avec succès");
+
+    // Générer des données de test
+    await seedDatabase();
+    console.log("Données de test générées avec succès");
+  } catch (err) {
+    console.error(
+      "Erreur lors de l'initialisation de la base de données principale:",
+      err
+    );
+  }
+};
+
+// Initialiser la base de données de messagerie
+const initChatDatabase = async () => {
+  try {
+    // Pour réinitialiser complètement la base de données de messagerie, décommentez la ligne suivante
+    await dropAllChatTables();
+
+    // Initialiser les tables de messagerie
+    await initChatTables();
+    console.log("Base de données de messagerie initialisée avec succès");
+  } catch (err) {
+    console.error(
+      "Erreur lors de l'initialisation de la base de données de messagerie:",
+      err
+    );
+  }
+};
+
+// Initialiser la base de données
+//CREER UN SCRIPT D INITIALISATION DE LA BASE DE DONNEES
+initDatabase();
+initChatDatabase();
+app.use(cors(
+  {
+    origin: ["http://localhost", "http://localhost:5173"]
+  }
+));
+>>>>>>> Stashed changes
 // Démarrer le serveur
 server.listen(port, async () => {
   console.log(`Server is running on port ${port}`);
@@ -111,4 +165,8 @@ server.listen(port, async () => {
     }
   }, CHECK_INTERVAL);
 });
+<<<<<<< Updated upstream
 
+=======
+export { initDatabase, initChatDatabase, server };
+>>>>>>> Stashed changes

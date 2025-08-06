@@ -1,7 +1,7 @@
 import axios from "axios";
 
-// URL de base de l'API
-const BASE_URL = "http://localhost:5001/api";
+// URL de base de l'API - utilise une URL relative pour que nginx puisse faire le proxy
+const BASE_URL = "/api";
 
 // Client HTTP de base avec gestion centralisée des tokens
 export const httpService = axios.create({
