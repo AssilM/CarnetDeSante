@@ -2,22 +2,29 @@ import app from "./app.js";
 import dotenv from "dotenv";
 import pool from "./config/db.js"
 import initTables, { dropAllTables } from "./data/createTables.js";
+import initChatTables, { dropAllChatTables } from "./data/createChatTables.js";
 import { createNotificationTriggers } from "./data/notificationTriggers.js";
 import seedDatabase from "./data/seedData.js";
 import cors from "cors";
 import { checkAppointmentsStatus } from "./appointment/rendezvous.service.js";
 import notificationListener from "./notification/notificationListener.js";
-import { createServer } from 'http';
-import SocketServer from './websocket/socketServer.js';
-import initMessagingTables from './data/initMessagingTables.js';
-import { createMessagingTables, cleanupMessagingTables } from './data/createMessagingTables.js';
 
+import { initCronJobs } from "./utils/cron.service.js";
+import socketIOServer from "./messaging/websocket/websocket.server.js";
+import { createServer } from "http";
 
 dotenv.config();
 
 const port = process.env.PORT || 5001;
 
-// Réinitialiser complètement les deux bases de données
+
+// Créer le serveur HTTP
+const server = createServer(app);
+
+// Initialiser le serveur Socket.IO
+socketIOServer.initialize(server);
+
+// Créer les tables et générer des données de test
 const initDatabase = async () => {
   try {
     console.log("🔄 Réinitialisation complète des bases de données...");
@@ -26,6 +33,10 @@ const initDatabase = async () => {
     console.log("📋 Réinitialisation de la base 'Database'...");
     await dropAllTables();
     await initTables();
+
+    console.log("Base de données principale initialisée avec succès");
+
+    // Créer les triggers de notifications
     await createNotificationTriggers();
     await seedDatabase(true); // Mode force pour créer les données de test
     console.log("✅ Base 'Database' réinitialisée avec succès");
@@ -39,12 +50,40 @@ const initDatabase = async () => {
 
     console.log("🎉 Toutes les bases de données ont été réinitialisées");
   } catch (err) {
-    console.error("❌ Erreur lors de la réinitialisation des bases de données:", err);
+
+    console.error(
+      "Erreur lors de l'initialisation de la base de données principale:",
+      err
+    );
   }
 };
 
-// Fonction principale pour démarrer le serveur
-const startServer = async () => {
+// Initialiser la base de données de messagerie
+const initChatDatabase = async () => {
+  try {
+    // Pour réinitialiser complètement la base de données de messagerie, décommentez la ligne suivante
+    await dropAllChatTables();
+
+    // Initialiser les tables de messagerie
+    await initChatTables();
+    console.log("Base de données de messagerie initialisée avec succès");
+  } catch (err) {
+    console.error(
+      "Erreur lors de l'initialisation de la base de données de messagerie:",
+      err
+    );
+  }
+};
+
+// Initialiser la base de données
+//initDatabase();
+//initChatDatabase();
+app.use(cors());
+// Démarrer le serveur
+server.listen(port, async () => {
+  console.log(`Server is running on port ${port}`);
+
+  // Initialiser les tâches cron
   try {
     // L'initialisation de la base de données est maintenant gérée par init-database.js
     console.log("🚀 Démarrage du serveur...");

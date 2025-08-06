@@ -69,6 +69,11 @@ const Sidebar = () => {
       path: "/book-appointment",
     },
     {
+      icon: <MdMessage className="text-2xl" />,
+      label: "Messagerie",
+      path: "/messagerie",
+    },
+    {
       icon: <MdNotifications className="text-2xl" />,
       label: "Notifications",
       path: "/notifications",
@@ -105,6 +110,11 @@ const Sidebar = () => {
       icon: <BsCalendar2Week className="text-2xl" />,
       label: "Disponibilités",
       path: "/doctor/availability",
+    },
+    {
+      icon: <MdMessage className="text-2xl" />,
+      label: "Messagerie",
+      path: "/messagerie",
     },
     {
       icon: <MdNotifications className="text-2xl" />,

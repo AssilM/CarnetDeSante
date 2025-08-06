@@ -1,210 +1,272 @@
-import messagingService from "./messaging.service.js";
-import { createNotificationService } from "../notification/notification.service.js";
-import pool from "../config/db.js";
+import {
+  createConversationService,
+  getUserConversationsService,
+  getConversationByIdService,
+  sendMessageService,
+  getConversationMessagesService,
+  getUnreadCountService,
+  searchUsersForConversationService,
+  getAvailableUsersService,
+  validateConversationAccessService,
+  validateUserRelationshipService,
+  archiveConversationService,
+  reactivateConversationService,
+} from "./messaging.service.js";
 
-// Obtenir toutes les conversations d'un utilisateur
-export const getUserConversations = async (req, res) => {
+// === CONVERSATIONS ===
+
+export const createConversation = async (req, res, next) => {
   try {
-    const userId = req.userId;
-    const role = req.userRole;
-    
-    console.log("🔍 [MESSAGING] getUserConversations appelé:");
-    console.log("  - userId:", userId);
-    console.log("  - role:", role);
-    
-    const conversations = await messagingService.getUserConversations(userId, role);
-    
-    console.log("  - conversations retournées:", conversations.length);
-    
-    res.json({
+    console.log("🔍 Création de conversation - Body reçu:", req.body);
+    console.log("🔍 Création de conversation - UserId:", req.userId);
+    console.log("🔍 Création de conversation - UserRole:", req.userRole);
+
+    const { otherUserId } = req.body;
+
+    console.log(
+      "🔍 Création de conversation - OtherUserId extrait:",
+      otherUserId
+    );
+
+    if (!otherUserId) {
+      console.log("❌ Création de conversation - OtherUserId manquant");
+      return res.status(400).json({
+        success: false,
+        message: "ID de l'utilisateur requis",
+      });
+    }
+
+    const conversation = await createConversationService(
+      req.userId,
+      req.userRole,
+      parseInt(otherUserId)
+    );
+
+    res.status(201).json({
       success: true,
-      data: conversations
+      conversation,
+      message: "Conversation créée avec succès",
     });
   } catch (error) {
-    console.error("❌ [MESSAGING] Erreur lors de la récupération des conversations:", error);
-    res.status(500).json({
-      success: false,
-      message: "Erreur lors de la récupération des conversations"
-    });
+    next(error);
   }
 };
 
-// Obtenir les messages d'une conversation
-export const getConversationMessages = async (req, res) => {
+export const getUserConversations = async (req, res, next) => {
+  try {
+    const conversations = await getUserConversationsService(
+      req.userId,
+      req.userRole
+    );
+
+    res.status(200).json({
+      success: true,
+      conversations,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getConversationById = async (req, res, next) => {
   try {
     const { conversationId } = req.params;
-    const userId = req.userId;
-    
-    console.log(`🔍 [MESSAGING] getConversationMessages appelé:`);
-    console.log(`  - conversationId: ${conversationId}`);
-    console.log(`  - userId: ${userId}`);
-    
-    // Vérifier l'accès à la conversation
-    const canAccess = await messagingService.canAccessConversation(conversationId, userId);
-    console.log(`  - canAccess: ${canAccess}`);
-    
-    if (!canAccess) {
-      console.log(`❌ [MESSAGING] Accès refusé à la conversation ${conversationId}`);
-      return res.status(403).json({
-        success: false,
-        message: "Accès non autorisé à cette conversation"
-      });
-    }
-    
-    const messages = await messagingService.getConversationMessages(conversationId);
-    console.log(`  - messages trouvés: ${messages.length}`);
-    console.log(`  - messages:`, messages);
-    
-    // Marquer les messages comme lus
-    await messagingService.markMessagesAsRead(conversationId, userId);
-    
-    res.json({
+
+    const conversation = await getConversationByIdService(
+      req.userId,
+      req.userRole,
+      parseInt(conversationId)
+    );
+
+    res.status(200).json({
       success: true,
-      data: messages
+      conversation,
     });
   } catch (error) {
-    console.error("❌ [MESSAGING] Erreur lors de la récupération des messages:", error);
-    res.status(500).json({
-      success: false,
-      message: "Erreur lors de la récupération des messages"
-    });
+    next(error);
   }
 };
 
-// Envoyer un message
-export const sendMessage = async (req, res) => {
+// === MESSAGES ===
+
+export const sendMessage = async (req, res, next) => {
+  try {
     const { conversationId } = req.params;
-    const { content, type = 'text' } = req.body;
-    const userId = req.userId;
-    
-    // Vérifier l'accès à la conversation
-    const canAccess = await messagingService.canAccessConversation(conversationId, userId);
-    if (!canAccess) {
-      return res.status(403).json({
-        success: false,
-        message: "Accès non autorisé à cette conversation"
-      });
-    }
-    
-    // Envoyer le message
-    const message = await messagingService.sendMessage(conversationId, userId, content, type);
-    
-    // Obtenir les informations du destinataire pour la notification
-    const recipient = await messagingService.getMessageRecipient(conversationId, userId);
-    
-    // Récupérer les informations de l'utilisateur pour la notification
-    const userQuery = "SELECT nom, prenom FROM utilisateur WHERE id = $1";
-    const userResult = await pool.query(userQuery, [userId]);
-    const user = userResult.rows[0];
-    const senderName = user ? `${user.prenom} ${user.nom}` : 'Utilisateur';
+    const { content } = req.body;
 
-    // Créer une notification pour le destinataire
-    await createNotificationService({
-      user_id: recipient.recipient_id,
-      type: 'new_message',
-      title: 'Nouveau message',
-      message: `Nouveau message de ${senderName}`,
-      data: {
-        conversationId,
-        senderId: userId,
-        senderName: senderName
-      }
-    });
-    
-    res.json({
-      success: true,
-      data: message
-    });
-  }
+    if (!content) {
+      return res.status(400).json({
+        success: false,
+        message: "Contenu du message requis",
+      });
+    }
 
-// Créer une conversation pour un rendez-vous
-export const createConversationForRendezVous = async (req, res) => {
-  try {
-    const { rendezVousId } = req.params;
-    const { patientId, medecinId } = req.body;
-    
-    // Vérifier que l'utilisateur a le droit de créer cette conversation
-    const userId = req.userId;
-    const role = req.userRole;
-    if (role === 'patient' && userId !== patientId) {
-      return res.status(403).json({
-        success: false,
-        message: "Accès non autorisé"
-      });
-    }
-    if (role === 'medecin' && userId !== medecinId) {
-      return res.status(403).json({
-        success: false,
-        message: "Accès non autorisé"
-      });
-    }
-    
-    const conversation = await messagingService.createConversation(rendezVousId, patientId, medecinId);
-    
-    res.json({
+    const message = await sendMessageService(
+      req.userId,
+      req.userRole,
+      parseInt(conversationId),
+      content
+    );
+
+    res.status(201).json({
       success: true,
-      data: conversation
+      message: message,
+      notification: {
+        type: "success",
+        title: "Message envoyé",
+        message: "Votre message a été envoyé avec succès",
+      },
     });
   } catch (error) {
-    console.error("Erreur lors de la création de la conversation:", error);
-    res.status(500).json({
-      success: false,
-      message: "Erreur lors de la création de la conversation"
-    });
+    next(error);
   }
 };
 
-// Obtenir une conversation par rendez-vous
-export const getConversationByRendezVous = async (req, res) => {
+export const getConversationMessages = async (req, res, next) => {
   try {
-    const { rendezVousId } = req.params;
-    const userId = req.userId;
-    
-    const conversation = await messagingService.getConversationByRendezVous(rendezVousId);
-    
-    if (!conversation) {
-      return res.status(404).json({
-        success: false,
-        message: "Conversation non trouvée"
-      });
-    }
-    
-    // Vérifier l'accès à la conversation
-    if (conversation.patient_id !== userId && conversation.medecin_id !== userId) {
-      return res.status(403).json({
-        success: false,
-        message: "Accès non autorisé à cette conversation"
-      });
-    }
-    
-    res.json({
+    const { conversationId } = req.params;
+    const { limit = 50, offset = 0 } = req.query;
+
+    const messages = await getConversationMessagesService(
+      req.userId,
+      req.userRole,
+      parseInt(conversationId),
+      parseInt(limit),
+      parseInt(offset)
+    );
+
+    res.status(200).json({
       success: true,
-      data: conversation
+      messages,
     });
   } catch (error) {
-    console.error("Erreur lors de la récupération de la conversation:", error);
-    res.status(500).json({
-      success: false,
-      message: "Erreur lors de la récupération de la conversation"
-    });
+    next(error);
   }
 };
 
-// Obtenir le nombre de messages non lus
-export const getUnreadMessagesCount = async (req, res) => {
+export const getUnreadCount = async (req, res, next) => {
   try {
-    const userId = req.userId;
-    const count = await messagingService.getUnreadMessagesCount(userId);
-    
-    res.json({
+    const unreadCount = await getUnreadCountService(req.userId);
+
+    res.status(200).json({
       success: true,
-      data: { count }
+      unreadCount,
     });
   } catch (error) {
-    console.error("Erreur lors du comptage des messages non lus:", error);
-    res.status(500).json({
-      success: false,
-      message: "Erreur lors du comptage des messages non lus"
-    });
+    next(error);
   }
-}; 
+};
+
+// === RECHERCHE UTILISATEURS ===
+
+export const searchUsersForConversation = async (req, res, next) => {
+  try {
+    const { searchTerm = "" } = req.query;
+
+    const users = await searchUsersForConversationService(
+      req.userId,
+      req.userRole,
+      searchTerm
+    );
+
+    res.status(200).json({
+      success: true,
+      users,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAvailableUsers = async (req, res, next) => {
+  try {
+    const users = await getAvailableUsersService(req.userId, req.userRole);
+
+    res.status(200).json({
+      success: true,
+      users,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// === VALIDATION ===
+
+export const validateConversationAccess = async (req, res, next) => {
+  try {
+    const { conversationId } = req.params;
+
+    const hasAccess = await validateConversationAccessService(
+      req.userId,
+      req.userRole,
+      parseInt(conversationId)
+    );
+
+    res.status(200).json({
+      success: true,
+      hasAccess,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const validateUserRelationship = async (req, res, next) => {
+  try {
+    const { otherUserId } = req.params;
+
+    const hasRelationship = await validateUserRelationshipService(
+      req.userId,
+      req.userRole,
+      parseInt(otherUserId)
+    );
+
+    res.status(200).json({
+      success: true,
+      hasRelationship,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const archiveConversation = async (req, res, next) => {
+  try {
+    const { conversationId } = req.params;
+
+    const archivedConversation = await archiveConversationService(
+      req.userId,
+      req.userRole,
+      parseInt(conversationId)
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Conversation archivée avec succès",
+      conversation: archivedConversation,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const reactivateConversation = async (req, res, next) => {
+  try {
+    const { conversationId } = req.params;
+
+    const reactivatedConversation = await reactivateConversationService(
+      req.userId,
+      req.userRole,
+      parseInt(conversationId)
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Conversation réactivée avec succès",
+      conversation: reactivatedConversation,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
