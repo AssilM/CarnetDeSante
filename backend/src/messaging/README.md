@@ -12,7 +12,7 @@ messaging/
 ├── messaging.routes.js        # Routes API
 ├── index.js                   # Export des routes
 └── websocket/
-    └── websocket.server.js    # Serveur WebSocket temps réel avec ROOMS
+    └── websocket.server.js    # Serveur Socket.IO temps réel avec ROOMS
 ```
 
 ## 🗄️ Structure de Base de Données
@@ -86,11 +86,11 @@ CREATE TABLE messages (
 | `GET`   | `/api/messaging/search-users`    | Rechercher des utilisateurs |
 | `GET`   | `/api/messaging/available-users` | Utilisateurs disponibles    |
 
-## 🔌 WebSocket avec Système de ROOMS
+## 🔌 Socket.IO avec Système de ROOMS
 
 ### 🏠 Système de Rooms
 
-Le WebSocket utilise un **système de rooms** pour garantir que seuls les participants autorisés reçoivent les messages :
+Le Socket.IO utilise un **système de rooms** pour garantir que seuls les participants autorisés reçoivent les messages :
 
 - **Room par conversation** : Chaque conversation a sa propre room (`conversation_${id}`)
 - **Adhésion sécurisée** : Validation des permissions avant de rejoindre une room
@@ -101,7 +101,9 @@ Le WebSocket utilise un **système de rooms** pour garantir que seuls les partic
 
 ```javascript
 // Connexion avec token JWT
-const ws = new WebSocket("ws://localhost:5001?token=JWT_TOKEN");
+const socket = io("http://localhost:5001", {
+  auth: { token: JWT_TOKEN },
+});
 ```
 
 ### Gestion des Rooms
@@ -109,263 +111,169 @@ const ws = new WebSocket("ws://localhost:5001?token=JWT_TOKEN");
 #### Rejoindre une Room
 
 ```javascript
-ws.send(
-  JSON.stringify({
-    type: "join_room",
-    conversationId: 1,
-  })
-);
+socket.emit("join_room", {
+  conversationId: 1,
+});
 ```
 
 #### Quitter une Room
 
 ```javascript
-ws.send(
-  JSON.stringify({
-    type: "leave_room",
-    conversationId: 1,
-  })
-);
-```
-
-### Types de Messages
-
-#### Envoi de Message
-
-```javascript
-ws.send(
-  JSON.stringify({
-    type: "send_message",
-    conversationId: 1,
-    content: "Bonjour docteur !",
-  })
-);
-```
-
-#### Marquage comme Lu
-
-```javascript
-ws.send(
-  JSON.stringify({
-    type: "mark_as_read",
-    conversationId: 1,
-  })
-);
-```
-
-#### Indicateur de Frappe
-
-```javascript
-// Début de frappe
-ws.send(
-  JSON.stringify({
-    type: "typing_start",
-    conversationId: 1,
-  })
-);
-
-// Arrêt de frappe
-ws.send(
-  JSON.stringify({
-    type: "typing_stop",
-    conversationId: 1,
-  })
-);
-```
-
-### Messages Reçus
-
-#### Confirmation d'Adhésion à une Room
-
-```javascript
-{
-  type: "room_joined",
-  conversationId: 1
-}
-```
-
-#### Confirmation de Sortie d'une Room
-
-```javascript
-{
-  type: "room_left",
-  conversationId: 1
-}
-```
-
-#### Nouveau Message
-
-```javascript
-{
-  type: "new_message",
-  message: {
-    id: 123,
-    conversation_id: 1,
-    sender_id: 456,
-    content: "Bonjour !",
-    sent_at: "2024-01-01T10:00:00Z",
-    is_read: false,
-    sender_info: {
-      id: 456,
-      nom: "Dupont",
-      prenom: "Jean"
-    }
-  },
-  conversationId: 1
-}
-```
-
-#### Messages Lus
-
-```javascript
-{
-  type: "messages_read",
+socket.emit("leave_room", {
   conversationId: 1,
-  userId: 456,
-  updatedCount: 5
-}
+});
 ```
 
-#### Indicateur de Frappe
+### Événements Socket.IO
+
+#### Événements Client → Serveur
+
+| Événement      | Données                       | Description        |
+| -------------- | ----------------------------- | ------------------ |
+| `join_room`    | `{ conversationId }`          | Rejoindre une room |
+| `leave_room`   | `{ conversationId }`          | Quitter une room   |
+| `send_message` | `{ conversationId, content }` | Envoyer un message |
+| `mark_as_read` | `{ conversationId }`          | Marquer comme lu   |
+| `typing_start` | `{ conversationId }`          | Début de frappe    |
+| `typing_stop`  | `{ conversationId }`          | Arrêt de frappe    |
+
+#### Événements Serveur → Client
+
+| Événement                | Données                                    | Description       |
+| ------------------------ | ------------------------------------------ | ----------------- |
+| `connection_established` | `{ userId, userRole }`                     | Connexion établie |
+| `room_joined`            | `{ conversationId }`                       | Room rejointe     |
+| `room_left`              | `{ conversationId }`                       | Room quittée      |
+| `new_message`            | `{ message, conversationId }`              | Nouveau message   |
+| `messages_read`          | `{ conversationId, userId, updatedCount }` | Messages lus      |
+| `typing_start`           | `{ conversationId, userId }`               | Début de frappe   |
+| `typing_stop`            | `{ conversationId, userId }`               | Arrêt de frappe   |
+| `error`                  | `{ message }`                              | Erreur            |
+
+## 🔧 Configuration
+
+### Backend
 
 ```javascript
-{
-  type: "typing_start",
-  conversationId: 1,
-  userId: 456
-}
+// Initialisation du serveur Socket.IO
+import socketIOServer from "./messaging/websocket/websocket.server.js";
+
+const server = createServer(app);
+socketIOServer.initialize(server);
+```
+
+### Frontend
+
+```javascript
+// Client Socket.IO
+import messagingSocket from "../services/websocket/messagingSocket";
+
+// Connexion
+messagingSocket.connect();
+
+// Écouter les événements
+messagingSocket.on("new_message", (data) => {
+  console.log("Nouveau message:", data);
+});
+
+// Envoyer un message
+messagingSocket.sendMessage(conversationId, "Hello!");
 ```
 
 ## 🚀 Fonctionnalités
 
 ### ✅ Implémentées
 
-- [x] **Système de Rooms** : Isolation des conversations par room
-- [x] **Adhésion sécurisée** : Validation des permissions avant de rejoindre une room
-- [x] **Diffusion ciblée** : Messages envoyés uniquement aux participants
-- [x] **Nettoyage automatique** : Rooms supprimées quand vides
-- [x] Création de conversations entre patients et médecins liés
-- [x] Envoi de messages textuels
-- [x] Marquage des messages comme lus
-- [x] Comptage des messages non lus
-- [x] Recherche d'utilisateurs pour nouvelles conversations
-- [x] WebSocket temps réel
+- [x] API REST complète
+- [x] Socket.IO temps réel
+- [x] Système de rooms sécurisé
+- [x] Authentification JWT
+- [x] Gestion des messages
 - [x] Indicateurs de frappe
-- [x] Validation des relations patient-médecin
-- [x] Contrôles d'accès par conversation
+- [x] Marquage comme lu
+- [x] Recherche d'utilisateurs
+- [x] Validation des permissions
+- [x] Gestion des erreurs
+- [x] Reconnexion automatique
 
-### 🔄 Logique Métier
+## 🔄 Flux de Communication
 
-#### Gestion des Rooms
+### 1. Connexion
 
-1. **Connexion** : L'utilisateur se connecte au WebSocket
-2. **Adhésion** : L'utilisateur rejoint une room pour une conversation spécifique
-3. **Validation** : Vérification des permissions avant d'adhérer à la room
-4. **Diffusion** : Messages envoyés uniquement aux participants de la room
-5. **Sortie** : L'utilisateur quitte la room quand il change de conversation
-6. **Nettoyage** : Room supprimée automatiquement quand elle est vide
+1. **Connexion** : L'utilisateur se connecte au Socket.IO
+2. **Authentification** : Validation du token JWT
+3. **Confirmation** : Envoi de `connection_established`
 
-#### Création de Conversation
+### 2. Rejoindre une Conversation
 
-1. **Validation** : Vérifier que l'utilisateur et l'autre utilisateur sont liés
-2. **Création** : Créer la conversation en base
-3. **Retour** : Retourner les détails de la conversation
+1. **Demande** : Client envoie `join_room` avec `conversationId`
+2. **Validation** : Vérification des permissions
+3. **Adhésion** : Ajout à la room Socket.IO
+4. **Confirmation** : Envoi de `room_joined`
 
-#### Envoi de Message
+### 3. Envoi de Message
 
-1. **Validation** : Vérifier l'accès à la conversation
-2. **Création** : Sauvegarder le message en base
-3. **Diffusion** : Envoyer le message via WebSocket aux participants de la room
-4. **Mise à jour** : Actualiser le timestamp de la conversation
+1. **Envoi** : Client envoie `send_message`
+2. **Validation** : Vérification des permissions
+3. **Sauvegarde** : Création en base de données
+4. **Diffusion** : Envoi du message via Socket.IO aux participants de la room
 
-#### Affichage des Conversations
-
-- **Filtrage** : Seules les conversations avec au moins un message sont affichées
-- **Tri** : Par date du dernier message (plus récent en premier)
-- **Comptage** : Nombre de messages non lus par conversation
-
-## 🔧 Configuration
-
-### Variables d'Environnement
-
-```env
-# Base de données de messagerie
-CHAT_DB_HOST=localhost
-CHAT_DB_USER=chatuser
-CHAT_DB_PASSWORD=chatpass
-CHAT_DB_NAME=chat_db
-CHAT_DB_PORT=5433
-
-# JWT pour WebSocket
-JWT_SECRET=your_jwt_secret
-```
-
-### Initialisation
-
-```javascript
-// Dans server.js
-import initChatTables from "./data/createChatTables.js";
-
-// Initialiser les tables de messagerie
-await initChatTables();
-```
-
-## 📊 Performance
-
-### Index Optimisés
-
-- `idx_conversations_patient` : Recherche par patient
-- `idx_conversations_doctor` : Recherche par médecin
-- `idx_conversations_last_message` : Tri par dernier message
-- `idx_messages_conversation` : Messages par conversation
-- `idx_messages_sent_at` : Tri chronologique
-- `idx_messages_read` : Statut de lecture
-
-### Pagination
-
-- Messages récupérés par lots de 50 par défaut
-- Support des paramètres `limit` et `offset`
-
-### Avantages du Système de Rooms
-
-- **Sécurité** : Isolation complète des conversations
-- **Performance** : Diffusion ciblée uniquement aux participants
-- **Scalabilité** : Gestion efficace des conversations multiples
-- **Ressources** : Nettoyage automatique des rooms vides
-
-## 🛡️ Sécurité
+## 🔒 Sécurité
 
 ### Authentification
 
-- JWT requis pour toutes les routes
-- Validation des tokens WebSocket
-- Vérification des permissions par conversation
+- **JWT pour Socket.IO** : Token transmis via `auth.token`
+- **Validation côté serveur** : Vérification de chaque requête
+- **Gestion des erreurs** : Déconnexion automatique en cas d'échec
 
-### Validation
+### Autorisations
 
-- Contenu des messages limité à 1000 caractères
-- Validation des relations patient-médecin
-- Contrôles d'accès stricts
+- **Vérification des conversations** : Seuls les participants peuvent accéder
+- **Validation des rôles** : Patient/médecin avec permissions appropriées
+- **Isolation des rooms** : Messages isolés par conversation
 
-### Protection
+## 📊 Monitoring
 
-- **Isolation par Room** : Seuls les participants autorisés reçoivent les messages
-- Validation des permissions avant d'adhérer à une room
-- Pas d'accès aux conversations non autorisées
-- Validation des rôles utilisateur
-- Sanitisation des données d'entrée
-
-## 📈 Statistiques
-
-Le serveur WebSocket fournit des statistiques en temps réel :
+Le serveur Socket.IO fournit des statistiques en temps réel :
 
 ```javascript
-// Obtenir les statistiques du serveur
-const stats = webSocketServer.getStats();
-console.log(stats);
+const stats = socketIOServer.getStats();
 // {
-//   connections: 10,    // Nombre de connexions WebSocket actives
-//   users: 8,          // Nombre d'utilisateurs connectés
-//   rooms: 5           // Nombre de rooms actives
+//   connections: 10,    // Nombre de connexions Socket.IO actives
+//   users: 8,          // Nombre d'utilisateurs uniques connectés
+//   multipleConnections: 2, // Utilisateurs avec plusieurs connexions
+//   connectionDetails: { "123": 2, "456": 3 } // Détails des connexions multiples
 // }
 ```
+
+## 🛠️ Développement
+
+### Installation des Dépendances
+
+```bash
+# Backend
+npm install socket.io
+
+# Frontend
+npm install socket.io-client
+```
+
+### Démarrage
+
+```bash
+# Backend
+npm run dev
+
+# Frontend
+npm run dev
+```
+
+### Tests
+
+Le système est testé avec :
+
+- **Authentification** : Validation des tokens JWT
+- **Permissions** : Accès aux conversations
+- **Rooms** : Adhésion et sortie des rooms
+- **Messages** : Envoi et réception en temps réel
+- **Erreurs** : Gestion des cas d'erreur

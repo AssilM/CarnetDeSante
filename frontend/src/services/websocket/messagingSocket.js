@@ -1,11 +1,13 @@
 /**
- * Client WebSocket pour la messagerie
- * Gère la connexion WebSocket et les communications en temps réel
+ * Client Socket.IO pour la messagerie
+ * Gère la connexion Socket.IO et les communications en temps réel
  */
+
+import { io } from "socket.io-client";
 
 class MessagingSocket {
   constructor() {
-    this.ws = null;
+    this.socket = null;
     this.isConnected = false;
     this.currentRoom = null;
     this.eventListeners = new Map();
@@ -18,44 +20,42 @@ class MessagingSocket {
   // === CONNEXION ===
 
   connect() {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      console.log("🔌 WebSocket déjà connecté");
+    if (this.socket && this.socket.connected) {
+      console.log("🔌 Socket.IO déjà connecté");
       return;
     }
 
     const token = localStorage.getItem("accessToken");
     if (!token) {
-      console.error("❌ Token manquant pour la connexion WebSocket");
+      console.error("❌ Token manquant pour la connexion Socket.IO");
       return;
     }
 
     // Réinitialiser le flag de déconnexion manuelle
     this.manualDisconnect = false;
 
-    const wsUrl = `ws://localhost:5001?token=${token}`;
-    console.log("🔌 Tentative de connexion WebSocket:", wsUrl);
+    console.log("🔌 Tentative de connexion Socket.IO");
 
-    this.ws = new WebSocket(wsUrl);
+    // Créer la connexion Socket.IO
+    this.socket = io("http://localhost:5001", {
+      auth: {
+        token: token,
+      },
+      transports: ["websocket", "polling"],
+      reconnection: false, // On gère la reconnexion manuellement
+      timeout: 20000,
+    });
 
-    this.ws.onopen = () => {
-      console.log("✅ WebSocket connecté");
+    // Gérer les événements de connexion
+    this.socket.on("connect", () => {
+      console.log("✅ Socket.IO connecté");
       this.isConnected = true;
       this.reconnectAttempts = 0;
       this.emit("connect");
-    };
+    });
 
-    this.ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log("📨 Message WebSocket reçu:", data);
-        this.handleMessage(data);
-      } catch (error) {
-        console.error("❌ Erreur lors du parsing du message WebSocket:", error);
-      }
-    };
-
-    this.ws.onclose = (event) => {
-      console.log("🔌 WebSocket déconnecté:", event.code, event.reason);
+    this.socket.on("disconnect", (reason) => {
+      console.log("🔌 Socket.IO déconnecté:", reason);
       this.isConnected = false;
       this.currentRoom = null;
       this.emit("disconnect");
@@ -76,31 +76,72 @@ class MessagingSocket {
       } else if (this.manualDisconnect) {
         console.log("🔌 Déconnexion manuelle - pas de reconnexion automatique");
       }
-    };
+    });
 
-    this.ws.onerror = (error) => {
-      console.error("❌ Erreur WebSocket:", error);
+    this.socket.on("connect_error", (error) => {
+      console.error("❌ Erreur de connexion Socket.IO:", error);
       this.emit("error", error);
-    };
+    });
+
+    // Gérer les messages reçus
+    this.socket.on("connection_established", (data) => {
+      console.log("✅ Connexion Socket.IO établie");
+      this.emit("connection_established", data);
+    });
+
+    this.socket.on("room_joined", (data) => {
+      console.log("🏠 Room rejointe:", data.conversationId);
+      this.emit("room_joined", data);
+    });
+
+    this.socket.on("room_left", (data) => {
+      console.log("👋 Room quittée:", data.conversationId);
+      this.emit("room_left", data);
+    });
+
+    this.socket.on("new_message", (data) => {
+      console.log("📨 Nouveau message reçu");
+      this.emit("new_message", data);
+    });
+
+    this.socket.on("messages_read", (data) => {
+      console.log("✅ Messages marqués comme lus");
+      this.emit("messages_read", data);
+    });
+
+    this.socket.on("typing_start", (data) => {
+      console.log("⌨️ Début de frappe détecté");
+      this.emit("typing_start", data);
+    });
+
+    this.socket.on("typing_stop", (data) => {
+      console.log("⏹️ Arrêt de frappe détecté");
+      this.emit("typing_stop", data);
+    });
+
+    this.socket.on("error", (data) => {
+      console.error("❌ Erreur Socket.IO:", data.message);
+      this.emit("error", data);
+    });
   }
 
   disconnect() {
-    console.log("🔌 Déconnexion WebSocket initiée");
+    console.log("🔌 Déconnexion Socket.IO initiée");
 
     // Marquer comme déconnexion manuelle pour éviter les reconnexions automatiques
     this.manualDisconnect = true;
 
-    if (this.ws) {
+    if (this.socket) {
       // Fermer proprement la connexion
-      if (this.ws.readyState === WebSocket.OPEN) {
-        console.log("🔌 Fermeture propre de la connexion WebSocket");
-        this.ws.close(1000, "Déconnexion utilisateur");
+      if (this.socket.connected) {
+        console.log("🔌 Fermeture propre de la connexion Socket.IO");
+        this.socket.disconnect();
       } else {
         console.log(
-          "🔌 Connexion WebSocket déjà fermée ou en cours de fermeture"
+          "🔌 Connexion Socket.IO déjà fermée ou en cours de fermeture"
         );
       }
-      this.ws = null;
+      this.socket = null;
     }
 
     // Réinitialiser l'état
@@ -108,14 +149,14 @@ class MessagingSocket {
     this.currentRoom = null;
     this.reconnectAttempts = 0;
 
-    console.log("✅ Déconnexion WebSocket terminée");
+    console.log("✅ Déconnexion Socket.IO terminée");
   }
 
   // === GESTION DES ROOMS ===
 
   joinRoom(conversationId) {
     if (!this.isConnected) {
-      console.error("❌ WebSocket non connecté");
+      console.error("❌ Socket.IO non connecté");
       return;
     }
 
@@ -124,8 +165,7 @@ class MessagingSocket {
       this.leaveRoom(this.currentRoom);
     }
 
-    this.send({
-      type: "join_room",
+    this.socket.emit("join_room", {
       conversationId: conversationId,
     });
 
@@ -138,8 +178,7 @@ class MessagingSocket {
       return;
     }
 
-    this.send({
-      type: "leave_room",
+    this.socket.emit("leave_room", {
       conversationId: conversationId,
     });
 
@@ -153,12 +192,11 @@ class MessagingSocket {
 
   sendMessage(conversationId, content) {
     if (!this.isConnected) {
-      console.error("❌ WebSocket non connecté");
+      console.error("❌ Socket.IO non connecté");
       return;
     }
 
-    this.send({
-      type: "send_message",
+    this.socket.emit("send_message", {
       conversationId: conversationId,
       content: content,
     });
@@ -169,8 +207,7 @@ class MessagingSocket {
       return;
     }
 
-    this.send({
-      type: "mark_as_read",
+    this.socket.emit("mark_as_read", {
       conversationId: conversationId,
     });
   }
@@ -182,8 +219,7 @@ class MessagingSocket {
       return;
     }
 
-    this.send({
-      type: "typing_start",
+    this.socket.emit("typing_start", {
       conversationId: conversationId,
     });
   }
@@ -193,68 +229,9 @@ class MessagingSocket {
       return;
     }
 
-    this.send({
-      type: "typing_stop",
+    this.socket.emit("typing_stop", {
       conversationId: conversationId,
     });
-  }
-
-  // === UTILITAIRES ===
-
-  send(data) {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(data));
-    } else {
-      console.error("❌ WebSocket non connecté pour l'envoi");
-    }
-  }
-
-  handleMessage(data) {
-    switch (data.type) {
-      case "connection_established":
-        console.log("✅ Connexion WebSocket établie");
-        this.emit("connection_established", data);
-        break;
-
-      case "room_joined":
-        console.log("🏠 Room rejointe:", data.conversationId);
-        this.emit("room_joined", data);
-        break;
-
-      case "room_left":
-        console.log("👋 Room quittée:", data.conversationId);
-        this.emit("room_left", data);
-        break;
-
-      case "new_message":
-        console.log("📨 Nouveau message reçu");
-        this.emit("new_message", data);
-        break;
-
-      case "messages_read":
-        console.log("✅ Messages marqués comme lus");
-        this.emit("messages_read", data);
-        break;
-
-      case "typing_start":
-        console.log("⌨️ Début de frappe détecté");
-        this.emit("typing_start", data);
-        break;
-
-      case "typing_stop":
-        console.log("⏹️ Arrêt de frappe détecté");
-        this.emit("typing_stop", data);
-        break;
-
-      case "error":
-        console.error("❌ Erreur WebSocket:", data.message);
-        this.emit("error", data);
-        break;
-
-      default:
-        console.log("📨 Message WebSocket non reconnu:", data);
-        this.emit("message", data);
-    }
   }
 
   // === GESTION DES ÉVÉNEMENTS ===
