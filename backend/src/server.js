@@ -9,7 +9,7 @@ import cors from "cors";
 import { checkAppointmentsStatus } from "./appointment/rendezvous.service.js";
 import notificationListener from "./notification/notificationListener.js";
 import { initCronJobs } from "./utils/cron.service.js";
-import webSocketServer from "./messaging/websocket/websocket.server.js";
+import socketIOServer from "./messaging/websocket/websocket.server.js";
 import { createServer } from "http";
 
 dotenv.config();
@@ -19,8 +19,8 @@ const port = process.env.PORT || 5001;
 // Créer le serveur HTTP
 const server = createServer(app);
 
-// Initialiser le serveur WebSocket
-webSocketServer.initialize(server);
+// Initialiser le serveur Socket.IO
+socketIOServer.initialize(server);
 
 // Créer les tables et générer des données de test
 const initDatabase = async () => {
