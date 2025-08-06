@@ -15,6 +15,7 @@ import {
   setForbiddenHandler,
 } from "../services/http";
 import { authService, createUserService } from "../services/api";
+import messagingSocket from "../services/websocket/messagingSocket";
 
 const AuthContext = createContext();
 
@@ -45,10 +46,14 @@ export const AuthProvider = ({ children }) => {
     console.log("[AuthContext] Déconnexion initiée");
 
     try {
-      // Nettoyer les tokens avec la fonction centralisée
+      // 1️⃣ Fermer proprement la connexion WebSocket
+      console.log("[AuthContext] Fermeture de la connexion WebSocket");
+      messagingSocket.disconnect();
+
+      // 2️⃣ Nettoyer les tokens avec la fonction centralisée
       await clearAuth();
     } finally {
-      // Nettoyer les données de session
+      // 3️⃣ Nettoyer les données de session
       setCurrentUser(null);
       navigate("/auth/login");
     }
@@ -63,7 +68,6 @@ export const AuthProvider = ({ children }) => {
 
         currentPath:
           typeof window !== "undefined" ? window.location.pathname : "unknown",
-
       });
 
       // ✅ NOUVELLE LOGIQUE : Gérer les différents cas
