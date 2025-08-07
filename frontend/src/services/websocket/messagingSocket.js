@@ -36,8 +36,8 @@ class MessagingSocket {
 
     console.log("🔌 Tentative de connexion Socket.IO");
 
-    // Créer la connexion Socket.IO
-    this.socket = io("http://localhost:5001", {
+    // Créer la connexion Socket.IO - utiliser l'URL relative
+    this.socket = io("/", {
       auth: {
         token: token,
       },

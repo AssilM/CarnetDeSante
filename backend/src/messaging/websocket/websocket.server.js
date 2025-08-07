@@ -17,8 +17,9 @@ class SocketIOServerManager {
   initialize(server) {
     this.io = new Server(server, {
       cors: {
-        origin: "http://localhost:5173", // Frontend URL
-        methods: ["GET", "POST"]
+        origin: process.env.CLIENT_URL || "http://localhost:5173", // Utiliser la variable d'environnement
+        methods: ["GET", "POST"],
+        credentials: true
       }
     });
 

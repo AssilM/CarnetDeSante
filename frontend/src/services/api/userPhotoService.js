@@ -13,7 +13,8 @@ const createUserPhotoService = (api) => {
         return null;
       }
       
-      const baseUrl = "http://localhost:5001";
+      // Utilise la variable d'environnement ou fallback
+      const baseUrl = import.meta.env.VITE_API_URL || "/api";
       
       if (photoPath.startsWith("/")) {
         return `${baseUrl}${photoPath}`;

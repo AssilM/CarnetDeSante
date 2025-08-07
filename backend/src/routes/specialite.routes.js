@@ -4,6 +4,6 @@ import { getAllSpecialitesController } from "../specialite/specialite.controller
 const router = express.Router();
 
 // Récupérer toutes les spécialités (public)
-router.get("/api/specialites", getAllSpecialitesController);
+router.get("/", getAllSpecialitesController);
 
 export default router;

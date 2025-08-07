@@ -22,9 +22,29 @@ const server = createServer(app);
 // Initialiser le serveur Socket.IO
 socketIOServer.initialize(server);
 
+// Fonction pour attendre que PostgreSQL soit prêt
+const waitForDatabase = async (maxRetries = 30) => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      await pool.query("SELECT 1");
+      console.log("✅ Connexion à PostgreSQL établie");
+      return;
+    } catch (err) {
+      console.log(
+        `⏳ En attente de PostgreSQL... (${maxRetries - i} tentatives restantes)`
+      );
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  }
+  throw new Error("Impossible de se connecter à PostgreSQL");
+};
+
 // Créer les tables et générer des données de test
 const initDatabase = async () => {
   try {
+    // Attendre que la base soit disponible
+    await waitForDatabase();
+
     // Pour réinitialiser complètement la base de données, décommentez la ligne suivante
     await dropAllTables();
 
@@ -64,69 +84,80 @@ const initChatDatabase = async () => {
   }
 };
 
-// Initialiser la base de données
-//initDatabase();
-//initChatDatabase();
-app.use(cors());
-// Démarrer le serveur
-server.listen(port, async () => {
-  console.log(`Server is running on port ${port}`);
-
-  // Initialiser les tâches cron
+// Initialiser la base de données AU DÉMARRAGE
+const startServer = async () => {
   try {
-    initCronJobs();
-    console.log("🕐 Tâches cron initialisées avec succès");
-  } catch (error) {
-    console.error("❌ Erreur lors de l'initialisation des tâches cron:", error);
-  }
+    // Initialiser les bases de données
+    await initDatabase();
+    await initChatDatabase();
 
-  // Démarrer le listener de notifications
-  try {
-    await notificationListener.connect();
-    console.log("🔔 NotificationListener démarré avec succès");
-  } catch (error) {
-    console.error(
-      "❌ Erreur lors du démarrage du NotificationListener:",
-      error
-    );
-  }
+    // Démarrer le serveur après initialisation
+    server.listen(port, async () => {
+      console.log(`Server is running on port ${port}`);
 
-  // Démarrer la vérification périodique des statuts des rendez-vous
-  console.log(
-    "Démarrage de la vérification périodique des statuts de rendez-vous..."
-  );
-
-  // Exécuter immédiatement une première fois
-  checkAppointmentsStatus()
-    .then((result) => {
-      console.log("Vérification initiale des statuts terminée:", {
-        enCoursUpdated: result.enCoursUpdated,
-        termineUpdated: result.termineUpdated,
-      });
-    })
-    .catch((error) => {
-      console.error(
-        "Erreur lors de la vérification initiale des statuts:",
-        error
-      );
-    });
-
-  // Configurer l'interval pour vérifier toutes les minutes
-  const CHECK_INTERVAL = 60 * 1000; // 60 secondes
-  setInterval(async () => {
-    try {
-      const result = await checkAppointmentsStatus();
-      if (result.enCoursUpdated > 0 || result.termineUpdated > 0) {
-        console.log(`[${new Date().toISOString()}] Mise à jour des statuts:`, {
-          enCoursUpdated: result.enCoursUpdated,
-          termineUpdated: result.termineUpdated,
-        });
+      // Initialiser les tâches cron
+      try {
+        initCronJobs();
+        console.log("🕐 Tâches cron initialisées avec succès");
+      } catch (error) {
+        console.error("❌ Erreur lors de l'initialisation des tâches cron:", error);
       }
-    } catch (error) {
-      console.error(
-        `[${new Date().toISOString()}] Erreur lors de la vérification périodique des statuts:`,
-        error
+
+      // Démarrer le listener de notifications
+      try {
+        await notificationListener.connect();
+        console.log("🔔 NotificationListener démarré avec succès");
+      } catch (error) {
+        console.error(
+          "❌ Erreur lors du démarrage du NotificationListener:",
+          error
+        );
+      }
+
+      // Démarrer la vérification périodique des statuts des rendez-vous
+      console.log(
+        "Démarrage de la vérification périodique des statuts de rendez-vous..."
       );
-    }
-  }, CHECK_INTERVAL);
-});
+
+      // Exécuter immédiatement une première fois
+      checkAppointmentsStatus()
+        .then((result) => {
+          console.log("Vérification initiale des statuts terminée:", {
+            enCoursUpdated: result.enCoursUpdated,
+            termineUpdated: result.termineUpdated,
+          });
+        })
+        .catch((error) => {
+          console.error(
+            "Erreur lors de la vérification initiale des statuts:",
+            error
+          );
+        });
+
+      // Configurer l'interval pour vérifier toutes les minutes
+      const CHECK_INTERVAL = 60 * 1000; // 60 secondes
+      setInterval(async () => {
+        try {
+          const result = await checkAppointmentsStatus();
+          if (result.enCoursUpdated > 0 || result.termineUpdated > 0) {
+            console.log(`[${new Date().toISOString()}] Mise à jour des statuts:`, {
+              enCoursUpdated: result.enCoursUpdated,
+              termineUpdated: result.termineUpdated,
+            });
+          }
+        } catch (error) {
+          console.error(
+            `[${new Date().toISOString()}] Erreur lors de la vérification périodique des statuts:`,
+            error
+          );
+        }
+      }, CHECK_INTERVAL);
+    });
+  } catch (error) {
+    console.error("Erreur lors du démarrage:", error);
+    process.exit(1);
+  }
+};
+
+// Démarrer le serveur
+startServer();
