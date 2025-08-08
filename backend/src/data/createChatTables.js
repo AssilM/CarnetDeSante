@@ -101,12 +101,18 @@ const createChatIndexes = async () => {
 
   try {
     for (const query of queries) {
-      await chatPool.query(query);
+      try {
+        await chatPool.query(query);
+      } catch (indexError) {
+        console.warn(`Index non créé (peut-être déjà existant): ${query}`);
+        // Continuer avec les autres index même si celui-ci échoue
+      }
     }
     console.log("Index de messagerie créés avec succès");
   } catch (error) {
     console.error("Erreur lors de la création des index de messagerie:", error);
-    throw error;
+    // Ne pas faire échouer l'initialisation pour des erreurs d'index
+    console.log("Continuing without indexes...");
   }
 };
 
@@ -114,7 +120,7 @@ const createChatIndexes = async () => {
 const initChatTables = async () => {
   try {
     // Décommentez la ligne suivante pour supprimer toutes les tables avant de les recréer
-    // await dropAllChatTables();
+    await dropAllChatTables();
 
     await createConversationsTable();
     await createMessagesTable();

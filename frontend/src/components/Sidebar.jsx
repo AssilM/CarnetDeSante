@@ -122,11 +122,6 @@ const Sidebar = () => {
       path: "/notifications",
     },
     {
-      icon: <MdMessage className="text-2xl" />,
-      label: "Messagerie",
-      path: "/messaging",
-    },
-    {
       icon: <FaCog className="text-2xl" />,
       label: "Paramètres",
       path: "/settings",

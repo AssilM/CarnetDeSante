@@ -8,7 +8,6 @@ import seedDatabase from "./data/seedData.js";
 import cors from "cors";
 import { checkAppointmentsStatus } from "./appointment/rendezvous.service.js";
 import notificationListener from "./notification/notificationListener.js";
-
 import { initCronJobs } from "./utils/cron.service.js";
 import socketIOServer from "./messaging/websocket/websocket.server.js";
 import { createServer } from "http";
@@ -16,7 +15,6 @@ import { createServer } from "http";
 dotenv.config();
 
 const port = process.env.PORT || 5001;
-
 
 // Créer le serveur HTTP
 const server = createServer(app);
@@ -43,14 +41,13 @@ const initDatabase = async () => {
 
     // 2. Réinitialiser la base "Messagerie"
     console.log("📋 Réinitialisation de la base 'Messagerie'...");
-    await cleanupMessagingTables(); // Supprimer les tables existantes
-    await createMessagingTables(); // Recréer les tables
+    await dropAllChatTables(); // Supprimer les tables existantes
+    await initChatTables(); // Recréer les tables
 
     console.log("✅ Base 'Messagerie' réinitialisée avec succès");
 
     console.log("🎉 Toutes les bases de données ont été réinitialisées");
   } catch (err) {
-
     console.error(
       "Erreur lors de l'initialisation de la base de données principale:",
       err
@@ -62,7 +59,7 @@ const initDatabase = async () => {
 const initChatDatabase = async () => {
   try {
     // Pour réinitialiser complètement la base de données de messagerie, décommentez la ligne suivante
-    await dropAllChatTables();
+    // await dropAllChatTables();
 
     // Initialiser les tables de messagerie
     await initChatTables();
@@ -75,92 +72,80 @@ const initChatDatabase = async () => {
   }
 };
 
-// Initialiser la base de données
-//initDatabase();
-//initChatDatabase();
+// Configuration CORS
 app.use(cors());
+
 // Démarrer le serveur
 server.listen(port, async () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`🚀 Server is running on port ${port}`);
 
-  // Initialiser les tâches cron
   try {
-    // L'initialisation de la base de données est maintenant gérée par init-database.js
-    console.log("🚀 Démarrage du serveur...");
-    
-    app.use(cors());
+    // Initialiser la base de données principale avec les données de test
+    try {
+      console.log("🔄 Initialisation de la base de données principale...");
+      await dropAllTables();
+      await initTables();
+      await createNotificationTriggers();
+      await seedDatabase(true); // Injecter les données de test
+      console.log("✅ Base de données principale initialisée avec succès");
+    } catch (error) {
+      console.error("❌ Erreur lors de l'initialisation de la base de données principale:", error);
+    }
 
-    // Créer le serveur HTTP
-    const server = createServer(app);
+    // Initialiser les tables de messagerie
+    try {
+      await initChatDatabase();
+      console.log("💬 Tables de messagerie initialisées");
+    } catch (error) {
+      console.error("❌ Erreur lors de l'initialisation des tables de messagerie:", error);
+    }
 
-    // Initialiser le serveur WebSocket
-    const socketServer = new SocketServer(server);
+    // Démarrer le NotificationListener
+    try {
+      notificationListener.connect();
+      console.log("🔔 NotificationListener démarré avec succès");
+    } catch (error) {
+      console.error("❌ Erreur lors du démarrage du NotificationListener:", error);
+    }
 
-    // Démarrer le serveur
-    server.listen(port, async () => {
-      console.log(`Server is running on port ${port}`);
+    // Démarrer la vérification périodique des statuts des rendez-vous
+    console.log("Démarrage de la vérification périodique des statuts de rendez-vous...");
 
-      // Initialiser les tables de messagerie
+    // Exécuter immédiatement une première fois
+    checkAppointmentsStatus()
+      .then((result) => {
+        console.log("Vérification initiale des statuts terminée:", {
+          enCoursUpdated: result.enCoursUpdated,
+          termineUpdated: result.termineUpdated,
+        });
+      })
+      .catch((error) => {
+        console.error("Erreur lors de la vérification initiale des statuts:", error);
+      });
+
+    // Configurer l'interval pour vérifier toutes les minutes
+    const CHECK_INTERVAL = 60 * 1000; // 60 secondes
+    setInterval(async () => {
       try {
-        await initMessagingTables();
-        console.log("💬 Tables de messagerie initialisées");
-      } catch (error) {
-        console.error("❌ Erreur lors de l'initialisation des tables de messagerie:", error);
-      }
-
-      // Démarrer le NotificationListener
-      try {
-        notificationListener.connect();
-        console.log("🔔 NotificationListener démarré avec succès");
-      } catch (error) {
-        console.error("❌ Erreur lors du démarrage du NotificationListener:", error);
-      }
-
-      // Démarrer la vérification périodique des statuts des rendez-vous
-      console.log(
-        "Démarrage de la vérification périodique des statuts de rendez-vous..."
-      );
-
-      // Exécuter immédiatement une première fois
-      checkAppointmentsStatus()
-        .then((result) => {
-          console.log("Vérification initiale des statuts terminée:", {
+        const result = await checkAppointmentsStatus();
+        if (result.enCoursUpdated > 0 || result.termineUpdated > 0) {
+          console.log(`[${new Date().toISOString()}] Mise à jour des statuts:`, {
             enCoursUpdated: result.enCoursUpdated,
             termineUpdated: result.termineUpdated,
           });
-        })
-        .catch((error) => {
-          console.error(
-            "Erreur lors de la vérification initiale des statuts:",
-            error
-          );
-        });
-
-      // Configurer l'interval pour vérifier toutes les minutes
-      const CHECK_INTERVAL = 60 * 1000; // 60 secondes
-      setInterval(async () => {
-        try {
-          const result = await checkAppointmentsStatus();
-          if (result.enCoursUpdated > 0 || result.termineUpdated > 0) {
-            console.log(`[${new Date().toISOString()}] Mise à jour des statuts:`, {
-              enCoursUpdated: result.enCoursUpdated,
-              termineUpdated: result.termineUpdated,
-            });
-          }
-        } catch (error) {
-          console.error(
-            `[${new Date().toISOString()}] Erreur lors de la vérification périodique des statuts:`,
-            error
-          );
         }
-      }, CHECK_INTERVAL);
-    });
+      } catch (error) {
+        console.error(
+          `[${new Date().toISOString()}] Erreur lors de la vérification périodique des statuts:`,
+          error
+        );
+      }
+    }, CHECK_INTERVAL);
+
+    console.log("✅ Serveur démarré avec succès");
   } catch (error) {
     console.error("❌ Erreur lors du démarrage du serveur:", error);
     process.exit(1);
   }
-};
-
-// Démarrer le serveur
-startServer();
+});
 

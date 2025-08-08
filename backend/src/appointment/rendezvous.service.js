@@ -14,7 +14,6 @@ import {
   createFollowRelationship,
 } from "./rendezvous.repository.js";
 import { getJourSemaine, isDateInFuture } from "../utils/date.utils.js";
-import messagingService from "../messaging/messaging.service.js";
 
 /**
  * Service de gestion des rendez-vous

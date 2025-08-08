@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }) => {
       // 2️⃣ Nettoyer les tokens avec la fonction centralisée
       await clearAuth();
       // Déconnecter le socket
-      socketService.disconnect();
+      messagingSocket.disconnect();
     } finally {
       // 3️⃣ Nettoyer les données de session
       setCurrentUser(null);
@@ -90,7 +90,7 @@ export const AuthProvider = ({ children }) => {
           
           // Connecter le socket WebSocket
           if (accessToken) {
-            socketService.connect(accessToken);
+            messagingSocket.connect(accessToken);
           }
         } catch (error) {
           console.log("[AuthContext] Erreur lors de la récupération de l'utilisateur:", error);
@@ -128,7 +128,7 @@ export const AuthProvider = ({ children }) => {
             // Connecter le socket WebSocket
             const accessToken = getCurrentToken();
             if (accessToken) {
-              socketService.connect(accessToken);
+              messagingSocket.connect(accessToken);
             }
           } catch (error) {
             console.log("[AuthContext] Aucun refresh token valide - déconnecté", error);
@@ -146,7 +146,7 @@ export const AuthProvider = ({ children }) => {
             // Connecter le socket WebSocket
             const accessToken = getCurrentToken();
             if (accessToken) {
-              socketService.connect(accessToken);
+              messagingSocket.connect(accessToken);
             }
           } catch (tokenError) {
             console.log("[AuthContext] Erreur lors de la validation du token:", tokenError);
@@ -166,7 +166,7 @@ export const AuthProvider = ({ children }) => {
                 // Connecter le socket WebSocket
                 const accessToken = getCurrentToken();
                 if (accessToken) {
-                  socketService.connect(accessToken);
+                  messagingSocket.connect(accessToken);
                 }
               } catch (refreshError) {
                 console.log("[AuthContext] Refresh échoué - authentification requise", refreshError);
@@ -227,7 +227,7 @@ export const AuthProvider = ({ children }) => {
       // Connecter le socket WebSocket après connexion réussie
       const accessToken = getCurrentToken();
       if (accessToken) {
-        socketService.connect(accessToken);
+        messagingSocket.connect(accessToken);
       }
       
       return user;

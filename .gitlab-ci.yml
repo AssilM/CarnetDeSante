@@ -1,0 +1,5 @@
+check:
+  script:
+    - pwd
+    - ls -al
+    
