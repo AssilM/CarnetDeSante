@@ -32,6 +32,8 @@ const Messagerie = () => {
   const [typingUsers, setTypingUsers] = useState(new Set());
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef(null);
+  const mobileMessagesRef = useRef(null);
+  const desktopMessagesRef = useRef(null);
 
   // Afficher l'erreur si elle existe
   useEffect(() => {
@@ -95,13 +97,43 @@ const Messagerie = () => {
     loadConversations();
   }, []);
 
-  // Auto-scroll vers le bas quand de nouveaux messages arrivent ou quand l'indicateur de frappe apparaît
-  useEffect(() => {
-    const messagesContainer = document.querySelector(".messages-container");
+  // Fonction pour scroller vers le bas
+  const scrollToBottom = (smooth = false) => {
+    // Vérifier quelle version est actuellement affichée et utiliser la ref appropriée
+    const messagesContainer =
+      window.innerWidth >= 768
+        ? desktopMessagesRef.current
+        : mobileMessagesRef.current;
+
     if (messagesContainer) {
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      messagesContainer.scrollTo({
+        top: messagesContainer.scrollHeight,
+        behavior: smooth ? "smooth" : "auto",
+      });
     }
+  };
+
+  // Auto-scroll vers le bas dans différentes situations
+  useEffect(() => {
+    // Utiliser un timeout pour s'assurer que le DOM est mis à jour
+    const timer = setTimeout(() => {
+      scrollToBottom();
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [messages, typingUsers]);
+
+  // Scroll lors du chargement initial des messages ou changement de conversation
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Timeout plus long pour le chargement initial
+      const timer = setTimeout(() => {
+        scrollToBottom(true);
+      }, 300);
+
+      return () => clearTimeout(timer);
+    }
+  }, [selectedConversation?.id]);
 
   // Gérer les nouveaux messages
   const handleNewMessage = (messageData) => {
@@ -306,6 +338,11 @@ const Messagerie = () => {
       setTimeout(() => {
         messagingSocket.markAsRead(conversationId);
       }, 500);
+
+      // Scroll vers le bas après le chargement des messages avec un délai approprié
+      setTimeout(() => {
+        scrollToBottom(true);
+      }, 600);
     } catch (err) {
       console.error("Erreur lors du chargement des messages:", err);
     }
@@ -338,6 +375,9 @@ const Messagerie = () => {
 
       // Vider le champ de saisie immédiatement pour une meilleure UX
       setMessage("");
+
+      // Scroll vers le bas avec une animation douce
+      scrollToBottom(true);
 
       // Arrêter l'indicateur de frappe
       messagingSocket.stopTyping(selectedConversation.id);
@@ -531,7 +571,10 @@ const Messagerie = () => {
             /* Chat - Mobile */
             <div className="h-full flex flex-col bg-gray-50">
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 messages-container">
+              <div
+                ref={mobileMessagesRef}
+                className="flex-1 overflow-y-auto p-4 space-y-3 messages-container"
+              >
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
@@ -638,6 +681,7 @@ const Messagerie = () => {
             formatDate={formatDate}
             refreshingConversation={refreshingConversation}
             isMobile={false}
+            messagesRef={desktopMessagesRef}
           />
         </div>
       </div>

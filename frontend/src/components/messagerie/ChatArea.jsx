@@ -22,6 +22,7 @@ const ChatArea = ({
   formatDate,
   refreshingConversation,
   isMobile = false,
+  messagesRef,
 }) => {
   if (!selectedConversation) {
     return (
@@ -66,7 +67,10 @@ const ChatArea = ({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 messages-container">
+      <div
+        ref={messagesRef}
+        className="flex-1 overflow-y-auto p-6 space-y-4 messages-container"
+      >
         {messages.map((msg) => (
           <div
             key={msg.id}

@@ -78,11 +78,11 @@ const ContactSelectionModal = ({ isOpen, onClose, onContactSelect }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden">
+    <div className="fixed inset-0 backdrop-blur-[2px] flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 md:mx-auto max-h-[90vh] md:max-h-[80vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
+        <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200">
+          <h2 className="text-lg md:text-xl font-semibold text-gray-900">
             Créer une conversation
           </h2>
           <button
@@ -94,7 +94,7 @@ const ContactSelectionModal = ({ isOpen, onClose, onContactSelect }) => {
         </div>
 
         {/* Barre de recherche */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-4 md:p-6 border-b border-gray-200">
           <div className="relative">
             <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
@@ -102,13 +102,13 @@ const ContactSelectionModal = ({ isOpen, onClose, onContactSelect }) => {
               placeholder="Rechercher un utilisateur..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2.5 md:py-3 text-sm md:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
         </div>
 
         {/* Contenu */}
-        <div className="p-6 max-h-96 overflow-y-auto">
+        <div className="p-4 md:p-6 max-h-[calc(90vh-16rem)] md:max-h-96 overflow-y-auto">
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -127,43 +127,45 @@ const ContactSelectionModal = ({ isOpen, onClose, onContactSelect }) => {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2 md:space-y-3">
               {filteredUsers.map((user) => (
                 <div
                   key={user.id}
                   onClick={() => handleContactSelect(user)}
-                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                  className="flex items-center p-3 md:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                 >
                   {/* Avatar */}
-                  <div className="flex-shrink-0 w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mr-4">
+                  <div className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 bg-gray-200 rounded-full flex items-center justify-center mr-3 md:mr-4">
                     {user.chemin_photo ? (
                       <img
                         src={user.chemin_photo}
                         alt={`${user.prenom} ${user.nom}`}
-                        className="w-12 h-12 rounded-full object-cover"
+                        className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
+                      <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-300 rounded-full flex items-center justify-center">
                         {getUserIcon(user.role)}
                       </div>
                     )}
                   </div>
 
                   {/* Informations utilisateur */}
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold text-gray-900">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start md:items-center justify-between">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-gray-900 text-sm md:text-base truncate">
                           {user.prenom} {user.nom}
                         </h3>
-                        <p className="text-sm text-gray-500">{user.email}</p>
+                        <p className="text-xs md:text-sm text-gray-500 truncate">
+                          {user.email}
+                        </p>
                         {user.specialite && (
-                          <p className="text-xs text-blue-600 mt-1">
+                          <p className="text-xs text-blue-600 mt-0.5 truncate">
                             {user.specialite}
                           </p>
                         )}
                       </div>
-                      <div className="text-right">
+                      <div className="ml-2 flex-shrink-0">
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           {getUserRoleLabel(user.role)}
                         </span>
@@ -177,14 +179,14 @@ const ContactSelectionModal = ({ isOpen, onClose, onContactSelect }) => {
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-200 bg-gray-50">
+        <div className="p-4 md:p-6 border-t border-gray-200 bg-gray-50">
           <div className="flex justify-between items-center">
-            <p className="text-sm text-gray-500">
+            <p className="text-xs md:text-sm text-gray-500">
               {filteredUsers.length} utilisateur(s) trouvé(s)
             </p>
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              className="px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base text-gray-600 hover:text-gray-800 transition-colors"
             >
               Annuler
             </button>
