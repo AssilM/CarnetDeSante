@@ -7,7 +7,9 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "init-db": "node src/data/initDB.js"
@@ -30,6 +32,9 @@
   },
   "devDependencies": {
     "@types/nodemailer": "^6.4.17",
-    "nodemon": "^3.1.10"
+    "@vitest/coverage-v8": "^2.1.5",
+    "nodemon": "^3.1.10",
+    "supertest": "^7.0.0",
+    "vitest": "^2.1.5"
   }
 }
